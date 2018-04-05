@@ -1,0 +1,118 @@
+Bit-patterns for 32b word
+expanding-tag
+
+Heap is constructed of 4W (32o) cells.
+of 32b addressable space,
+1/4 for sys, e.g. primitives, implementation constants, system trap/call
+1/4 for rom (30b - 4b align = 26b), program load-time values
+1/4 for heap (30b - 4b align = 26b), program run-time storage
+=> 30b byte-addressed heap, 26b object-addressed heap
+
+atom <- anything object but list/tree
+quark <- atom that can fit completely in 32b (word-sized atom)
+  precludes vector, string, object, table
+
+
+ 3          2          1
+10987654 32109876 54321098 76543210
+        |        |        |       0  float31
+        |        |        |      01  int30
+        |        |        |     011  sync29; iter29
+        |        |        |  ..0111  space26
+        |        |        |  000111  sys26
+        |        |        |  010111  rom26
+        |        |        |  100111  heap26
+        |        |        |  110111  (reserved)
+        |        |        |01111111  char24 - 21b needed for Unicode 3.0
+        |        |11111111|11111111  const16
+
+
+
+Meaning of sync29 depends on where it's found:
+In heap space: start-of-object marker (helps blind-scan vectors)
+In a register value: iterator object
+In ROM space: special boundaries, e.g. improper-list marker
+
+sync29, heap
+ 3          2          1
+10987654 32109876 54321098 76543210
+        |        |        |     100  (fixed)
+u       |        |        |          used (object is valid)
+ m      |        |        |          marked (garbage collection)
+  g     |        |        |          grey/GC_use
+     o  |        |        |          payload is octet type or pointer type.
+      st|        |        |          GC backtrack
+        |        |        |abcde     allocscale (power-of-two contiguous cells)
+
+sync29, register
+ 3          2          1
+10987654 32109876 54321098 76543210
+        |        |        |     100  (fixed)
+xxxxxxxx|xxxxxxxx|xxxxxxxx|xx
+        |        |        |  yy      space
+        |        |        |    z     iterator sense: vec (+1), cons (*cdr)
+
+sync29, rom
+ 3          2          1
+10987654 32109876 54321098 76543210
+        |        |        |     100  (fixed)
+00000000|00000000|00000001|00000     improper-list marker (next word is cdr)
+
+
+
+
+
+heap object layout, pointer contents (traceable garbage collection)
+Generic (Tree):
+1. mgmt
+2. left
+3. data
+4. right
+
+Free List:
+1. mgmt (used=0)
+2. next, heap_offset
+3. span, cells
+4. (reserved)
+
+Cons:
+1. mgmt
+2. =null
+3. head
+4. tail
+
+Vector:
+1. mgmt
+2. :int30 length
+3. gc_bt -- garbage collector back-tracking pointer
+4. gc_it -- garbage collector iterator
+
+String:
+1. mgmt
+2. 
+
+
+
+heap object layout, bytes contents (reference counted garbage collection)
+Bytestream:
+1. mgmt (bytes)
+2. :int30 length
+3. ref_count
+4. mutex
+n. bytes
+
+WideNumber:
+1. mgmt (bytes)
+2. ref_count
+3,4. long64, float64, rational64, complex64
+
+
+
+ROM object:
+List:
+1. meta
+2. :int30 length
+
+
+
+
