@@ -53,15 +53,16 @@
 */
 
 
-typedef uint32_t qsptr_t;
+typedef uint32_t qsword;
+typedef qsword qsptr_t;
 
-union qsword_u {
+union qsbits_u {
   float f;
   int32_t i;
   uint32_t u;
 };
 
-typedef union qsword_u qsword_t;
+typedef union qsbits_u qsbits_t;
 
 
 
@@ -97,20 +98,26 @@ typedef union qsword_u qsword_t;
 #define TAG_CONST16 0xffff
 
 
+#define QSFLOAT(x) (((qsbits_t)(x)).u & ~TAGMASK_FLOAT31)
+#define QSINT(x) (((x) << SHIFT_INT30) | TAGMASK_INT30)
+#define QSITER(x) (((x) << SHIFT_ITER28) | TAGMASK_ITER28)
+#define QSOBJ(x) (((x) << SHIFT_HEAP26) | TAGMASK_HEAP26)
+#define QSCHAR(x) (((x) << SHIFT_CHAR24) | TAGMASK_CHAR24)
+#define QSCONST(x) (((x) << SHIFT_CONST16) | TAGMASK_CONST16)
 
-#define QSFLOAT(x) (((qsword_t)x).u & ~TAGMASK_FLOAT31)
-#define QSINT(x) ((x << SHIFT_INT30) | TAGMASK_INT30)
-#define QSITER(x) ((x << SHIFT_ITER28) | TAGMASK_ITER28)
-#define QSOBJ(x) ((x << SHIFT_HEAP26) | TAGMASK_HEAP26)
-#define QSCHAR(x) ((x << SHIFT_CHAR24) | TAGMASK_CHAR24)
-#define QSCONST(x) ((x << SHIFT_CONST16) | TAGMASK_CONST16)
+#define ISFLOAT31(x) (((x) & TAGMASK_FLOAT30) == TAG_FLOAT31)
+#define ISINT30(x) (((x) & TAGMASK_INT30) == TAG_INT30)
+#define ISSYNC29(x) (((x) & TAGMASK_SYNC29) == TAG_SYNC29)
+#define ISHEAP26(x) (((x) & TAGMASK_HEAP26) == TAG_HEAP26)
+#define ISOBJ26(x) (((x) & TAGMASK_HEAP26) == TAG_HEAP26)
+#define ISCHAR24(x) (((x) & TAGMASK_CHAR24) == TAG_CHAR24)
+#define ISCONST16(x) (((x) & TAGMASK_CONST16) == TAG_CONST16)
 
-
-#define CFLOAT31(y) (((qsword_t)y).f)
-#define CINT30(y) ((y & ~TAGMASK_INT30) >> SHIFT_INT30)
-#define CHEAP26(y) ((y & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
-#define COBJ26(y) ((y & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
-#define CCHAR24(y) ((y & ~TAGMASK_CHAR24) >> SHIFT_CHAR24)
+#define CFLOAT31(p) (((qsbits_t)(p)).f)
+#define CINT30(p) (((p) & ~TAGMASK_INT30) >> SHIFT_PTR30)
+#define CHEAP26(p) (((p) & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
+#define COBJ26(p) (((p) & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
+#define CCHAR24(p) (((p) & ~TAGMASK_CHAR24) >> SHIFT_CHAR24)
 
 
 #define QSNULL QSCONST(0)

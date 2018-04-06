@@ -1,6 +1,14 @@
 #include "qsheap.h"
 
 
+void * qsheap_ref (qsheap_t * heap, qsheapaddr_t addr)
+{
+  if ((addr < 0) || (addr >= heap->max))
+    return NULL;
+  return heap->space + addr;
+}
+
+
 
 qsobj_t * qsobj_init (qsobj_t * obj, int is_octet)
 {

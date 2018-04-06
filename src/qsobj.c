@@ -1,62 +1,92 @@
 #include "qsobj.h"
 
 
-int ccons_p (union qsobjform_u * obju)
-{
-  qsobj_t * obj = &(obju->generic);
-  /* cons = pointer-content && _0 is null */
-  return (!qsobj_is_octet(obj) && (qsobj_get(obj, 0) == QSNULL));
-}
 
-int ccons_get_a (union qsobjform_u * obju)
+qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
-  return qsobj_get(&(obju->generic), 1);
-}
-
-int ccons_get_d (union qsobjform_u * obju)
-{
-  return qsobj_get(&(obju->generic), 2);
-}
-
-void ccons_set_a (union qsobjform_u * obju, qsptr_t val)
-{
-  qsobj_set(&(obju->generic), 1, val);
-  return;
-}
-
-void ccons_set_d (union qsobjform_u * obju, qsptr_t val)
-{
-  qsobj_set(&(obju->generic), 2, val);
-  return;
+  if (!ISHEAP26(p)) return NULL;
+  qsmemaddr_t addr = COBJ26(p);
+  qsobj_t * retval = (qsobj_t*)qsheap_ref(mem, addr);
+  if (out_addr)
+    *out_addr = addr;
+  return retval;
 }
 
 
-qsptr_t qscons_p (qsheap_t * heap, qsptr_t q)
+
+
+qspair_t * qspair (qsmem_t * mem, qsptr_t p)
 {
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!qsobj_is_used(obj)) return NULL;
+  if (qsobj_is_octet(obj)) return NULL;
+  if (qsobj_get(obj, 0) != QSNULL) return NULL;
+  return (qspair_t *)obj;
+}
+
+qsptr_t qspair_ref_a (qsmem_t * mem, qsptr_t p)
+{
+  qspair_t * pair = qspair(mem, p);
+  if (!pair)
+    {
+      /* TODO: exception. */
+      return QSNULL;
+    }
+  return pair->a;
+}
+
+qsptr_t qspair_ref_d (qsmem_t * mem, qsptr_t p)
+{
+  qspair_t * pair = qspair(mem, p);
+  if (!pair)
+    {
+      /* TODO: exception. */
+      return QSNULL;
+    }
+  return pair->d;
+}
+
+qsptr_t qspair_setq_a (qsmem_t * mem, qsptr_t p, qsptr_t val)
+{
+  qspair_t * pair = qspair(mem, p);
+  if (!pair)
+    {
+      /* TODO: exception. */
+      return QSNULL;
+    }
+  pair->a = val;
+  return p;
+}
+
+qsptr_t qspair_setq_d (qsmem_t * mem, qsptr_t p, qsptr_t val)
+{
+  qspair_t * pair = qspair(mem, p);
+  if (!pair)
+    {
+      /* TODO: exception. */
+      return QSNULL;
+    }
+  pair->d = val;
+  return p;
+}
+
+int qspair_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr)
+{
+  return 0;
+}
+
+qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t b)
+{
+  qsptr_t retval;
+  int res = qspair_alloc(mem, &retval, NULL);
+  if (res == 1)
+    {
+      return retval;
+    }
   return QSNULL;
 }
 
-qsptr_t qscons_alloc (qsheap_t * heap, qsptr_t a, qsptr_t d)
-{
-  return QSNULL;
-}
-
-qsptr_t qscons_make (qsheap_t * heap, qsptr_t a, qsptr_t d)
-{
-  return QSNULL;
-}
-
-qsptr_t qscons_get_a (qsheap_t * heap, qsptr_t q)
-{
-  return QSNULL;
-}
-
-qsptr_t qscons_get_d (qsheap_t * heap, qsptr_t q)
-{
-  return QSNULL;
-}
-
-int qscons_crepr (qsheap_t * heap, qsptr_t q, const char *buf, int buflen)
+int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   return 0;
 }
@@ -64,52 +94,67 @@ int qscons_crepr (qsheap_t * heap, qsptr_t q, const char *buf, int buflen)
 
 
 
-int cvector_p (union qsobjform_u * obju)
+qsvector_t * qsvector (qsmem_t * mem, qsptr_t v, qsword * out_lim)
+{
+  qsobj_t * obj = qsobj(mem, v, NULL);
+  if (qsobj_is_octet(obj)) return NULL;
+  if (! ISINT30(qsobj_get(obj, 0))) return NULL;
+  if (out_lim)
+    {
+      *out_lim = CINT30(qsobj_get(obj, 0));
+    }
+  return (qsvector_t*)obj;
+}
+
+qsword qsvector_length (qsmem_t * mem, qsptr_t v)
+{
+  qsword len = 0;
+  qsvector_t * vec = qsvector(mem, v, &len);
+  if (!vec) return 0;  // TODO: exception
+  return len;
+}
+
+qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t v, qsword ofs)
+{
+  qsword lim;
+  qsvector_t * vec = qsvector(mem, v, &lim);
+  if (!vec) return QSNULL;
+  if ((lim < 0) || (lim >= vec->len))
+    {
+      // TODO: exception.
+      return QSNULL;
+    }
+  return vec->_d[ofs];
+}
+
+qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t v, qsword ofs, qsptr_t val)
+{
+  qsword lim;
+  qsvector_t * vec = qsvector(mem, v, &lim);
+  if (!vec) return QSNULL;
+  if ((lim < 0) || (lim >= vec->len))
+    {
+      // TODO: exception.
+      return QSNULL;
+    }
+  vec->_d[ofs] = val;
+  return v;
+}
+
+int qsvector_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr, qsword cap)
+{
+  return 0;
+}
+
+qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
 {
   return QSNULL;
 }
 
-int cvector_lim (union qsobjform_u * obju)
-{
-}
-
-int cvector_get (union qsobjform_u * obju, int ofs)
-{
-}
-
-int cvector_set (union qsobjform_u * obju, int ofs);
-{
-}
-
-qsptr_t qsvector_p (qsheap_t * heap, qsptr_t q)
-{
-  return QSNULL;
-}
-
-qsptr_t qsvector_alloc (qsheap_t * heap, qsptr_t q)
-{
-  return QSNULL;
-}
-
-qsptr_t qsvector_make (qsheap_t * heap, qsptr_t q)
-{
-  return QSNULL;
-}
-
-qsptr_t qsvector_get (qsheap_t * heap, qsptr_t q, int ofs)
-{
-  return QSNULL;
-}
-
-qsptr_t qsvector_set (qsheap_t * heap, qsptr_t q, int ofs, qsptr_t val)
-{
-  return QSNULL;
-}
-
-int qsvector_crepr (qsheap_t * heap, qsptr_t q, const char * buf, int buflen)
+int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen)
 {
   return 0;
 }
 
 
-#endif // _QSOBJ_H_
+

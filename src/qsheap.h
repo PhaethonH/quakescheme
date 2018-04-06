@@ -18,9 +18,9 @@ typedef struct qsheap_s {
 qsheap_t * qsheap_init (qsheap_t *);
 qsheap_t * qsheap_destroy (qsheap_t *);
 qsheapaddr_t qsheap_alloc (qsheap_t *, int allocscale);
-qsheapaddr_t qsheap_alloc_ncells (qsheap_t *, size_t ncells);
+qsheapaddr_t qsheap_alloc_ncells (qsheap_t *, qsword ncells);
 qsheapaddr_t qsheap_free (qsheap_t *, qsheapaddr_t addr);
-qsobj_t * qsheap_getobj (qsheap_t *, qsheapaddr_t addr);
+void * qsheap_ref (qsheap_t *, qsheapaddr_t addr);
 
 
 typedef struct qsobj_s {
@@ -37,7 +37,6 @@ typedef struct qsfreelist_s {
     qsptr_t next;
 } qsfreelist_t;
 
-};
 
 /* mgmt word
 

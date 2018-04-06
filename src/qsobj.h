@@ -45,6 +45,8 @@ String subtypes:
 */
 
 
+/* types that extend qsobj_t */
+#if 0
 union qsobjform_u {
   struct qsobj_s generic;  // defined in qsheap.h
   struct qscons_s { qsptr_t mgmt; qsptr_t _N; qsptr_t a; qsptr_t d; } cons;
@@ -60,6 +62,7 @@ union qsobjform_u {
   struct qsportFD_s { qsptr_t mgmt; qsptr_t variant; int fd; } portFD;
   struct qsbytevec_s { qsptr_t mgmt; qsptr_t len; qsptr_t refcount; qsptr_t mutex; } bytevec;
 };
+#endif //0
 
 
 /* template:
@@ -72,35 +75,64 @@ qsptr_t QSOBJ_alloc (qsheap_t * heap, qsptr_t q)
 qsptr_t QSOBJ_make (qsheap_t * heap, qsptr_t q)
 qsptr_t QSOBJ_get (qsheap_t * heap, qsptr_t q, )
 qsptr_t QSOBJ_set (qsheap_t * heap, qsptr_t q, )
-int QSOBJ_crepr (qsheap_t * heap, qsptr_t q, const char * buf, int buflen)
+int QSOBJ_crepr (qsheap_t * heap, qsptr_t q, char * buf, int buflen)
 */
 
 
-int ccons_p (union qsobjform_u * obju);
-int ccons_get_a (union qsobjform_u * obju);
-int ccons_get_d (union qsobjform_u * obju);
-void ccons_set_a (union qsobjform_u * obju, qsptr_t val);
-void ccons_set_d (union qsobjform_u * obju, qsptr_t val);
-
-qsptr_t qscons_p (qsheap_t * heap, qsptr_t q);
-qsptr_t qscons_alloc (qsheap_t * heap, qsptr_t a, qsptr_t d);
-qsptr_t qscons_make (qsheap_t * heap, qsptr_t a, qsptr_t d);
-qsptr_t qscons_get_a (qsheap_t * heap, qsptr_t q);
-qsptr_t qscons_get_d (qsheap_t * heap, qsptr_t q);
-int qscons_crepr (qsheap_t * heap, qsptr_t q, const char *buf, int buflen);
+typedef qsheap_t qsmem_t;
+typedef qsheapaddr_t qsmemaddr_t;
 
 
+typedef struct qspair_s {
+    qsptr_t mgmt;
+    qsptr_t required_null;
+    qsptr_t a;
+    qsptr_t d;
+} qspair_t;
 
-int cvector_p (union qsobjform_u * obju);
-int cvector_lim (union qsobjform_u * obju); // get maximum size.
-int cvector_get (union qsobjform_u * obju, int ofs);
-int cvector_set (union qsobjform_u * obju, int ofs);
+qspair_t * qspair (qsmem_t * mem, qsptr_t p);
+qsptr_t qspair_ref_a (qsmem_t * mem, qsptr_t p);
+qsptr_t qspair_ref_d (qsmem_t * mem, qsptr_t p);
+qsptr_t qspair_setq_a (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qspair_setq_d (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t d);
+int qspair_alloc (qsmem_t * mem, qsptr_t * out_obj, qsmemaddr_t * out_addr);
+int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
-qsptr_t qsvector_p (qsheap_t * heap, qsptr_t q);
-qsptr_t qsvector_alloc (qsheap_t * heap, qsptr_t q);
-qsptr_t qsvector_make (qsheap_t * heap, qsptr_t q);
-qsptr_t qsvector_get (qsheap_t * heap, qsptr_t q, int ofs);
-qsptr_t qsvector_set (qsheap_t * heap, qsptr_t q, int ofs, qsptr_t val);
-int qsvector_crepr (qsheap_t * heap, qsptr_t q, const char * buf, int buflen);
+
+typedef struct qstree_s {
+    qsptr_t mgmt;
+    qsptr_t left;
+    qsptr_t data;
+    qsptr_t right;
+} qstree_t;
+
+qstree_t * qstree (qsmem_t * mem, qsptr_t t);
+qsptr_t qstree_ref_left (qsmem_t * mem, qsptr_t t);
+qsptr_t qstree_ref_data (qsmem_t * mem, qsptr_t t);
+qsptr_t qstree_ref_right (qsmem_t * mem, qsptr_t t);
+qsptr_t qstree_setq_left (qsmem_t * mem, qsptr_t t, qsptr_t val);
+qsptr_t qstree_setq_data (qsmem_t * mem, qsptr_t t, qsptr_t val);
+qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val);
+int qstree_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr);
+int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
+
+
+typedef struct qsvector_s {
+    qsptr_t mgmt;
+    qsptr_t len;
+    qsptr_t gc_backtrack;
+    qsptr_t gc_iter;
+    qsptr_t _d[];
+} qsvector_t;
+
+qsvector_t * qsvector (qsmem_t * mem, qsptr_t v, qsword * out_lim);
+qsword qsvector_length (qsmem_t * mem, qsptr_t v);
+qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t v, qsword ofs);
+qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t v, qsword ofs, qsptr_t val);
+qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill);
+int qsvector_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr, qsword cap);
+int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen);
+
 
 #endif // _QSOBJ_H_
