@@ -1,12 +1,55 @@
+#include <stdlib.h>
+
 #include "qsheap.h"
+
+
+qsheap_t * qsheap_init (qsheap_t * heap, uint32_t len)
+{
+  heap->wlock = 0;
+  heap->cap = len;
+  return heap;
+}
+
+qsheap_t * qsheap_destroy (qsheap_t * heap)
+{
+  return heap;
+}
+
+qsheapaddr_t qsheap_alloc_ncells (qsheap_t *, qsword ncells)
+{
+}
+
+qsheapaddr_t qsheap_alloc (qsheap_t *, int allocscale)
+{
+}
+
+int qsheap_word (qsheap_t * heap, qsheapaddr_t word_addr, qsword * out_word)
+{
+  if ((word_addr < 0) || (word_addr >= heap->max))
+    return 0;
+  if (out_word)
+    *out_word = heap->space[word_addr];
+  return 1;
+}
+
+qsobj_t * qsheap_ref (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  qsheapaddr_t word_addr = 4 * cell_addr;
+  if (0 == qsheap_get(heap, word_addr, NULL))
+    {
+      return (qsobj_t*)(heap->space + word_addr);
+    }
+  return NULL;
+}
+
 
 
 
 qsobj_t * qsobj_init (qsobj_t * obj, int is_octet)
 {
-  obj->_0 = QSNULL;
-  obj->_1 = QSNULL;
-  obj->_2 = QSNULL;
+  obj->_0 = QSNIL;
+  obj->_1 = QSNIL;
+  obj->_2 = QSNIL;
   return obj;
 }
 
@@ -37,7 +80,7 @@ int qsobj_is_octet (qsobj_t * obj)
 
 qsptr_t qsobj_get (qsobj_t * obj, int fld)
 {
-  qsptr_t retval = QSNULL;
+  qsptr_t retval = QSNIL;
 
   switch (fld)
     {
