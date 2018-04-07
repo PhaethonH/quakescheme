@@ -87,7 +87,7 @@ typedef struct qsheap_s {
 typedef qsptr_t qsheapcell_t[4];
 
 
-qsheap_t * qsheap_init (qsheap_t *, unsigned int len);
+qsheap_t * qsheap_init (qsheap_t *, unsigned int nwords);
 qsheap_t * qsheap_destroy (qsheap_t *);
 uint32_t qsheap_length (qsheap_t *);
 qsheapaddr_t qsheap_alloc (qsheap_t *, int allocscale);

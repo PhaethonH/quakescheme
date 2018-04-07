@@ -10,6 +10,8 @@ AC_CONFIG_HEADERS([config.h])
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_RANLIB
+## dependency: libcheck
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.6])
 
 # Checks for libraries.
 
