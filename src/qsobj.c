@@ -451,7 +451,7 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
     {
       qsword ofs = qsiter_get(mem, it);
       qsptr_t ref = 0;
-      if (0 == qsheap_word(mem, ofs, &ref))
+      if (QSERROR_OK == qsheap_word(mem, ofs, &ref))
 	{
 	  return ref;
 	}
@@ -471,7 +471,7 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
       while (depth > 0)
 	{
 	  err = qsheap_word(mem, nextofs, &peek);
-	  if (err)
+	  if (err == QSERROR_OK)
 	    {
 	      // invalid address, treat as end of iterator.
 	      depth = 0;

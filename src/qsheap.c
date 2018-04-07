@@ -43,19 +43,19 @@ qsheapaddr_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells)
   return qsheap_alloc(heap, nbits);
 }
 
-int qsheap_word (qsheap_t * heap, qsheapaddr_t word_addr, qsword * out_word)
+qserror_t qsheap_word (qsheap_t * heap, qsheapaddr_t word_addr, qsword * out_word)
 {
-  if ((word_addr < 0) || (word_addr >= heap->max))
-    return 0;
+  if ((word_addr < 0) || (word_addr >= heap->cap))
+    return QSERROR_INVALID;
   if (out_word)
     *out_word = heap->space[word_addr];
-  return 1;
+  return QSERROR_OK;
 }
 
 qsobj_t * qsheap_ref (qsheap_t * heap, qsheapaddr_t cell_addr)
 {
   qsheapaddr_t word_addr = 4 * cell_addr;
-  if (0 == qsheap_get(heap, word_addr, NULL))
+  if (QSERROR_OK == qsheap_word(heap, word_addr, NULL))
     {
       return (qsobj_t*)(heap->space + word_addr);
     }

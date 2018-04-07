@@ -80,7 +80,7 @@ void qsobj_down ();
 typedef struct qsheap_s {
     int wlock;			/* write-lock into storage. */
     uint32_t cap;		/* maximum number of words. */
-    qsmemaddr_t freelist;	/* start of free list. */
+    qsheapaddr_t freelist;	/* start of free list. */
     qsptr_t space[];
 } qsheap_t;
 
@@ -94,7 +94,7 @@ qsheapaddr_t qsheap_alloc (qsheap_t *, int allocscale);
 qsheapaddr_t qsheap_alloc_ncells (qsheap_t *, qsword ncells);
 qsheapaddr_t qsheap_free (qsheap_t *, qsheapaddr_t addr);
 qsobj_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr);
-int qsheap_word (qsheap_t *, qsheapaddr_t addr, qsword * out_word);
+qserror_t qsheap_word (qsheap_t *, qsheapaddr_t addr, qsword * out_word);
 
 
 #endif // _QSHEAP_H_
