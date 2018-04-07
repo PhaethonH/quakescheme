@@ -15,12 +15,32 @@ qsheap_t * qsheap_destroy (qsheap_t * heap)
   return heap;
 }
 
-qsheapaddr_t qsheap_alloc_ncells (qsheap_t *, qsword ncells)
+qsheapaddr_t qsheap_alloc (qsheap_t * heap, int allocscale)
 {
+  return 0;
 }
 
-qsheapaddr_t qsheap_alloc (qsheap_t *, int allocscale)
+qsheapaddr_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells)
 {
+/* Take log2 of number of cells (2*n to accomodate cells)
+ 0 => 0
+ 1 => 0
+ 2 => 1
+ 3 => 2
+ 4 => 2
+ 5 => 3
+..8 => 3
+ 9 => 4
+..16 => 4
+*/
+  int nbits = 0;
+  if (ncells > 1) ncells--;
+  while (ncells > 0)
+    {
+      nbits++;
+      ncells >>= 1;
+    }
+  return qsheap_alloc(heap, nbits);
 }
 
 int qsheap_word (qsheap_t * heap, qsheapaddr_t word_addr, qsword * out_word)

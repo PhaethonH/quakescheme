@@ -78,8 +78,9 @@ void qsobj_down ();
 
 
 typedef struct qsheap_s {
-    int wlock;
-    uint32_t cap;
+    int wlock;			/* write-lock into storage. */
+    uint32_t cap;		/* maximum number of words. */
+    qsmemaddr_t freelist;	/* start of free list. */
     qsptr_t space[];
 } qsheap_t;
 
