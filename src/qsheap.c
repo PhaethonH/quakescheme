@@ -1,20 +1,75 @@
+#include <stdlib.h>
+
 #include "qsheap.h"
 
 
-void * qsheap_ref (qsheap_t * heap, qsheapaddr_t addr)
+qsheap_t * qsheap_init (qsheap_t * heap, uint32_t len)
 {
-  if ((addr < 0) || (addr >= heap->max))
-    return NULL;
-  return heap->space + addr;
+  heap->wlock = 0;
+  heap->cap = len;
+  return heap;
 }
+
+qsheap_t * qsheap_destroy (qsheap_t * heap)
+{
+  return heap;
+}
+
+qsheapaddr_t qsheap_alloc (qsheap_t * heap, int allocscale)
+{
+  return 0;
+}
+
+qsheapaddr_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells)
+{
+/* Take log2 of number of cells (2*n to accomodate cells)
+ 0 => 0
+ 1 => 0
+ 2 => 1
+ 3 => 2
+ 4 => 2
+ 5 => 3
+..8 => 3
+ 9 => 4
+..16 => 4
+*/
+  int nbits = 0;
+  if (ncells > 1) ncells--;
+  while (ncells > 0)
+    {
+      nbits++;
+      ncells >>= 1;
+    }
+  return qsheap_alloc(heap, nbits);
+}
+
+qserror_t qsheap_word (qsheap_t * heap, qsheapaddr_t word_addr, qsword * out_word)
+{
+  if ((word_addr < 0) || (word_addr >= heap->cap))
+    return QSERROR_INVALID;
+  if (out_word)
+    *out_word = heap->space[word_addr];
+  return QSERROR_OK;
+}
+
+qsobj_t * qsheap_ref (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  qsheapaddr_t word_addr = 4 * cell_addr;
+  if (QSERROR_OK == qsheap_word(heap, word_addr, NULL))
+    {
+      return (qsobj_t*)(heap->space + word_addr);
+    }
+  return NULL;
+}
+
 
 
 
 qsobj_t * qsobj_init (qsobj_t * obj, int is_octet)
 {
-  obj->_0 = QSNULL;
-  obj->_1 = QSNULL;
-  obj->_2 = QSNULL;
+  obj->_0 = QSNIL;
+  obj->_1 = QSNIL;
+  obj->_2 = QSNIL;
   return obj;
 }
 
@@ -45,7 +100,7 @@ int qsobj_is_octet (qsobj_t * obj)
 
 qsptr_t qsobj_get (qsobj_t * obj, int fld)
 {
-  qsptr_t retval = QSNULL;
+  qsptr_t retval = QSNIL;
 
   switch (fld)
     {
