@@ -4,7 +4,7 @@ TESTS = test_qsptr \
 
 
 
-AM_CFLAGS = @CHECK_CFLAGS@ -I$(top_builddir)/src
+AM_CFLAGS = @CHECK_CFLAGS@ -I$(top_srcdir)/src
 AM_LDFLAGS = $(top_builddir)/src/libquakescheme.a @CHECK_LIBS@
 
 # Tests to build.  Simplified by naming the files after their test names.

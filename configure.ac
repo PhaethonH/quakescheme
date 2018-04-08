@@ -12,6 +12,7 @@ AC_PROG_CC
 AC_PROG_RANLIB
 ## dependency: libcheck
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.6])
+LT_INIT
 
 # Checks for libraries.
 
