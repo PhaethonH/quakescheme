@@ -29,7 +29,7 @@ void init ()
 }
 
 
-START_TEST(test_test1)
+START_TEST(test_address_pedantry)
 {
   init();
 
@@ -43,13 +43,13 @@ START_TEST(test_test2)
 END_TEST
 
 
-TESTCASE(case1,
-  TFUNC(test_test1)
+TESTCASE(qsheap1,
+  TFUNC(test_address_pedantry)
   TFUNC(test_test2)
   )
 
 TESTSUITE(suite1,
-  TCASE(case1)
+  TCASE(qsheap1)
   )
 
 int main ()

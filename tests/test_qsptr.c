@@ -52,8 +52,15 @@ START_TEST(test_int)
   res = qsint_crepr(heap1, int3, buf, sizeof(buf));
   ck_assert_int_eq(CINT30(int3), 119);
   ck_assert_str_eq(buf, "119");
+
+  qsptr_t int4 = QSINT(-1023);
+  ck_assert(ISINT30(int4));
+  res = qsint_crepr(heap1, int4, buf, sizeof(buf));
+  ck_assert_int_eq(CINT30(int4), -1023);
+  ck_assert_str_eq(buf, "-1023");
 }
 END_TEST
+
 
 START_TEST(test_float)
 {
@@ -83,6 +90,7 @@ START_TEST(test_float)
 }
 END_TEST
 
+
 START_TEST(test_char)
 {
   init();
@@ -109,6 +117,7 @@ START_TEST(test_char)
 }
 END_TEST
 
+
 START_TEST(test_const)
 {
   init();
@@ -122,6 +131,7 @@ START_TEST(test_const)
   ck_assert_int_eq(CCONST16(QSTRUE), 1);
 }
 END_TEST
+
 
 START_TEST(test_error)
 {
@@ -140,6 +150,7 @@ START_TEST(test_error)
 }
 END_TEST
 
+
 START_TEST(test_iter)
 {
   init();
@@ -152,7 +163,7 @@ START_TEST(test_iter)
   ck_assert(obj - heap1->space == 8);
   obj->mgmt |= (1 << 31);  /* used */
   obj->mgmt |= TAG_SYNC29; /* typing */
-  obj->mgmt |= (2 << 3);   /* 8 cells */
+  obj->mgmt |= (2 << 4);   /* 16 cells */
   obj->_0 = QSNIL;
   obj->_1 = QSNIL;
   obj->_2 = QSNIL;
@@ -161,11 +172,17 @@ START_TEST(test_iter)
   _d[0] = QSINT(10);
   _d[1] = QSINT(20);
   _d[2] = QSINT(30);
-  _d[3] = QSBOL;
-  _d[4] = QSINT(11);
-  _d[5] = QSINT(22);
-  _d[6] = QSEOL;
-  _d[7] = QSEOL;
+   _d[3] = QSBOL;
+   _d[4] = QSINT(11);
+    _d[5] = QSBOL;
+    _d[6] = QSINT(111);
+    _d[7] = QSINT(222);
+    _d[8] = QSINT(333);
+    _d[9] = QSINT(444);
+    _d[10] = QSEOL;
+   _d[11] = QSINT(22);
+   _d[12] = QSEOL;
+  _d[13] = QSEOL;
 
   qsword word_addr = (8 * 4) + 0  +  4;
   qsptr_t iter1 = QSITER(word_addr);
@@ -201,10 +218,14 @@ START_TEST(test_iter)
 END_TEST
 
 
+
 TESTCASE(nums1,
   TFUNC(test_int)
   TFUNC(test_float)
   TFUNC(test_char)
+  )
+
+TESTCASE(sys1,
   TFUNC(test_const)
   TFUNC(test_error)
   TFUNC(test_iter)
@@ -212,6 +233,7 @@ TESTCASE(nums1,
 
 TESTSUITE(ptr1,
   TCASE(nums1)
+  TCASE(sys1)
   )
 
 int main ()
