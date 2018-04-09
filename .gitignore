@@ -1,0 +1,7 @@
+autom4te.cache/*
+build/
+*.swp
+*.swo
+*.o
+*.a
+*~

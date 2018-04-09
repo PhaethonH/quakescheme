@@ -5,7 +5,9 @@ libquakescheme_a_SOURCES = \
   qsheap.h \
   qsheap.c \
   qsobj.h \
-  qsobj.c
+  qsobj.c \
+  qsmach.h \
+  qsmach.c
 
 #l_%.c: %.l
 ## Escape backslash, dquote, EOL.

@@ -3,10 +3,22 @@
 #include "qsheap.h"
 
 
-qsheap_t * qsheap_init (qsheap_t * heap, uint32_t len)
+qsheap_t * qsheap_init (qsheap_t * heap, uint32_t ncells)
 {
   heap->wlock = 0;
-  heap->cap = len;
+  heap->cap = ncells;
+
+  uint32_t i;
+  for (i = 0; i < ncells; i++)
+    {
+      heap->space[i].mgmt = 0;
+      heap->space[i]._0 = 0;
+      heap->space[i]._1 = 0;
+      heap->space[i]._2 = 0;
+    }
+
+  // TODO: initial freelist.
+
   return heap;
 }
 
@@ -43,23 +55,27 @@ qsheapaddr_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells)
   return qsheap_alloc(heap, nbits);
 }
 
-qserror_t qsheap_word (qsheap_t * heap, qsheapaddr_t word_addr, qsword * out_word)
-{
-  if ((word_addr < 0) || (word_addr >= heap->cap))
-    return QSERROR_INVALID;
-  if (out_word)
-    *out_word = heap->space[word_addr];
-  return QSERROR_OK;
-}
-
 qsobj_t * qsheap_ref (qsheap_t * heap, qsheapaddr_t cell_addr)
 {
-  qsheapaddr_t word_addr = 4 * cell_addr;
-  if (QSERROR_OK == qsheap_word(heap, word_addr, NULL))
+  if ((cell_addr < 0) || (cell_addr >= heap->cap))
+    return NULL;
+  return heap->space + cell_addr;
+}
+
+qserror_t qsheap_word (qsheap_t * heap, qsheapaddr_t word_addr, qsptr_t * out_word)
+{
+  qsptr_t * pword = NULL;
+  qsword cell_addr = (word_addr >> 2);
+  qsobj_t * equiv_obj = qsheap_ref(heap, cell_addr);
+  if (! equiv_obj)
+    return QSERROR_INVALID;
+  if (out_word)
     {
-      return (qsobj_t*)(heap->space + word_addr);
+      qsword word_ofs = (word_addr & 0x3);
+      pword = ((qsptr_t *)(equiv_obj)) + word_ofs;
+      *out_word = *pword;
     }
-  return NULL;
+  return QSERROR_OK;
 }
 
 

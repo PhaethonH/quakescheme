@@ -61,6 +61,7 @@ union qsbits_u {
   float f;
   int32_t i;
   uint32_t u;
+  qsptr_t p;
 };
 
 typedef union qsbits_u qsbits_t;
@@ -95,42 +96,43 @@ typedef union qsbits_u qsbits_t;
 #define TAGMASK_ERROR16 ((1 << SHIFT_PTR16) - 1)
 #define TAGMASK_CONST16 ((1 << SHIFT_PTR16) - 1)
 
-#define TAG_FLOAT31 0x0001
-#define TAG_INT30   0x0003
-#define TAG_SYNC29  0x0007
-#define TAG_ITER28  0x000f
+#define TAG_FLOAT31 0x0000
+#define TAG_INT30   0x0001
+#define TAG_SYNC29  0x0003
+#define TAG_ITER28  0x0007
 #define TAG_HEAP26  0x001f
 #define TAG_CHAR24  0x003f
-#define TAG_ERROR16 0x7ffe
+#define TAG_ERROR16 0x7eff
 #define TAG_CONST16 0xffff
 
 
-#define QSFLOAT(x) (((qsbits_t)(x)).u & ~TAGMASK_FLOAT31)
-#define QSINT(x) (((x) << SHIFT_INT30) | TAGMASK_INT30)
-#define QSITER(x) (((x) << SHIFT_ITER28) | TAGMASK_ITER28)
-#define QSOBJ(x) (((x) << SHIFT_HEAP26) | TAGMASK_HEAP26)
-#define QSCHAR(x) (((x) << SHIFT_CHAR24) | TAGMASK_CHAR24)
-#define QSERROR(x) (((x) << SHIFT_ERROR16) | TAGMASK_ERROR16)
-#define QSCONST(x) (((x) << SHIFT_CONST16) | TAGMASK_CONST16)
+#define QSFLOAT(x) (((qsbits_t)((float)(x))).u | TAG_FLOAT31)
+#define QSINT(x) ((x << SHIFT_INT30) | TAG_INT30)
+#define QSITER(x) ((x << SHIFT_ITER28) | TAG_ITER28)
+#define QSOBJ(x) ((x << SHIFT_HEAP26) | TAG_HEAP26)
+#define QSCHAR(x) ((x << SHIFT_CHAR24) | TAG_CHAR24)
+#define QSERROR(x) ((x << SHIFT_ERROR16) | TAG_ERROR16)
+#define QSCONST(x) ((x << SHIFT_CONST16) | TAG_CONST16)
 
-#define ISFLOAT31(x) (((x) & TAGMASK_FLOAT31) == TAG_FLOAT31)
-#define ISINT30(x) (((x) & TAGMASK_INT30) == TAG_INT30)
-#define ISSYNC29(x) (((x) & TAGMASK_SYNC29) == TAG_SYNC29)
-#define ISITER28(x) (((x) & TAGMASK_ITER28) == TAG_ITER28)
-#define ISHEAP26(x) (((x) & TAGMASK_HEAP26) == TAG_HEAP26)
-#define ISOBJ26(x) (((x) & TAGMASK_HEAP26) == TAG_HEAP26)
-#define ISCHAR24(x) (((x) & TAGMASK_CHAR24) == TAG_CHAR24)
-#define ISERROR16(x) (((x) & TAGMASK_ERROR16) == TAG_ERROR16)
-#define ISCONST16(x) (((x) & TAGMASK_CONST16) == TAG_CONST16)
+#define ISNIL(x) (x == QSNIL)
+#define ISFLOAT31(x) ((((qsbits_t)(x)).u & TAGMASK_FLOAT31) == TAG_FLOAT31)
+#define ISINT30(x) ((((qsbits_t)(x)).u & TAGMASK_INT30) == TAG_INT30)
+#define ISSYNC29(x) ((((qsbits_t)(x)).u & TAGMASK_SYNC29) == TAG_SYNC29)
+#define ISITER28(x) ((((qsbits_t)(x)).u & TAGMASK_ITER28) == TAG_ITER28)
+#define ISHEAP26(x) ((((qsbits_t)(x)).u & TAGMASK_HEAP26) == TAG_HEAP26)
+#define ISOBJ26(x) ((((qsbits_t)(x)).u & TAGMASK_HEAP26) == TAG_HEAP26)
+#define ISCHAR24(x) ((((qsbits_t)(x)).u & TAGMASK_CHAR24) == TAG_CHAR24)
+#define ISERROR16(x) ((((qsbits_t)(x)).u & TAGMASK_ERROR16) == TAG_ERROR16)
+#define ISCONST16(x) ((((qsbits_t)(x)).u & TAGMASK_CONST16) == TAG_CONST16)
 
 #define CFLOAT31(p) (((qsbits_t)(p)).f)
-#define CINT30(p) (((p) & ~TAGMASK_INT30) / 4)  /* algebraic extend */
-#define CHEAP26(p) (((p) & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
-#define CITER28(p) (((p) & ~TAGMASK_ITER28) >> SHIFT_ITER28)
-#define COBJ26(p) (((p) & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
-#define CCHAR24(p) (((p) & ~TAGMASK_CHAR24) >> SHIFT_CHAR24)
-#define CERROR16(p) (((p) & ~TAGMASK_ERROR16) >> SHIFT_CHAR24)
-#define CCONST16(p) (((p) & ~TAGMASK_CONST16) >> SHIFT_CHAR24)
+#define CINT30(p) ((((qsbits_t)(p)).i & ~TAGMASK_INT30) / 4)  /* sign-extend */
+#define CHEAP26(p) ((((qsbits_t)(p)).u & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
+#define CITER28(p) ((((qsbits_t)(p)).u & ~TAGMASK_ITER28) >> SHIFT_ITER28)
+#define COBJ26(p) ((((qsbits_t)(p)).u & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
+#define CCHAR24(p) ((((qsbits_t)(p)).u & ~TAGMASK_CHAR24) >> SHIFT_CHAR24)
+#define CERROR16(p) ((((qsbits_t)(p)).u & ~TAGMASK_ERROR16) >> SHIFT_ERROR16)
+#define CCONST16(p) ((((qsbits_t)(p)).u & ~TAGMASK_CONST16) >> SHIFT_CONST16)
 
 
 #define QSNIL QSCONST(0)

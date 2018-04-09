@@ -451,10 +451,16 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
     {
       qsword ofs = qsiter_get(mem, it);
       qsptr_t ref = 0;
-      if (QSERROR_OK == qsheap_word(mem, ofs, &ref))
+      qserror_t err = qsheap_word(mem, ofs, &ref);
+      if (err != QSERROR_OK)
+	return QSNIL;
+      if (ref == QSBOL)
 	{
-	  return ref;
+	  // nested list; nested iterator.
+	  qsptr_t iter2 = QSITER( CITER28(it)+1 );
+	  return iter2;
 	}
+      return ref;
     }
   // TODO: exception.
   return QSNIL;
@@ -464,14 +470,22 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
 {
   if (ISITER28(it))
     {
-      qsword nextofs = qsiter_get(mem, it)+1;
       qsptr_t peek = 0;
       qserror_t err = 0;
-      int depth = 1;
+      int depth = 0;
+      qsword startofs = qsiter_get(mem, it);
+      err = qsheap_word(mem, startofs, &peek);
+      if (err != QSERROR_OK) return QSNIL;
+      if (peek == QSBOL) depth++; // goal: skip to end of nested list.
+
+      qsword nextofs = startofs+1;
+      err = qsheap_word(mem, nextofs, &peek);
+      if (err != QSERROR_OK) return QSNIL;
+
       while (depth > 0)
 	{
 	  err = qsheap_word(mem, nextofs, &peek);
-	  if (err == QSERROR_OK)
+	  if (err != QSERROR_OK)
 	    {
 	      // invalid address, treat as end of iterator.
 	      depth = 0;
@@ -541,7 +555,10 @@ qsptr_t qsint_make (qsmem_t * mem, int32_t val)
 
 int qsint_crepr (qsmem_t * mem, qsptr_t i, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  int val = CINT30(i);
+  n = snprintf(buf, buflen, "%d", val);
+  return n;
 }
 
 
@@ -577,7 +594,11 @@ qsptr_t qsfloat_make (qsmem_t * mem, float val)
 
 int qsfloat_crepr (qsmem_t * mem, qsptr_t f, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  float val = 0;
+  if (qsfloat(mem,f)) val = CFLOAT31(f);
+  n = snprintf(buf, buflen, "%f", val);
+  return n;
 }
 
 
@@ -606,7 +627,47 @@ qsptr_t qschar_make (qsmem_t * mem, int val)
 
 int qschar_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  int codepoint = 0;
+  if (qschar(mem,c)) codepoint = CCHAR24(c);
+  switch (codepoint)
+    {
+    case 7: /* bel */
+      n += snprintf(buf+n, buflen-n, "#\\bel");
+      break;
+    case 8: /* bs */
+      n += snprintf(buf+n, buflen-n, "#\\bs");
+      break;
+    case 9: /* tab */
+      n += snprintf(buf+n, buflen-n, "#\\tab");
+      break;
+    case 10: /* lf */
+      n += snprintf(buf+n, buflen-n, "#\\newline");
+      break;
+    case 13: /* cr */
+      n += snprintf(buf+n, buflen-n, "#\\cr");
+      break;
+    case 27: /* esc */
+      n += snprintf(buf+n, buflen-n, "#\\esc");
+      break;
+    case 32: /* space */
+      n += snprintf(buf+n, buflen-n, "#\\space");
+      break;
+    default:
+      if (codepoint <= 255)
+	{
+	  n += snprintf(buf+n, buflen-n, "#\\%c", codepoint);
+	}
+      else if (codepoint <= 0xffff)
+	{
+	  n += snprintf(buf+n, buflen-n, "#\\u%04x", codepoint);
+	}
+      else
+	{
+	  n += snprintf(buf+n, buflen-n, "#\\U%08x", codepoint);
+	}
+    }
+  return n;
 }
 
 
