@@ -107,12 +107,12 @@ typedef union qsbits_u qsbits_t;
 
 
 #define QSFLOAT(x) (((qsbits_t)((float)(x))).u | TAG_FLOAT31)
-#define QSINT(x) ((x << SHIFT_INT30) | TAG_INT30)
-#define QSITER(x) ((x << SHIFT_ITER28) | TAG_ITER28)
-#define QSOBJ(x) ((x << SHIFT_HEAP26) | TAG_HEAP26)
-#define QSCHAR(x) ((x << SHIFT_CHAR24) | TAG_CHAR24)
-#define QSERROR(x) ((x << SHIFT_ERROR16) | TAG_ERROR16)
-#define QSCONST(x) ((x << SHIFT_CONST16) | TAG_CONST16)
+#define QSINT(x) (((x) << SHIFT_INT30) | TAG_INT30)
+#define QSITER(x) (((x) << SHIFT_ITER28) | TAG_ITER28)
+#define QSOBJ(x) (((x) << SHIFT_HEAP26) | TAG_HEAP26)
+#define QSCHAR(x) (((x) << SHIFT_CHAR24) | TAG_CHAR24)
+#define QSERROR(x) (((x) << SHIFT_ERROR16) | TAG_ERROR16)
+#define QSCONST(x) (((x) << SHIFT_CONST16) | TAG_CONST16)
 
 #define ISNIL(x) (x == QSNIL)
 #define ISFLOAT31(x) ((((qsbits_t)(x)).u & TAGMASK_FLOAT31) == TAG_FLOAT31)

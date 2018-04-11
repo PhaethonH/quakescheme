@@ -9,6 +9,10 @@ qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   if (!ISHEAP26(p)) return NULL;
   qsmemaddr_t addr = COBJ26(p);
   qsobj_t * retval = (qsobj_t*)qsheap_ref(mem, addr);
+  if (!retval) return NULL;
+  if (!qsobj_is_used(retval)) return NULL;
+  qsptr_t mgmt = retval->mgmt;
+  if (!ISSYNC29(mgmt)) return NULL;
   if (out_addr)
     *out_addr = addr;
   return retval;
