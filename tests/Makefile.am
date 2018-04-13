@@ -1,7 +1,8 @@
 # Tests to run.
 TESTS = test_qsptr \
   test_qsheap \
-  test_qstree
+  test_qstree \
+  test_qsvector
 
 
 

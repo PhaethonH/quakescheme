@@ -100,7 +100,7 @@ int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
 
 
 /* Pair - linked list as degenerate case of tree with no left child */
-typedef struct uspair_s {
+typedef struct qspair_s {
     qsptr_t mgmt;
     qsptr_t required_null;
     qsptr_t a;
@@ -132,6 +132,7 @@ qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t v, qsword ofs);
 qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t v, qsword ofs, qsptr_t val);
 qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill);
 qserror_t qsvector_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr, qsword cap);
+qserror_t qsvector_mark (qsmem_t * mem, qsword k);
 int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen);
 
 
