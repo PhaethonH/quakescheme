@@ -227,6 +227,7 @@ qswidenum_t * qslong (qsmem_t * mem, qsptr_t l);
 qserror_t qslong_fetch (qsmem_t * mem, qsptr_t l, long * out_long);
 long qslong_get (qsmem_t * mem, qsptr_t l);
 qsptr_t qslong_make (qsmem_t * mem, long val);
+/* construct from high,low pair of 32b integers. */
 qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low);
 int qslong_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen);
 

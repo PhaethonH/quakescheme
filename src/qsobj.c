@@ -4,6 +4,7 @@
 
 
 
+/* Attempt to cast to object (else freelist or data) */
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   if (!ISHEAP26(p)) return NULL;
@@ -18,15 +19,58 @@ qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   return retval;
 }
 
+/* Object as single-celled pointer contents. */
+qsobj_t * qsobj_unicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+{
+  qsobj_t * obj = qsobj(mem, p, out_addr);
+  if (!obj) return NULL;
+  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
+  qsptr_t mgmt = heapcell->mgmt;
+  if (MGMT_IS_OCTET(mgmt)) return NULL;
+  if (MGMT_GET_ALLOCSCALE(mgmt) > 0) return NULL;
+  return obj;
+}
+/* Object as multi-celled pointer contents. */
+qsobj_t * qsobj_multicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+{
+  qsobj_t * obj = qsobj(mem, p, out_addr);
+  if (!obj) return NULL;
+  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
+  qsptr_t mgmt = heapcell->mgmt;
+  if (MGMT_IS_OCTET(mgmt)) return NULL;
+  if (MGMT_GET_ALLOCSCALE(mgmt) == 0) return NULL;
+  return obj;
+}
+/* Object is single-celled octet contents (uni- octet -ate). */
+qsobj_t * qsobj_unioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+{
+  qsobj_t * obj = qsobj(mem, p, out_addr);
+  if (!obj) return NULL;
+  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
+  qsptr_t mgmt = heapcell->mgmt;
+  if (! MGMT_IS_OCTET(mgmt)) return NULL;
+  if (MGMT_GET_ALLOCSCALE(mgmt) > 0) return NULL;
+  return obj;
+}
+/* Object is multi-celled octet contents (multi- octet -ate). */
+qsobj_t * qsobj_multioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+{
+  qsobj_t * obj = qsobj(mem, p, out_addr);
+  if (!obj) return NULL;
+  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
+  qsptr_t mgmt = heapcell->mgmt;
+  if (! MGMT_IS_OCTET(mgmt)) return NULL;
+  if (MGMT_GET_ALLOCSCALE(mgmt) == 0) return NULL;
+  return obj;
+}
+
 
 
 
 qstree_t * qstree (qsmem_t * mem, qsptr_t t)
 {
-  qsobj_t * obj = qsobj(mem, t, NULL);
+  qsobj_t * obj = qsobj_unicellular(mem, t, NULL);
   if (!obj) return NULL;
-  if (!qsobj_is_used(obj)) return NULL;
-  if (qsobj_is_octet(obj)) return NULL;
   return (qstree_t *)obj;
 }
 
@@ -290,9 +334,8 @@ int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 
 qsvector_t * qsvector (qsmem_t * mem, qsptr_t v, qsword * out_lim)
 {
-  qsobj_t * obj = qsobj(mem, v, NULL);
+  qsobj_t * obj = qsobj_multicellular(mem, v, NULL);
   if (!obj) return NULL;
-  if (qsobj_is_octet(obj)) return NULL;
   if (! ISINT30(qsobj_get(obj, 0))) return NULL;
   if (out_lim)
     {
@@ -415,9 +458,8 @@ int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen)
 
 qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim)
 {
-  qsobj_t * obj = qsobj(mem, bv, NULL);
+  qsobj_t * obj = qsobj_multioctetate(mem, bv, NULL);
   if (!obj) return NULL;
-  if (!qsobj_is_octet(obj)) return NULL;
   if (! ISINT30(qsobj_get(obj, 0))) return NULL;
   if (out_lim)
     {
@@ -508,9 +550,7 @@ int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen)
 qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t n, qsnumtype_t * out_numtype)
 {
   if (!ISHEAP26(n)) return NULL;
-  qsobj_t * obj = qsobj(mem, n, NULL);
-  if (!qsobj_is_used(obj)) return NULL;
-  if (!qsobj_is_octet(obj)) return NULL;
+  qsobj_t * obj = qsobj_unioctetate(mem, n, NULL);
   qsptr_t discriminator = obj->_0;
   switch (discriminator)
     {
@@ -519,6 +559,8 @@ qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t n, qsnumtype_t * out_numtype)
     case QSNUMTYPE_DOUBLE:
     case QSNUMTYPE_INT2:
     case QSNUMTYPE_FLOAT2:
+    case QSNUMTYPE_FLOAT4:
+    case QSNUMTYPE_FLOAT16CM:
       if (out_numtype)
 	*out_numtype = discriminator;
       return (qswidenum_t*)obj;
@@ -539,20 +581,29 @@ qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t n)
 
 qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * out_ptr)
 {
+  qswidenum_t * retval = NULL;
+  qsheapaddr_t addr = 0;
+  qserror_t err = QSERROR_OK;
   switch (variant)
     {
     case QSNUMTYPE_LONG:
-      break;
     case QSNUMTYPE_DOUBLE:
-      break;
     case QSNUMTYPE_INT2:
-      break;
     case QSNUMTYPE_FLOAT2:
+    case QSNUMTYPE_FLOAT4:
+    case QSNUMTYPE_FLOAT16CM:
+      err =  qsheap_alloc_with_nbytes(mem, 0, &addr);
+      if (err != QSERROR_OK) return NULL;
+      retval = (qswidenum_t*)(qsheap_ref(mem, addr));
+      retval->variant = variant;
       break;
     default:
+      retval->variant = QSNUMTYPE_NAN;
       break;
     }
-  return NULL;
+  if (out_ptr)
+    *out_ptr = QSOBJ(addr);
+  return retval;
 }
 
 
@@ -580,7 +631,7 @@ long qslong_get (qsmem_t * mem, qsptr_t l)
 {
   long retval = 0;
   qserror_t err = qslong_fetch(mem, l, &retval);
-  if (err)
+  if (err != QSERROR_OK)
     return 0;
   return retval;
 }
