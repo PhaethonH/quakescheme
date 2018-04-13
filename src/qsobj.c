@@ -409,6 +409,98 @@ int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen)
 
 
 
+/**************/
+/* Bytevector */
+/**************/
+
+qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim)
+{
+  qsobj_t * obj = qsobj(mem, bv, NULL);
+  if (!obj) return NULL;
+  if (!qsobj_is_octet(obj)) return NULL;
+  if (! ISINT30(qsobj_get(obj, 0))) return NULL;
+  if (out_lim)
+    {
+      *out_lim = CINT30(qsobj_get(obj, 0));
+    }
+  return (qsbytevec_t *)obj;
+}
+
+qserror_t qsbytevec_lock (qsmem_t * mem, qsptr_t bv)
+{
+  return QSERROR_NOIMPL;
+}
+
+qserror_t qsbytevec_unlock (qsmem_t * mem, qsptr_t bv)
+{
+  return QSERROR_NOIMPL;
+}
+
+qsword qsbytevec_refcount (qsmem_t * mem, qsptr_t bv)
+{
+  qsbytevec_t * bytevec = qsbytevec(mem, bv, NULL);
+  if (!bytevec) return 0;
+  return CINT30(bytevec->refcount);
+}
+
+// TODO: recount_increment and refcount_decrement
+
+qsword qsbytevec_length (qsmem_t * mem, qsptr_t bv)
+{
+  qsbytevec_t * bytevec = qsbytevec(mem, bv, NULL);
+  if (!bytevec) return 0;
+  return CINT30(bytevec->len);
+}
+
+qsword qsbytevec_ref (qsmem_t * mem, qsptr_t bv, qsword ofs)
+{
+  qsbytevec_t * bytevec = qsbytevec(mem, bv, NULL);
+  if (!bytevec) return 0;
+  qsword max = qsbytevec_length(mem, bv);
+  if ((ofs < 0) || (ofs >= max))
+    return 0;
+  return bytevec->_d[ofs];
+}
+
+qsptr_t qsbytevec_setq (qsmem_t * mem, qsptr_t bv, qsword ofs, qsword octet)
+{
+  qsbytevec_t * bytevec = qsbytevec(mem, bv, NULL);
+  if (!bytevec) return 0;
+  qsword max = qsbytevec_length(mem, bv);
+  if ((ofs < 0) || (ofs >= max))
+    return 0;
+  bytevec->_d[ofs] = octet;
+  return bv;
+}
+
+qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsword fill)
+{
+  qsptr_t retval = QSNIL;
+  qsheapaddr_t addr = 0;
+  qserror_t err = qsheap_alloc_with_nbytes(mem, k, &addr);
+  if (err != QSERROR_OK) return err;
+  retval = QSOBJ(addr);
+  qsbytevec_t * bytevec = qsbytevec(mem, retval, NULL);
+  bytevec->len = QSINT(k);
+  qsword i;
+  for (i = 0; i < k; i++)
+    {
+      bytevec->_d[i] = (uint8_t)fill;
+    }
+  return retval;
+}
+
+int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen)
+{
+  return 0;
+}
+
+
+
+
+
+
+
 /****************/
 /* Wide numbers */
 /****************/

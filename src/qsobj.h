@@ -164,6 +164,7 @@ typedef struct qsbytevec_s {
     qsptr_t len;
     uint32_t refcount;	  // references from outside Scheme memory.
     uint32_t mutex;	  // mutex on refcount.
+    uint8_t _d[];
 } qsbytevec_t;
 
 qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim);

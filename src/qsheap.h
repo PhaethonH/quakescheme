@@ -129,6 +129,7 @@ qsheap_t * qsheap_destroy (qsheap_t *);
 uint32_t qsheap_length (qsheap_t *);
 qserror_t qsheap_allocscale (qsheap_t *, qsword allocscale, qsheapaddr_t * out_addr);
 qserror_t qsheap_alloc_ncells (qsheap_t *, qsword ncells, qsheapaddr_t * out_addr);
+qserror_t qsheap_alloc_with_nbytes (qsheap_t *, qsword nbytes, qsheapaddr_t * out_addr);
 qsheapaddr_t qsheap_free (qsheap_t *, qsheapaddr_t addr);
 qserror_t qsheap_set_marked (qsheap_t *, qsheapaddr_t addr, int val);
 qserror_t qsheap_set_used (qsheap_t *, qsheapaddr_t addr, int val);
