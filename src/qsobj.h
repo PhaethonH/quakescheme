@@ -94,6 +94,8 @@ qsptr_t qstree_setq_left (qsmem_t * mem, qsptr_t t, qsptr_t val);
 qsptr_t qstree_setq_data (qsmem_t * mem, qsptr_t t, qsptr_t val);
 qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val);
 qserror_t qstree_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr);
+qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right);
+qserror_t qstree_mark (qsmem_t * mem, qsptr_t t);
 int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
 
 
