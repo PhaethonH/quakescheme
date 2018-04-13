@@ -37,11 +37,9 @@ qsptr_t qstree_mark (qsmem_t * mem, qsptr_t t)
   qsptr_t tempptr = QSNIL;
 
   qstree_t * root = qstree(mem, t);
-//  while (!ISNIL(currptr))
   while (! MGMT_IS_MARKED(root->mgmt))
     {
       /* main loop */
-      //qsheapcell_t * cell = qsheap_ref(mem, curr);
       qstree_t * tree = qstree(mem, currptr);
       if (tree)
 	{
@@ -293,6 +291,7 @@ int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 qsvector_t * qsvector (qsmem_t * mem, qsptr_t v, qsword * out_lim)
 {
   qsobj_t * obj = qsobj(mem, v, NULL);
+  if (!obj) return NULL;
   if (qsobj_is_octet(obj)) return NULL;
   if (! ISINT30(qsobj_get(obj, 0))) return NULL;
   if (out_lim)
@@ -344,7 +343,58 @@ qserror_t qsvector_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_ad
 
 qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
 {
-  return QSNIL;
+  qsptr_t retval = QSNIL;
+  qsheapaddr_t addr;
+  qsword ncells = 1 + (k / 4)+1;
+  qserror_t err = qsheap_alloc_ncells(mem, ncells, &addr);
+  if (err != QSERROR_OK) return err;
+  qsvector_t * vector = (qsvector_t*)qsheap_ref(mem, addr);
+  if (vector)
+    {
+      vector->len = QSINT(k);
+      vector->gc_backtrack = QSNIL;
+      vector->gc_iter = QSNIL;
+      qsword i;
+      for (i = 0; i < k; i++)
+	{
+	  vector->_d[i] = fill;
+	}
+      retval = QSOBJ(addr);
+    }
+  return retval;
+}
+
+qserror_t qsvector_mark (qsmem_t * mem, qsptr_t v)
+{
+  qsword max = 0;
+  qsvector_t * vec = qsvector(mem, v, &max);
+  if (!vec) return QSERROR_INVALID;
+  qsheapcell_t * cell = (qsheapcell_t*)vec;
+
+  while (! MGMT_IS_MARKED(vec->mgmt))
+    {
+      /* main loop */
+      if (qsheapcell_get_parent(cell) == 0)
+	{
+	  vec->gc_iter = QSINT(0);
+	  qsheapcell_set_parent(cell, 1);
+	}
+      else if (qsheapcell_get_parent(cell) == 1)
+	{
+	  qsheapaddr_t idx = CINT30(qsheapcell_get_field(cell, 2));
+	  while (idx < max)
+	    {
+	      qsptr_t elt = qsvector_ref(mem, v, idx);
+	      /* TODO: recurse mark on elt. */
+	      idx += 1;
+	      qsheapcell_set_field(cell, 2, QSINT(idx));
+	    }
+	  qsheapcell_set_field(cell, 2, QSNIL);
+	  qsheapcell_set_parent(cell, 0);
+	  qsheapcell_set_marked(cell, 1);
+	}
+    }
+  return QSERROR_OK;
 }
 
 int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen)

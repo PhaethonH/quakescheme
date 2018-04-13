@@ -102,6 +102,7 @@ qsheapcell_t * qsheapcell_set_parent (qsheapcell_t *, int);
 int qsheapcell_get_allocscale (qsheapcell_t *);
 qsheapcell_t * qsheapcell_set_allocscale (qsheapcell_t *, int);
 qsptr_t qsheapcell_get_field (qsheapcell_t *, int);
+qsheapcell_t * qsheapcell_set_field (qsheapcell_t *, int, qsptr_t);
 
 
 

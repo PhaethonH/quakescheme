@@ -46,6 +46,19 @@ int qsheapcell_get_alloscale (qsheapcell_t * heapcell)
   return MGMT_GET_ALLOCSCALE(heapcell->mgmt);
 }
 
+qsptr_t qsheapcell_get_field (qsheapcell_t * heapcell, int ofs)
+{
+  // TODO: bounds check.
+  return heapcell->fields[ofs];
+}
+
+qsheapcell_t * qsheapcell_set_field (qsheapcell_t * heapcell, int ofs, qsptr_t val)
+{
+  // TODO: bounds check.
+  heapcell->fields[ofs] = val;
+  return heapcell;
+}
+
 qsheapcell_t * qsheapcell_set_used (qsheapcell_t * heapcell, int val)
 {
   if (val) MGMT_SET_USED(heapcell->mgmt);
