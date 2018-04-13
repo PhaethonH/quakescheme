@@ -117,6 +117,11 @@ qserror_t qspair_alloc (qsmem_t * mem, qsptr_t * out_obj, qsmemaddr_t * out_addr
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
 
+qsword qslist_length (qsmem_t * mem, qsptr_t p);
+qsword qslist_tail (qsmem_t * mem, qsptr_t p, qsword k);
+qsword qslist_ref (qsmem_t * mem, qsptr_t p, qsword k);
+
+
 /* Vector [of poiners] */
 typedef struct qsvector_s {
     qsptr_t mgmt;
@@ -164,6 +169,7 @@ typedef struct qsbytevec_s {
     qsptr_t len;
     uint32_t refcount;	  // references from outside Scheme memory.
     uint32_t mutex;	  // mutex on refcount.
+    uint8_t _d[];
 } qsbytevec_t;
 
 qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim);
@@ -226,6 +232,7 @@ qswidenum_t * qslong (qsmem_t * mem, qsptr_t l);
 qserror_t qslong_fetch (qsmem_t * mem, qsptr_t l, long * out_long);
 long qslong_get (qsmem_t * mem, qsptr_t l);
 qsptr_t qslong_make (qsmem_t * mem, long val);
+/* construct from high,low pair of 32b integers. */
 qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low);
 int qslong_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen);
 

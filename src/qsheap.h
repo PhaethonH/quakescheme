@@ -40,27 +40,27 @@ u       |        |        |          used
         |        |        |abcde     alloc-scale
 */
 
-#define MGMT_IS_USED(w)		(w & (1 << 31))
-#define MGMT_IS_MARKED(w)	(w & (1 << 30))
-#define MGMT_IS_GREY(w)		(w & (1 << 29))
+#define MGMT_IS_USED(w)		((w) & (1 << 31))
+#define MGMT_IS_MARKED(w)	((w) & (1 << 30))
+#define MGMT_IS_GREY(w)		((w) & (1 << 29))
 
-#define MGMT_IS_RED(w)		(w & (1 << 27))
+#define MGMT_IS_RED(w)		((w) & (1 << 27))
 #define MGMT_IS_BLACK(w)	(!MGMT_ISRED(w))
-#define MGMT_IS_OCTET(w)	(w & (1 << 26))
-#define MGMT_GET_PARENT(w)	((w >> 24) & 0x3)
+#define MGMT_IS_OCTET(w)	((w) & (1 << 26))
+#define MGMT_GET_PARENT(w)	(((w) >> 24) & 0x3)
 
-#define MGMT_SET_USED(w)	(w |= (1 << 31))
-#define MGMT_CLR_USED(w)	(w &= ~(1 << 31))
-#define MGMT_SET_MARKED(w)	(w |= (1 << 30))
-#define MGMT_CLR_MARKED(w)	(w &= ~(1 << 30))
-#define MGMT_SET_GREY(w)	(w |= (1 << 29))
-#define MGMT_CLR_GREY(w)	(w &= ~(1 << 29))
-#define MGMT_SET_RED(w)		(w |= (1 << 27))
-#define MGMT_CLR_RED(w)		(w &= ~(1 << 27))
-#define MGMT_SET_OCTET(w)	(w |= (1 << 26))
-#define MGMT_CLR_OCTET(w)	(w &= ~(1 << 26))
-#define MGMT_SET_PARENT(w,v)	(w = (w & ~(0x03000000)) | ((v & 0x3) << 24))
-#define MGMT_CLR_PARENT(w)	(w &= ~(3 << 24))
+#define MGMT_SET_USED(w)	((w) |= (1 << 31))
+#define MGMT_CLR_USED(w)	((w) &= ~(1 << 31))
+#define MGMT_SET_MARKED(w)	((w) |= (1 << 30))
+#define MGMT_CLR_MARKED(w)	((w) &= ~(1 << 30))
+#define MGMT_SET_GREY(w)	((w) |= (1 << 29))
+#define MGMT_CLR_GREY(w)	((w) &= ~(1 << 29))
+#define MGMT_SET_RED(w)		((w) |= (1 << 27))
+#define MGMT_CLR_RED(w)		((w) &= ~(1 << 27))
+#define MGMT_SET_OCTET(w)	((w) |= (1 << 26))
+#define MGMT_CLR_OCTET(w)	((w) &= ~(1 << 26))
+#define MGMT_SET_PARENT(w,v)	((w) = ((w) & ~(0x03000000)) | (((v) & 0x3) << 24))
+#define MGMT_CLR_PARENT(w)	((w) &= ~(3 << 24))
 
 #define MGMT_GET_ALLOCSCALE(w)	((w & 0xf8) >> 3)
 #define MGMT_SET_ALLOCSCALE(w,v) (w = (w & ~(0x000000f8) | ((v & 0x1f) << 3)))
@@ -129,6 +129,7 @@ qsheap_t * qsheap_destroy (qsheap_t *);
 uint32_t qsheap_length (qsheap_t *);
 qserror_t qsheap_allocscale (qsheap_t *, qsword allocscale, qsheapaddr_t * out_addr);
 qserror_t qsheap_alloc_ncells (qsheap_t *, qsword ncells, qsheapaddr_t * out_addr);
+qserror_t qsheap_alloc_with_nbytes (qsheap_t *, qsword nbytes, qsheapaddr_t * out_addr);
 qsheapaddr_t qsheap_free (qsheap_t *, qsheapaddr_t addr);
 qserror_t qsheap_set_marked (qsheap_t *, qsheapaddr_t addr, int val);
 qserror_t qsheap_set_used (qsheap_t *, qsheapaddr_t addr, int val);

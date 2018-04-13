@@ -394,13 +394,27 @@ qserror_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells, qsheapaddr_t * ou
 ..16 => 4
 */
   int nbits = 0;
-  if (ncells > 1) ncells--;
+  if (ncells > 0) ncells--;
   while (ncells > 0)
     {
       nbits++;
       ncells >>= 1;
     }
   return qsheap_allocscale(heap, nbits, out_addr);
+}
+
+qserror_t qsheap_alloc_with_nbytes (qsheap_t * heap, qsword nbytes, qsheapaddr_t * out_addr)
+{
+  qserror_t retval = QSERROR_OK;
+  qsword ncells = 0;
+  if (nbytes == 0)
+    ncells = 1;
+  else
+    ncells = 1 + ((nbytes-1) / sizeof(qsheapcell_t))+1;
+  retval = qsheap_alloc_ncells(heap, ncells, out_addr);
+  qsheapcell_t * heapcell = qsheap_ref(heap, *out_addr);
+  MGMT_SET_OCTET(heapcell->mgmt);
+  return retval;
 }
 
 qserror_t qsheap_set_used (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
