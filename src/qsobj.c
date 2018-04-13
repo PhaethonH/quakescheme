@@ -30,6 +30,7 @@ qsobj_t * qsobj_unicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   if (MGMT_GET_ALLOCSCALE(mgmt) > 0) return NULL;
   return obj;
 }
+
 /* Object as multi-celled pointer contents. */
 qsobj_t * qsobj_multicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
@@ -41,6 +42,7 @@ qsobj_t * qsobj_multicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   if (MGMT_GET_ALLOCSCALE(mgmt) == 0) return NULL;
   return obj;
 }
+
 /* Object is single-celled octet contents (uni- octet -ate). */
 qsobj_t * qsobj_unioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
@@ -52,6 +54,7 @@ qsobj_t * qsobj_unioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   if (MGMT_GET_ALLOCSCALE(mgmt) > 0) return NULL;
   return obj;
 }
+
 /* Object is multi-celled octet contents (multi- octet -ate). */
 qsobj_t * qsobj_multioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
@@ -253,13 +256,13 @@ int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen)
 
 
 
+/* Pair is a degenerate tree where left==QSNIL */
 qspair_t * qspair (qsmem_t * mem, qsptr_t p)
 {
-  qsobj_t * obj = qsobj(mem, p, NULL);
-  if (!qsobj_is_used(obj)) return NULL;
-  if (qsobj_is_octet(obj)) return NULL;
-  if (qsobj_get(obj, 0) != QSNIL) return NULL;
-  return (qspair_t *)obj;
+  qstree_t * tree = qstree(mem, p);
+  if (!tree) return NULL;
+  if (tree->left != QSNIL) return NULL;
+  return (qspair_t *)tree;
 }
 
 qsptr_t qspair_ref_a (qsmem_t * mem, qsptr_t p)
@@ -316,17 +319,74 @@ qserror_t qspair_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr
 qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t b)
 {
   qsptr_t retval;
-  qserror_t err = qspair_alloc(mem, &retval, NULL);
-  if (QSERROR_OK == err)
-    {
-      return retval;
-    }
-  return QSNIL;
+  return qstree_make(mem, QSNIL, a, b);
 }
 
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   return 0;
+}
+
+
+
+
+/* Construct list from QSBOL terminated arguments. */
+qsptr_t qslist_make (qsmem_t * mem, ...)
+{
+}
+
+qsword qslist_length (qsmem_t * mem, qsptr_t p)
+{
+  qsword retval = 0;
+  qsptr_t curr = p;
+  while (curr != QSNIL)
+    {
+      retval++;
+      qsptr_t next = qspair_ref_d(mem, curr);
+      if (qspair(mem, next))
+	{
+	  curr = next;
+	}
+      else
+	{
+	  curr = QSNIL;
+	}
+    }
+  return retval;
+}
+
+qsptr_t qslist_tail (qsmem_t * mem, qsptr_t p, qsword nth)
+{
+  qsptr_t curr = p;
+  qsword ofs = 0;
+  while ((ofs < nth) && (curr != QSNIL))
+    {
+      ofs++;
+      qsptr_t next = qspair_ref_d(mem, curr);
+      if (qspair(mem, next))
+	{
+	  curr = next;
+	}
+      else
+	{
+	  curr = QSNIL;
+	}
+    }
+  if (curr)
+    {
+      return curr;
+    }
+  return QSNIL;
+}
+
+qsptr_t qslist_ref (qsmem_t * mem, qsptr_t p, qsword k)
+{
+  qsptr_t curr = qslist_tail(mem, p, k);
+  if (curr != QSNIL)
+    {
+      return qspair_ref_a(mem, p);
+    }
+  return QSERROR_INVALID;
 }
 
 
@@ -388,7 +448,7 @@ qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
 {
   qsptr_t retval = QSNIL;
   qsheapaddr_t addr;
-  qsword ncells = 1 + (k / 4)+1;
+  qsword ncells = 1 + (k / 4)+1;  // always terminate with QSEOL.
   qserror_t err = qsheap_alloc_ncells(mem, ncells, &addr);
   if (err != QSERROR_OK) return err;
   qsvector_t * vector = (qsvector_t*)qsheap_ref(mem, addr);
@@ -403,6 +463,7 @@ qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
 	  vector->_d[i] = fill;
 	}
       retval = QSOBJ(addr);
+      vector->_d[k] = QSEOL; // termiante with QSEOL for qsiter implementation.
     }
   return retval;
 }
@@ -742,9 +803,33 @@ qsword qsiter_get (qsmem_t * mem, qsptr_t it)
   return 0;
 }
 
-qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
+int qsiter_on_pair (qsmem_t * mem, qsptr_t it, qsptr_t * out_pairptr)
 {
   if (ISITER28(it))
+    {
+      qsword ofs = qsiter_get(mem, it);
+      qsheapaddr_t addr = (ofs >> 2);
+      qsptr_t pairptr = QSOBJ(addr);
+      qspair_t * pair = qspair(mem, pairptr);
+      if (pair)
+	{
+	  if (out_pairptr)
+	    *out_pairptr = pairptr;
+	  return 1;
+	}
+    }
+  return 0;
+}
+
+qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
+{
+  qsptr_t pairptr = QSNIL;
+  if (qsiter_on_pair(mem, it, &pairptr))
+    {
+      /* iter is pointing to pair cell. */
+      return qspair_ref_a(mem, pairptr);
+    }
+  else if (ISITER28(it))
     {
       qsword ofs = qsiter_get(mem, it);
       qsptr_t ref = 0;
@@ -765,7 +850,18 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
 
 qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
 {
-  if (ISITER28(it))
+  qsptr_t pairptr = QSNIL;
+  if (qsiter_on_pair(mem, it, &pairptr))
+    {
+      /* iter is pointing to pair cell. */
+      qsptr_t next = qspair_ref_d(mem, pairptr);
+      if (ISNIL(next))
+	return QSNIL;
+      qsheapaddr_t next_addr = COBJ26(next);
+      qsheapaddr_t iter_addr = next_addr << 2;
+      return qsiter_make(mem, iter_addr);
+    }
+  else if (ISITER28(it))
     {
       qsptr_t peek = 0;
       qserror_t err = 0;
@@ -1019,4 +1115,20 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 
 
 
+
+/*******************************/
+/* Variable-substrate objects. */
+/*******************************/
+
+/* List:
+   1. linked pair cells
+   2. vector with BOL termination
+ */
+// expanded qsiter_*() to accommodate this object.
+
+/* String:
+   1. pair cells of char24
+   2. vector of char24 with BOL termination
+   3. bytevector (UTF-8)
+ */
 

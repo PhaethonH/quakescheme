@@ -117,6 +117,11 @@ qserror_t qspair_alloc (qsmem_t * mem, qsptr_t * out_obj, qsmemaddr_t * out_addr
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
 
+qsword qslist_length (qsmem_t * mem, qsptr_t p);
+qsword qslist_tail (qsmem_t * mem, qsptr_t p, qsword k);
+qsword qslist_ref (qsmem_t * mem, qsptr_t p, qsword k);
+
+
 /* Vector [of poiners] */
 typedef struct qsvector_s {
     qsptr_t mgmt;

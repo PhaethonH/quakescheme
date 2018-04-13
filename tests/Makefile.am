@@ -4,7 +4,8 @@ TESTS = test_qsptr \
   test_qstree \
   test_qsvector \
   test_qsbytevec \
-  test_qswidenum
+  test_qswidenum \
+  test_qsiter
 
 
 
