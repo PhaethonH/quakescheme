@@ -10,6 +10,13 @@
 typedef uint32_t qsheapaddr_t;
 
 
+typedef struct qsheapcell_s {
+    qsptr_t mgmt;
+    qsptr_t fields[3];
+    qsptr_t _d[];
+} qsheapcell_t;
+
+
 typedef struct qsobj_s {
     qsptr_t mgmt;
     qsptr_t _0;
@@ -78,16 +85,43 @@ void qsobj_down ();
 
 
 
+/* initialize cell as object or freelist. */
+qsheapcell_t * qsheapcell_init (qsheapcell_t *, int used, int red, int allocscale);
+int qsheapcell_is_used (qsheapcell_t *);
+qsheapcell_t * qsheapcell_set_used (qsheapcell_t *, int);
+int qsheapcell_is_marked (qsheapcell_t *);
+qsheapcell_t * qsheapcell_set_marked (qsheapcell_t *, int);
+//int qsheapcell_is_grey (qsheapcell_t *);
+//qsheapcell_t qsheapcell_set_grey (qsheapcell_t *, int);
+int qsheapcell_is_red (qsheapcell_t *);
+qsheapcell_t * qsheapcell_set_red (qsheapcell_t *, int);
+int qsheapcell_is_octet (qsheapcell_t *);
+qsheapcell_t * qsheapcell_set_octet (qsheapcell_t *, int);
+int qsheapcell_get_parent (qsheapcell_t *);
+qsheapcell_t * qsheapcell_set_parent (qsheapcell_t *, int);
+int qsheapcell_get_allocscale (qsheapcell_t *);
+qsheapcell_t * qsheapcell_set_allocscale (qsheapcell_t *, int);
+qsptr_t qsheapcell_get_field (qsheapcell_t *, int);
+
+
+
+
+/*
+typedef union qsheapref_u {
+    qsfreelist_t freelist;
+    qsheapcell_t cell;
+    qsobj_t obj;
+} qsheapref_t;
+*/
 
 typedef struct qsheap_s {
     int wlock;			/* write-lock into storage. */
     uint32_t cap;		/* maximum number of words. */
     //qsheapaddr_t freelist;	/* start of free list. */
     qsheapaddr_t end_freelist;	/* end of free list. */
-    qsobj_t space[];
+    //qsobj_t space[];
+    qsheapcell_t space[];
 } qsheap_t;
-
-typedef qsptr_t qsheapcell_t[4];
 
 qsheap_t * qsheap_init (qsheap_t *, uint32_t ncells);
 qsheap_t * qsheap_destroy (qsheap_t *);
@@ -100,7 +134,8 @@ qserror_t qsheap_set_used (qsheap_t *, qsheapaddr_t addr, int val);
 int qsheap_is_marked (qsheap_t *, qsheapaddr_t addr);
 int qsheap_is_used (qsheap_t *, qsheapaddr_t addr);
 qserror_t qsheap_sweep (qsheap_t *);
-qsobj_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr);
+//qsobj_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr);
+qsheapcell_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr);
 qserror_t qsheap_word (qsheap_t *, qsheapaddr_t word_addr, qsword * out_word);
 
 

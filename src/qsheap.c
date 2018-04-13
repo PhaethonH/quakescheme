@@ -6,6 +6,89 @@
 #include "qsheap.h"
 
 
+
+qsheapcell_t * qsheapcell_init (qsheapcell_t * cell, int used, int marked, int allocscale)
+{
+  cell->mgmt = TAG_SYNC29;
+  if (used) MGMT_SET_USED(cell->mgmt);
+  if (marked) MGMT_SET_MARKED(cell->mgmt);
+  MGMT_SET_ALLOCSCALE(cell->mgmt, allocscale);
+  return cell;
+}
+
+int qsheapcell_is_used (qsheapcell_t * heapcell)
+{
+  return !!(MGMT_IS_USED(heapcell->mgmt));
+}
+
+int qsheapcell_is_marked (qsheapcell_t * heapcell)
+{
+  return !!(MGMT_IS_MARKED(heapcell->mgmt));
+}
+
+int qsheapcell_is_red (qsheapcell_t * heapcell)
+{
+  return !!(MGMT_IS_RED(heapcell->mgmt));
+}
+
+int qsheapcell_is_octet (qsheapcell_t * heapcell)
+{
+  return !!(MGMT_IS_OCTET(heapcell->mgmt));
+}
+
+int qsheapcell_get_parent (qsheapcell_t * heapcell)
+{
+  return MGMT_GET_PARENT(heapcell->mgmt);
+}
+
+int qsheapcell_get_alloscale (qsheapcell_t * heapcell)
+{
+  return MGMT_GET_ALLOCSCALE(heapcell->mgmt);
+}
+
+qsheapcell_t * qsheapcell_set_used (qsheapcell_t * heapcell, int val)
+{
+  if (val) MGMT_SET_USED(heapcell->mgmt);
+  else MGMT_CLR_USED(heapcell->mgmt);
+  return heapcell;
+}
+
+qsheapcell_t * qsheapcell_set_marked (qsheapcell_t * heapcell, int val)
+{
+  if (val) MGMT_SET_MARKED(heapcell->mgmt);
+  else MGMT_CLR_MARKED(heapcell->mgmt);
+  return heapcell;
+}
+
+qsheapcell_t * qsheapcell_set_red (qsheapcell_t * heapcell, int val)
+{
+  if (val) MGMT_SET_RED(heapcell->mgmt);
+  else MGMT_CLR_RED(heapcell->mgmt);
+  return heapcell;
+}
+
+qsheapcell_t * qsheapcell_set_octet (qsheapcell_t * heapcell, int val)
+{
+  if (val) MGMT_SET_OCTET(heapcell->mgmt);
+  else MGMT_CLR_OCTET(heapcell->mgmt);
+  return heapcell;
+}
+
+qsheapcell_t * qsheapcell_set_parent (qsheapcell_t * heapcell, int val)
+{
+  MGMT_SET_PARENT(heapcell->mgmt, val);
+  return heapcell;
+}
+
+qsheapcell_t * qsheapcell_set_allocscale (qsheapcell_t * heapcell, int val)
+{
+  MGMT_SET_ALLOCSCALE(heapcell->mgmt, val);
+  return heapcell;
+}
+
+
+
+
 qsfreelist_t * qsfreelist (qsheap_t * heap, qsptr_t p)
 {
   if (ISNIL(p)) return NULL;
@@ -246,9 +329,9 @@ qsheap_t * qsheap_init (qsheap_t * heap, uint32_t ncells)
   for (i = 0; i < ncells; i++)
     {
       heap->space[i].mgmt = 0;
-      heap->space[i]._0 = 0;
-      heap->space[i]._1 = 0;
-      heap->space[i]._2 = 0;
+      heap->space[i].fields[0] = 0;
+      heap->space[i].fields[1] = 0;
+      heap->space[i].fields[2] = 0;
     }
 
   // TODO: initial freelist.
@@ -276,10 +359,10 @@ qserror_t qsheap_allocscale (qsheap_t * heap, qsword allocscale, qsheapaddr_t * 
   qserror_t err = qsfreelist_fit_end(heap, heap->end_freelist, ncells, &addr);
   if (err == QSERROR_OK)
     {
-      qsobj_t * obj = qsheap_ref(heap, addr);
-      obj->mgmt = TAG_SYNC29;
-      MGMT_SET_ALLOCSCALE(obj->mgmt, allocscale);
-      MGMT_SET_USED(obj->mgmt);
+      qsheapcell_t * heapcell = qsheap_ref(heap, addr);
+      heapcell->mgmt = TAG_SYNC29;
+      MGMT_SET_ALLOCSCALE(heapcell->mgmt, allocscale);
+      MGMT_SET_USED(heapcell->mgmt);
       *out_addr = addr;
       return QSERROR_OK;
     }
@@ -311,58 +394,59 @@ qserror_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells, qsheapaddr_t * ou
 
 qserror_t qsheap_set_used (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
 {
-  qsobj_t * obj = qsheap_ref(heap, cell_addr);
-  if (!obj) return QSERROR_INVALID;
-  if (val)
-    MGMT_SET_USED(obj->mgmt);
-  else
-    MGMT_CLR_USED(obj->mgmt);
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return QSERROR_INVALID;
+  qsheapcell_set_used(heapcell, val);
   return QSERROR_OK;
 }
 
 qserror_t qsheap_set_marked (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
 {
-  qsobj_t * obj = qsheap_ref(heap, cell_addr);
-  if (!obj) return QSERROR_INVALID;
-  if (val)
-    MGMT_SET_MARKED(obj->mgmt);
-  else
-    MGMT_CLR_MARKED(obj->mgmt);
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return QSERROR_INVALID;
+  qsheapcell_set_marked(heapcell, val);
   return QSERROR_OK;
+}
+
+int qsheap_is_sync (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return 0;
+  return ISSYNC29(heapcell->mgmt);
 }
 
 int qsheap_is_marked (qsheap_t * heap, qsheapaddr_t cell_addr)
 {
-  qsobj_t * obj = qsheap_ref(heap, cell_addr);
-  if (!obj) return 0;
-  return !!MGMT_IS_MARKED(obj->mgmt);
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return 0;
+  return qsheapcell_is_marked(heapcell);
 }
 
 int qsheap_is_used (qsheap_t * heap, qsheapaddr_t cell_addr)
 {
-  qsobj_t * obj = qsheap_ref(heap, cell_addr);
-  if (!obj) return 0;
-  return !!MGMT_IS_USED(obj->mgmt);
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return 0;
+  return qsheapcell_is_used(heapcell);
 }
 
-qsobj_t * qsheap_ref (qsheap_t * heap, qsheapaddr_t cell_addr)
+qsheapcell_t * qsheap_ref (qsheap_t * heap, qsheapaddr_t cell_addr)
 {
   if ((cell_addr < 0) || (cell_addr >= heap->cap))
     return NULL;
-  return heap->space + cell_addr;
+  return (qsheapcell_t*)(heap->space + cell_addr);
 }
 
 qserror_t qsheap_word (qsheap_t * heap, qsheapaddr_t word_addr, qsptr_t * out_word)
 {
   qsptr_t * pword = NULL;
   qsword cell_addr = (word_addr >> 2);
-  qsobj_t * equiv_obj = qsheap_ref(heap, cell_addr);
-  if (! equiv_obj)
+  qsheapcell_t * equiv_heapcell = qsheap_ref(heap, cell_addr);
+  if (! equiv_heapcell)
     return QSERROR_INVALID;
   if (out_word)
     {
       qsword word_ofs = (word_addr & 0x3);
-      pword = ((qsptr_t *)(equiv_obj)) + word_ofs;
+      pword = ((qsptr_t *)(equiv_heapcell)) + word_ofs;
       *out_word = *pword;
     }
   return QSERROR_OK;
@@ -452,7 +536,7 @@ qserror_t qsheap_sweep (qsheap_t * heap)
   qsheapaddr_t prev_free, next_free;
   qsheapaddr_t prev, curr;
   prev_free = QSFREE_SENTINEL;
-  qsobj_t * probe = NULL;
+  qsheapcell_t * probe = NULL;
   /* Scan cells for unmarked objects. */
   curr = 0;
   while (curr < heap->cap)
@@ -464,8 +548,8 @@ qserror_t qsheap_sweep (qsheap_t * heap)
 	  if (qsheap_is_used(heap, curr))
 	    {
 	      // object.
-	      qsobj_t * obj = qsheap_ref(heap, curr);
-	      qsword scaled_span = MGMT_GET_ALLOCSCALE(obj->mgmt);
+	      qsheapcell_t * heapcell = qsheap_ref(heap, curr);
+	      qsword scaled_span = MGMT_GET_ALLOCSCALE(heapcell->mgmt);
 	      qsword span = 1 << scaled_span;
 
 	      if (!qsheap_is_marked(heap, curr))

@@ -159,8 +159,9 @@ START_TEST(test_iter)
 
   qsptr_t anchor = QSOBJ(8);
   ck_assert(ISOBJ26(anchor));
-  qsobj_t * obj = qsheap_ref(heap1, 8);
-  ck_assert(obj - heap1->space == 8);
+  qsheapcell_t * heapcell = qsheap_ref(heap1, 8);
+  qsobj_t * obj = (qsobj_t*)heapcell;
+  ck_assert(heapcell - heap1->space == 8);
   obj->mgmt |= (1 << 31);  /* used */
   obj->mgmt |= TAG_SYNC29; /* typing */
   obj->mgmt |= (2 << 4);   /* 16 cells */

@@ -47,7 +47,7 @@ START_TEST(test_address_pedantry)
   ck_assert(b);
   ck_assert(b > a);
   ck_assert_int_eq(a1, 19999);
-  ck_assert_int_eq((qsobj_t*)b - heap1->space, 19999);
+  ck_assert_int_eq((qsheapcell_t*)b - heap1->space, 19999);
   ck_assert(CINT30(b->span) == 1);
   ck_assert_int_lt(CINT30(a->span), oldspan);
 
@@ -59,7 +59,7 @@ START_TEST(test_address_pedantry)
   ck_assert(b);
   ck_assert(b > a);
   ck_assert_int_eq(a1, 19995);
-  ck_assert_int_eq((qsobj_t*)b - heap1->space, 19995);
+  ck_assert_int_eq((qsheapcell_t*)b - heap1->space, 19995);
   ck_assert(CINT30(b->span) == 4);
   ck_assert_int_lt(CINT30(a->span), oldspan);
 }
@@ -83,6 +83,75 @@ START_TEST(test_alloc_pedantry)
 }
 END_TEST
 
+
+int mark_cells (int ncells, qsheapaddr_t * cells, int * marking)
+{
+  /* set marks. */
+  int i;
+  for (i = 0; i < ncells; i++)
+    {
+      if (marking[i])
+	{
+	  qsheapcell_t * probe = qsheap_ref(heap1, cells[i]);
+	  if (qsheapcell_is_used(probe))
+	    qsheapcell_set_marked(probe, 1);
+	}
+    }
+  return 0;
+}
+
+int check_used (int ncells, qsheapaddr_t * cells, int * marking)
+{
+  /* check mark-tagged cells are Used. */
+  int i;
+  for (i = 0; i < ncells; i++)
+    {
+      if (marking[i])
+	{
+	  qsheapcell_t * probe = qsheap_ref(heap1, cells[i]);
+	  ck_assert(probe);
+	  ck_assert(qsheapcell_is_used(probe));
+	}
+    }
+  return 0;
+}
+
+int check_marks (int ncells, qsheapaddr_t * cells, int * marking)
+{
+  /* check markedness. */
+  int i;
+  for (i = 0; i < ncells; i++)
+    {
+      if (marking[i])
+	{
+	  qsheapcell_t * probe = qsheap_ref(heap1, cells[i]);
+	  ck_assert(probe);
+	  ck_assert(qsheapcell_is_marked(probe));
+	}
+    }
+  return 0;
+}
+
+int check_unswept (int ncells, qsheapaddr_t * cells, int * marking)
+{
+  /* check mark-tagged cells are Used. */
+  int i;
+  for (i = 0; i < ncells; i++)
+    {
+      qsheapcell_t * probe = qsheap_ref(heap1, cells[i]);
+      ck_assert(probe);
+      if (marking[i])
+	{
+	  ck_assert(qsheapcell_is_used(probe));
+	}
+      else
+	{
+	  ck_assert(!qsheapcell_is_used(probe));
+	}
+    }
+  return 0;
+}
+
 START_TEST(test_sweeping)
 {
   init();
@@ -104,7 +173,7 @@ START_TEST(test_sweeping)
 
   for (i = 0; i < 16; i++)
     {
-      qsobj_t * probe = qsheap_ref(heap1, held[i]);
+      qsheapcell_t * probe = qsheap_ref(heap1, held[i]);
       ck_assert(probe);
       ck_assert(MGMT_IS_USED(probe->mgmt));
       ck_assert_int_eq(MGMT_GET_ALLOCSCALE(probe->mgmt), 0);
@@ -117,60 +186,23 @@ START_TEST(test_sweeping)
   int * marking;
   int marking1[16] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
   marking = marking1;
-  for (i = 0; i < 16; i++)
-    {
-      if (marking[i])
-	{
-	  qsobj_t * probe = qsheap_ref(heap1, held[i]);
-	  qsobj_set_marked(probe);
-	}
-    }
-
-  /* check used=1 and marked=1 for each 'held' tagged. */
-  for (i = 0; i < 16; i++)
-    {
-      qsobj_t * obj = qsheap_ref(heap1, held[i]);
-      ck_assert(obj);
-      ck_assert(MGMT_IS_USED(obj->mgmt));
-      ck_assert(MGMT_IS_MARKED(obj->mgmt));
-    }
+  mark_cells(16, held, marking);
+  check_marks(16, held, marking);
+  check_used(16, held, marking);
 
   qsheap_sweep(heap1);
 
-  /* used=1 and marked=0 for each 'held' tagged for marked. */
-  for (i = 0; i < 16; i++)
-    {
-      qsobj_t * obj = qsheap_ref(heap1, held[i]);
-      ck_assert(obj);
-      if (marking[i]) ck_assert(MGMT_IS_USED(obj->mgmt));
-      else ck_assert(! MGMT_IS_USED(obj->mgmt));
-      ck_assert(! MGMT_IS_MARKED(obj->mgmt));
-    }
+  check_unswept(16, held, marking);
 
 
   /* mark pattern: MMMMMMMMMMMMoooo */
   int marking2[16] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0 };
   marking = marking2;
-  for (i = 0; i < 16; i++)
-    {
-      if (marking[i])
-	{
-	  qsobj_t * probe = qsheap_ref(heap1, held[i]);
-	  qsobj_set_marked(probe);
-	}
-    }
+  mark_cells(16, held, marking);
 
   qsheap_sweep(heap1);
 
-  /* check used=1 for each 'held' tagged for marked; marked=0 for all. */
-  for (i = 0; i < 16; i++)
-    {
-      qsobj_t * obj = qsheap_ref(heap1, held[i]);
-      ck_assert(obj);
-      if (marking[i]) ck_assert(MGMT_IS_USED(obj->mgmt));
-      else ck_assert(! MGMT_IS_USED(obj->mgmt));
-      ck_assert(! MGMT_IS_MARKED(obj->mgmt));
-    }
+  check_unswept(16, held, marking);
 
   /* check coalescence. */
   ck_assert_int_eq(qsfreelist_get_span(heap1, 0), 19988);
@@ -180,34 +212,12 @@ START_TEST(test_sweeping)
   /* mark pattern: ooooMMMMMMMMoooo */
   int marking3[16] = { 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0 };
   marking = marking3;
-  for (i = 0; i < 16; i++)
-    {
-      if (marking[i])
-	{
-	  qsobj_t * probe = qsheap_ref(heap1, held[i]);
-	  qsobj_set_marked(probe);
-	  printf("-- mark %d\n", held[i]);
-	}
-    }
-  /* checked markedness */
-  for (i = 0; i < 16; i++)
-    {
-      if (marking[i])
-	{
-	  qsobj_t * obj = qsheap_ref(heap1, held[i]);
-	  ck_assert(obj);
-	  ck_assert(MGMT_IS_MARKED(obj->mgmt));
-	}
-    }
+  mark_cells(16, held, marking);
+  check_marks(16, held, marking);  /* check markedness */
 
   qsheap_sweep(heap1);
 
-  for (i = 0; i < 16; i++)
-    {
-      qsfreelist_crepr(heap1, held[i], buf, sizeof(buf));
-      puts(buf);
-    }
-  qsfreelist_crepr(heap1, 0, buf, sizeof(buf)); puts(buf);
+  check_unswept(16, held, marking);
 
   /* check coalescence. */
   ck_assert_int_eq(qsfreelist_get_span(heap1, 0), 19988);
@@ -217,34 +227,12 @@ START_TEST(test_sweeping)
   /* mark pattern: ooooMMMooMMMoooo */
   int marking4[16] = { 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0 };
   marking = marking4;
-  for (i = 0; i < 16; i++)
-    {
-      if (marking[i])
-	{
-	  qsobj_t * probe = qsheap_ref(heap1, held[i]);
-	  qsobj_set_marked(probe);
-	  printf("-- mark %d\n", held[i]);
-	}
-    }
-  /* checked markedness */
-  for (i = 0; i < 16; i++)
-    {
-      if (marking[i])
-	{
-	  qsobj_t * obj = qsheap_ref(heap1, held[i]);
-	  ck_assert(obj);
-	  ck_assert(MGMT_IS_MARKED(obj->mgmt));
-	}
-    }
+  mark_cells(16, held, marking);
+  check_marks(16, held, marking);  /* check markedness */
 
   qsheap_sweep(heap1);
 
-  for (i = 0; i < 16; i++)
-    {
-      qsfreelist_crepr(heap1, held[i], buf, sizeof(buf));
-      puts(buf);
-    }
-  qsfreelist_crepr(heap1, 0, buf, sizeof(buf)); puts(buf);
+  check_unswept(16, held, marking);
 
   /* check coalescence. */
   ck_assert_int_eq(qsfreelist_get_span(heap1, 0), 19988);
@@ -256,34 +244,12 @@ START_TEST(test_sweeping)
   /* mark pattern: ooooMMMooMMMoooo */
   int marking5[16] = { 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0 };
   marking = marking5;
-  for (i = 0; i < 16; i++)
-    {
-      if (marking[i])
-	{
-	  qsobj_t * probe = qsheap_ref(heap1, held[i]);
-	  qsobj_set_marked(probe);
-	  printf("-- mark %d\n", held[i]);
-	}
-    }
-  /* checked markedness */
-  for (i = 0; i < 16; i++)
-    {
-      if (marking[i])
-	{
-	  qsobj_t * obj = qsheap_ref(heap1, held[i]);
-	  ck_assert(obj);
-	  ck_assert(MGMT_IS_MARKED(obj->mgmt));
-	}
-    }
+  mark_cells(16, held, marking);
+  check_marks(16, held, marking);  /* checked markedness */
 
   qsheap_sweep(heap1);
 
-  for (i = 0; i < 16; i++)
-    {
-      qsfreelist_crepr(heap1, held[i], buf, sizeof(buf));
-      puts(buf);
-    }
-  qsfreelist_crepr(heap1, 0, buf, sizeof(buf)); puts(buf);
+  check_unswept(16, held, marking);
 
   /* check coalescence. */
   ck_assert_int_eq(qsfreelist_get_span(heap1, 0), 19988);
