@@ -24,9 +24,97 @@ qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 qstree_t * qstree (qsmem_t * mem, qsptr_t t)
 {
   qsobj_t * obj = qsobj(mem, t, NULL);
+  if (!obj) return NULL;
   if (!qsobj_is_used(obj)) return NULL;
   if (qsobj_is_octet(obj)) return NULL;
   return (qstree_t *)obj;
+}
+
+qsptr_t qstree_mark (qsmem_t * mem, qsptr_t t)
+{
+  qsptr_t currptr = t;
+  qsptr_t backptr = QSNIL;
+  qsptr_t tempptr = QSNIL;
+
+  qstree_t * root = qstree(mem, t);
+//  while (!ISNIL(currptr))
+  while (! MGMT_IS_MARKED(root->mgmt))
+    {
+      /* main loop */
+      //qsheapcell_t * cell = qsheap_ref(mem, curr);
+      qstree_t * tree = qstree(mem, currptr);
+      if (tree)
+	{
+	  qsheapcell_t * cell = (qsheapcell_t*)tree;
+	  if (! qsheapcell_is_marked(cell))
+	    {
+	      switch (qsheapcell_get_parent(cell))
+		{
+		case 0:
+		  /* chase left. */
+		  // store parent into "left" while chasing "left".
+		  tempptr = cell->fields[0];
+		  cell->fields[0] = backptr;
+		  // chase "left".
+		  backptr = currptr;
+		  currptr = tempptr;
+		  qsheapcell_set_parent(cell, 1);
+		  break;
+		case 1:
+		  /* chase center. */
+		  // swap "left=parent" with "center" while chasing "center".
+		  tempptr = cell->fields[1];
+		  cell->fields[1] = cell->fields[0];
+		  cell->fields[0] = backptr;
+		  // chase "center".
+		  backptr = currptr;
+		  currptr = tempptr;
+		  qsheapcell_set_parent(cell, 2);
+		  break;
+		case 2:
+		  /* chase right. */
+		  // swap "center=parent" with "right" while chasing "right".
+		  tempptr = cell->fields[2];
+		  cell->fields[2] = cell->fields[1];
+		  cell->fields[1] = backptr;
+		  // chase "center".
+		  backptr = currptr;
+		  currptr = tempptr;
+		  qsheapcell_set_parent(cell, 3);
+		  break;
+		case 3:
+		  /* backtrack to parent. */
+		  // restore "right=parent" and while chasing "parent".
+		  tempptr = cell->fields[2];
+		  cell->fields[2] = backptr;
+		  // chase "right=parent".
+		  backptr = currptr;
+		  currptr = tempptr;
+		  qsheapcell_set_parent(cell, 0);
+		  // subtrees complete, set Marked.
+		  qsheapcell_set_marked(cell, 1);
+		  break;
+		default:
+		  break;
+		}
+	    }
+	  else
+	    {
+	      tempptr = currptr;
+	      currptr = backptr;
+	      backptr = tempptr;
+	    }
+	}
+      else
+	{
+	  // TODO: hand off marking to other types.
+	  tempptr = currptr;
+	  currptr = backptr;
+	  backptr = tempptr;
+	}
+
+    }
+  return t;
 }
 
 qsptr_t qstree_get_left (qsmem_t * mem, qsptr_t t)
@@ -100,7 +188,19 @@ qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val)
 
 qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
 {
-  return QSNIL;
+  qsptr_t retval = QSNIL;
+  qsheapaddr_t addr;
+  qserror_t err = qsheap_alloc_ncells(mem, 1, &addr);
+  if (err != QSERROR_OK) return err;
+  qstree_t * tree = (qstree_t*)qsheap_ref(mem, addr);
+  if (tree)
+    {
+      tree->left = left;
+      tree->data = data;
+      tree->right = right;
+      retval = QSOBJ(addr);
+    }
+  return retval;
 }
 
 int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen)

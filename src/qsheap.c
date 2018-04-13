@@ -360,9 +360,7 @@ qserror_t qsheap_allocscale (qsheap_t * heap, qsword allocscale, qsheapaddr_t * 
   if (err == QSERROR_OK)
     {
       qsheapcell_t * heapcell = qsheap_ref(heap, addr);
-      heapcell->mgmt = TAG_SYNC29;
-      MGMT_SET_ALLOCSCALE(heapcell->mgmt, allocscale);
-      MGMT_SET_USED(heapcell->mgmt);
+      qsheapcell_init(heapcell, 1, 0, allocscale);
       *out_addr = addr;
       return QSERROR_OK;
     }
