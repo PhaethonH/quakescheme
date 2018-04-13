@@ -124,6 +124,7 @@ qsword qsfreelist_get_next (qsheap_t *, qsheapaddr_t cell_addr);
 qserror_t qsfreelist_set_span (qsheap_t *, qsheapaddr_t cell_addr, qsword val);
 qserror_t qsfreelist_set_prev (qsheap_t *, qsheapaddr_t cell_addr, qsword val);
 qserror_t qsfreelist_set_next (qsheap_t *, qsheapaddr_t cell_addr, qsword val);
+int qsfreelist_crepr (qsheap_t *, qsheapaddr_t cell_addr, char * buf, int buflen);
 
 
 

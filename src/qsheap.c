@@ -1,5 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #include "qsheap.h"
 
@@ -125,9 +127,12 @@ qserror_t qsfreelist_fit_end (qsheap_t * heap, qsheapaddr_t addr, qsword ncells,
 	  // larger - split first.
 	  if (out_addr)
 	    {
-	      qsheapaddr_t a0, a1;
+	      qsheapaddr_t a0, a1, next;
 	      err = qsfreelist_split(heap, segment_addr, ncells, &a0, &a1);
 	      if (err != QSERROR_OK) return QSERROR_NOMEM;
+	      // transfer 'next' field from second segment to first.
+	      next = qsfreelist_get_next(heap, a1);
+	      qsfreelist_set_next(heap, a0, next);
 	      *out_addr = a1;
 	      match = 1;
 	    }
@@ -141,10 +146,10 @@ qserror_t qsfreelist_fit_end (qsheap_t * heap, qsheapaddr_t addr, qsword ncells,
 	    {
 	      qsheapaddr_t prev_addr = qsfreelist_get_prev(heap, addr);
 	      qsheapaddr_t next_addr = qsfreelist_get_next(heap, addr);
-	      //prev->next = segment->next;
-	      //next->prev = segment->prev;
-	      qsfreelist_set_next(heap, prev_addr, qsfreelist_get_next(heap, segment_addr));
-	      qsfreelist_set_prev(heap, next_addr, qsfreelist_get_prev(heap, segment_addr));
+	      if (prev_addr != QSFREE_SENTINEL)
+		qsfreelist_set_next(heap, prev_addr, qsfreelist_get_next(heap, segment_addr));
+	      if (next_addr != QSFREE_SENTINEL)
+		qsfreelist_set_prev(heap, next_addr, qsfreelist_get_prev(heap, segment_addr));
 	      *out_addr = segment_addr;
 	      match = 1;
 	    }
@@ -191,7 +196,7 @@ qserror_t qsfreelist_set_prev (qsheap_t * heap, qsheapaddr_t cell_addr, qsword v
   qsfreelist_t * freelist = qsfreelist_ref(heap, cell_addr);
   if (!freelist) return 0;
   qsptr_t enc = QSNIL;
-  if (ISINT30(val)) enc = QSINT(val);
+  if (val != QSFREE_SENTINEL) enc = QSINT(val);
   freelist->prev = enc;
 }
 
@@ -200,8 +205,33 @@ qserror_t qsfreelist_set_next (qsheap_t * heap, qsheapaddr_t cell_addr, qsword v
   qsfreelist_t * freelist = qsfreelist_ref(heap, cell_addr);
   if (!freelist) return 0;
   qsptr_t enc = QSNIL;
-  if (ISINT30(val)) enc = QSINT(val);
+  if (val != QSFREE_SENTINEL) enc = QSINT(val);
   freelist->next = enc;
+}
+
+int qsfreelist_crepr (qsheap_t * heap, qsheapaddr_t cell_addr, char * buf, int buflen)
+{
+  int n;
+  qsfreelist_t * segment = qsfreelist_ref(heap, cell_addr);
+  if (!segment)
+    {
+      return snprintf(buf, buflen, "(!qsfreelist_t)(_0x%08x)", cell_addr);
+    }
+  int mgmt = segment ? segment->mgmt : 0;
+  int span = qsfreelist_get_span(heap, cell_addr);
+  int prev = qsfreelist_get_prev(heap, cell_addr);
+  int next = qsfreelist_get_next(heap, cell_addr);
+  n = snprintf(buf, buflen, "(qsfreelist_t)(_0x%08x) = {\
+ .mgmt=0x%08X,\
+ .span=%d,\
+ .prev=%d,\
+ .next=%d }",
+    cell_addr,
+    mgmt,
+    span,
+    prev,
+    next);
+  return n;
 }
 
 
@@ -344,9 +374,10 @@ if up_free is an adjacent free list segment, coalesce into a single large
 segment at obj_addr,
 otherwise free list segment at obj_addr links to up_free.
 */
-qserror_t qsheap_reclaim (qsheap_t * heap, qsheapaddr_t obj_addr, qsheapaddr_t up_free, qsheapaddr_t * out_segment)
+qserror_t qsheap_reclaim (qsheap_t * heap, qsheapaddr_t obj_addr, qsheapaddr_t down_free, qsheapaddr_t * out_segment)
 {
   qsfreelist_t * segment = (qsfreelist_t*)qsheap_ref(heap, obj_addr);
+  qsword reclaimed_addr = obj_addr;
   qsword scaled_span = MGMT_GET_ALLOCSCALE(segment->mgmt);
   qsword span = 1 << scaled_span;
   segment->mgmt = TAG_SYNC29;
@@ -357,49 +388,60 @@ qserror_t qsheap_reclaim (qsheap_t * heap, qsheapaddr_t obj_addr, qsheapaddr_t u
   MGMT_SET_ALLOCSCALE(segment->mgmt, 0);
   qsheap_set_used(heap, obj_addr, 0);
   qsheap_set_marked(heap, obj_addr, 0);
+  reclaimed_addr = obj_addr;
 
-  if ((up_free != QSFREE_SENTINEL) && (up_free > obj_addr))
+  qsword up_free = QSFREE_SENTINEL;
+
+  /* possibly coalesce down. */
+  if (down_free != QSFREE_SENTINEL)
     {
-      qsword up_span = qsfreelist_get_span(heap, up_free);
-      if ((obj_addr + span) == up_free)
+      qsword down_span = qsfreelist_get_span(heap, down_free);
+      up_free = qsfreelist_get_next(heap, down_free);
+      if ((down_free + down_span) == obj_addr)
 	{
-	  /* coalesce up. */
-	  span += up_span;
-	  segment->span = QSINT(span);
-	  (qsfreelist_ref(heap, up_free))->mgmt = 0;
+	  /* coalesce down. */
+	  qsfreelist_set_span(heap, down_free, span + down_span);
+	  segment->mgmt = 0;
+	  /* down's "next" unchanged, "prev" unchanged. */
+	  span += down_span;
+	  reclaimed_addr = down_free;
 	}
       else
 	{
-	  /* insert, link. */
-	  qsfreelist_t * up_segment = qsfreelist_ref(heap, up_free);
-	  segment->next = QSINT(up_free);
-	  segment->prev = up_segment->prev;
-	  up_segment->prev = QSINT(obj_addr);
+	  /* link from down. */
+	  qsword temp = qsfreelist_get_next(heap, down_free);
+	  qsfreelist_set_next(heap, reclaimed_addr, temp);
+	  qsfreelist_set_prev(heap, reclaimed_addr, down_free);
+	  qsfreelist_set_next(heap, down_free, reclaimed_addr);
 	}
     }
-
-  /* possibly coalesce down. */
-  qsheapaddr_t down_free = QSFREE_SENTINEL;
-  if (up_free == QSFREE_SENTINEL)
-    down_free = heap->end_freelist;
-  else
-    down_free = qsfreelist_get_prev(heap, obj_addr);
-  if (down_free == QSFREE_SENTINEL)
+  /* check coalesce up. */
+  if (up_free != QSFREE_SENTINEL)
     {
-      // cannot go down.
-      if (out_segment) *out_segment = obj_addr;
-      return QSERROR_OK;
+      if ((reclaimed_addr + span) == up_free)
+	{
+	  /* coalesce up. */
+	  qsword up_span = qsfreelist_get_span(heap, up_free);
+	  qsword up_next = qsfreelist_get_next(heap, up_free);
+	  qsfreelist_set_span(heap, reclaimed_addr, span + up_span);
+	  qsfreelist_set_next(heap, reclaimed_addr, up_next);
+	  qsfreelist_t * up_segment = qsfreelist_ref(heap, up_free);
+	  up_segment->mgmt = 0;
+	  span += up_span;
+	}
+      else
+	{
+#if 0 // upward link already established in down-coalescence.
+	  /* link to up. */
+	  qsword temp = qsfreelist_get_prev(heap, up_free);
+	  qsfreelist_set_prev(heap, up_free, reclaimed_addr);
+	  qsfreelist_set_next(heap, reclaimed_addr, up_free);
+	  qsfreelist_set_prev(heap, reclaimed_addr, temp);
+#endif //0
+	}
     }
-
-  // check adjacency of down.
-  qsword down_span = qsfreelist_get_span(heap, down_free);
-  if ((down_free + down_span) == obj_addr) {
-      /* coalesce down. */
-      span += down_span;
-      qsfreelist_set_span(heap, down_free, span);
-      if (out_segment) *out_segment = down_free;
-      return QSERROR_OK;
-    }
+  if (out_segment)
+    *out_segment = reclaimed_addr;
 
   return QSERROR_OK;
 }
@@ -409,10 +451,10 @@ qserror_t qsheap_sweep (qsheap_t * heap)
   qserror_t err = 0;
   qsheapaddr_t prev_free, next_free;
   qsheapaddr_t prev, curr;
-  prev_free = next_free = heap->end_freelist;
-  prev = curr = 0;
+  prev_free = QSFREE_SENTINEL;
   qsobj_t * probe = NULL;
   /* Scan cells for unmarked objects. */
+  curr = 0;
   while (curr < heap->cap)
     {
       probe = qsheap_ref(heap, curr);
@@ -428,10 +470,9 @@ qserror_t qsheap_sweep (qsheap_t * heap)
 
 	      if (!qsheap_is_marked(heap, curr))
 		{
-		  err = qsheap_reclaim(heap, curr, next_free, &next_free);
+		  err = qsheap_reclaim(heap, curr, prev_free, &prev_free);
+		  /* prev_free is updated. */
 		  assert(err == QSERROR_OK);
-		  span = qsfreelist_get_span(heap, curr);
-		  next_free = curr;
 		}
 	      else
 		{
@@ -444,6 +485,7 @@ qserror_t qsheap_sweep (qsheap_t * heap)
 	  else
 	    {
 	      // freelist.
+	      prev_free = curr;
 	      curr += qsfreelist_get_span(heap, curr);
 	    }
 	}
@@ -453,7 +495,7 @@ qserror_t qsheap_sweep (qsheap_t * heap)
 	  curr++;
 	}
     }
-  heap->end_freelist = next_free;
+  heap->end_freelist = prev_free;
   return QSERROR_NOIMPL;
 }
 
