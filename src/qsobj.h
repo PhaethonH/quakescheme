@@ -160,6 +160,7 @@ qserror_t qsvector_mark (qsmem_t * mem, qsword k);
 qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * next);
 int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen);
 qsword qsvector_inject (qsmem_t * mem, qsword nelts, qsptr_t * carray);
+qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t v, qsword * out_len);
 
 
 /* Immutable List; Read-Only List; Array.  Borrows from CDR-coded lists. */
