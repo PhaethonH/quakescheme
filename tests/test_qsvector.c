@@ -74,10 +74,41 @@ START_TEST(test_sweep1)
 }
 END_TEST
 
+START_TEST(test_inject1)
+{
+  init();
+
+  qsptr_t cvec1[5] = {
+      QSINT(1),
+      QSINT(2),
+      QSINT(3),
+      QSINT(4),
+      QSINT(5),
+  };
+
+  qsptr_t v1 = qsvector_inject(heap1, 5, cvec1);
+
+  ck_assert(ISINT30(qsvector_ref(heap1, v1, 0)));
+  ck_assert(ISINT30(qsvector_ref(heap1, v1, 1)));
+  ck_assert(ISINT30(qsvector_ref(heap1, v1, 2)));
+  ck_assert(ISINT30(qsvector_ref(heap1, v1, 3)));
+  ck_assert(ISINT30(qsvector_ref(heap1, v1, 4)));
+
+  ck_assert_int_eq(CINT30(qsvector_ref(heap1,v1,0)), 1);
+  ck_assert_int_eq(CINT30(qsvector_ref(heap1,v1,1)), 2);
+  ck_assert_int_eq(CINT30(qsvector_ref(heap1,v1,2)), 3);
+  ck_assert_int_eq(CINT30(qsvector_ref(heap1,v1,3)), 4);
+  ck_assert_int_eq(CINT30(qsvector_ref(heap1,v1,4)), 5);
+
+  ck_assert(ISERROR16(qsvector_ref(heap1, v1, 5)));
+}
+END_TEST
+
 
 TESTCASE(vector1,
   TFUNC(test_alloc1)
   TFUNC(test_sweep1)
+  TFUNC(test_inject1)
   )
 
 TESTSUITE(suite1,

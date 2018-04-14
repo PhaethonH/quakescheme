@@ -571,11 +571,11 @@ qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t v, qsword ofs)
 {
   qsword lim = 0;
   qsvector_t * vec = qsvector(mem, v, &lim);
-  if (!vec) return QSNIL;
+  if (!vec) return QSERROR_RANGE;
   if ((ofs < 0) || (ofs >= lim))
     {
       // TODO: exception.
-      return QSNIL;
+      return QSERROR_RANGE;
     }
   return vec->_d[ofs];
 }
@@ -706,6 +706,20 @@ int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen)
 {
   int n = 0;
   return n;
+}
+
+/* Copy a qsvector from C memory into Scheme memory. */
+qsptr_t qsvector_inject (qsmem_t * mem, qsword nelts, qsptr_t * carray)
+{
+  qsptr_t v;
+  v = qsvector_make(mem, nelts, QSNIL);
+  if (! ISOBJ26(v)) return 0;
+  qsword i;
+  for (i = 0; i < nelts; i++)
+    {
+      qsvector_setq(mem, v, i, carray[i]);
+    }
+  return v;
 }
 
 
