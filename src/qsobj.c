@@ -1,4 +1,6 @@
 #include <math.h>
+#include <wchar.h>
+#include <stdlib.h>
 
 #include "qsobj.h"
 
@@ -821,6 +823,28 @@ int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen)
   return n;
 }
 
+uint8_t * qsbytevec_cptr (qsmem_t * mem, qsword bv, qsword * out_len)
+{
+  qsbytevec_t * bytevec = qsbytevec(mem, bv, out_len);
+  if (!bytevec) return NULL;
+  return bytevec->_d;
+}
+
+qsptr_t qsbytevec_inject (qsmem_t * mem, qsword nbytes, uint8_t * carray)
+{
+  qsptr_t retval;
+  retval = qsbytevec_make(mem, nbytes, 0);
+  if (! ISOBJ26(retval)) return retval;
+  uint8_t * target = qsbytevec_cptr(mem, retval, NULL);
+  qsword i = 0;
+  for (i = 0; i < nbytes; i++)
+    {
+      target[i] = carray[i];
+    }
+  return retval;
+}
+
+
 
 
 
@@ -1427,11 +1451,278 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 // expanded qsiter_*() to accommodate this object.
 
 /* String:
-   1. pair cells of char24
-   2. vector of char24 with BOL termination
-   3. bytevector (UTF-8)
+   1. conschar24: pair cells of char24
+   2. vecchar24: vector of char24 with BOL termination
+   3. cstr8: bytevector (UTF-8)
  */
 
+qsptr_t qsstr (qsmem_t * mem, qsptr_t s)
+{
+  if (qspair(mem,s))
+    {
+      // naive check: first element is character.
+      if (! ISCHAR24(qspair_ref_a(mem,s))) return QSNIL;
+    }
+  else if (qsvector(mem,s,NULL))
+    {
+      // naive check: first element is character.
+      if (! ISCHAR24(qsvector_ref(mem,s,0))) return QSNIL;
+    }
+  else if (qsbytevec(mem,s,NULL))
+    {
+      // always counts as string.
+    }
+  return s;
+}
+
+static qsword qsstr_length_cons (qsmem_t * mem, qsptr_t s)
+{
+  qsword n = 0;
+  qsptr_t curr = s;
+  while (qspair(mem,curr))
+    {
+      n++;
+      curr = qspair_ref_d(mem,curr);
+    }
+  return n;
+}
+
+static qsword qsstr_length_vec (qsmem_t * mem, qsptr_t s)
+{
+  return qsvector_length(mem, s);
+}
+
+static qsword qsstr_length_bytevec (qsmem_t * mem, qsptr_t s)
+{
+  return qsbytevec_length(mem, s);
+}
+
+qsword qsstr_length (qsmem_t * mem, qsptr_t s)
+{
+  qsword lim = 0;
+  if (qspair(mem,s))
+    {
+      lim = qsstr_length_cons(mem,s);
+      return qsstr_length_cons(mem,s);
+    }
+  else if (qsvector(mem, s, &lim))
+    {
+      // lim already assigned.
+    }
+  else if (qsbytevec(mem, s, &lim))
+    {
+      // lim already assigned.
+    }
+  return lim;
+}
+
+static qsptr_t qsstr_ref_cons (qsmem_t * mem, qsptr_t s, qsword nth)
+{
+  qsword ofs = 0;
+  qsptr_t curr = s;
+  while ((ofs < nth) && qspair(mem,curr))
+    {
+      ofs++;
+    }
+  if (!qspair(mem,curr))
+    {
+      return QSERROR_RANGE;
+    }
+  qsptr_t elt = qspair_ref_a(mem, curr);
+  if (ISCHAR24(elt)) return elt;
+  else return QSCHAR(0);
+}
+
+static qsptr_t qsstr_ref_vec (qsmem_t * mem, qsptr_t s, qsword nth, qsword hard_limit)
+{
+  qsword lim = 0;
+  qsvector_t * vec = qsvector(mem, s, &lim);
+  if ((nth >= hard_limit) || (nth < 0) || (nth >= lim))
+    return QSERROR_RANGE;
+  qsptr_t elt = qsvector_ref(mem, s, nth);
+  if (ISCHAR24(elt)) return elt;
+  else return QSCHAR(0);
+}
+
+static qsptr_t qsstr_ref_bytevec (qsmem_t * mem, qsptr_t s, qsword nth, qsword hard_limit)
+{
+  qsword lim = 0;
+  qsbytevec_t * bv = qsbytevec(mem, s, &lim);
+  if ((nth >= hard_limit) || (nth < 0) || (nth >= lim))
+    return QSERROR_RANGE;
+  qsword ch = qsbytevec_ref(mem, s, nth);
+  return QSCHAR(ch);
+}
+
+qsptr_t qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth)
+{
+  qsword lim;
+  if (qspair(mem, s))
+    {
+      return qsstr_ref_cons(mem, s, nth);
+    }
+  else if (qsvector(mem, s, &lim))
+    {
+      return qsstr_ref_vec(mem, s, nth, lim);
+    }
+  else if (qsbytevec(mem, s, &lim))
+    {
+      return qsstr_ref_bytevec(mem, s, nth, lim);
+    }
+  return QSCHAR(0);
+}
+
+qsptr_t qsstr_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword codepoint)
+{
+  qsword lim = 0;
+  if (qsvector(mem, s, &lim))
+    {
+      if (nth >= lim) return QSERROR_RANGE;
+      qsvector_setq(mem, s, nth, QSCHAR(codepoint));
+      return s;
+    }
+  else if (qsbytevec(mem, s, &lim))
+    {
+      int filtered = codepoint & 0xff;
+      if (nth >= lim) return QSERROR_RANGE;
+      qsbytevec_setq(mem, s, nth, filtered);
+      return s;
+    }
+  /* cannot be modified in place. */
+  return QSERROR_INVALID;
+}
+
+/* default is vector of char. */
+qsptr_t qsstr_make (qsmem_t * mem, qsword k, qsword codepoint_fill)
+{
+  qsptr_t retval = QSNIL;
+  retval = qsvector_make(mem, k, QSCHAR(codepoint_fill));
+  return retval;
+}
+
+/* inject C string as utf-8 bytevector */
+qsptr_t qsstr_inject (qsmem_t * mem, qsword slen, const char * cstr)
+{
+  return qsbytevec_inject(mem, slen, (uint8_t*)cstr);
+}
+
+/* inject C wide-char string as utf-32 vector */
+qsptr_t qsstr_inject_wchar (qsmem_t * mem, qsword wslen, const wchar_t * ws)
+{
+  qsptr_t retval = QSNIL;
+  retval = qsvector_make(mem, wslen, QSCHAR(0));
+  if (! ISOBJ26(retval)) return retval;
+  qsword i = 0;
+  for (i = 0; i < wslen; i++)
+    {
+      qsvector_setq(mem, retval, i, QSCHAR(ws[i]));
+    }
+  return retval;
+}
+
+/* copy out as C string; list/vector of char to char, or copy bytevector. */
+qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
+{
+  qsword retval = 0;
+  qsword lim = 0;
+  qsword idx = 0;
+  if (qspair(mem, s))
+    {
+      qsptr_t curr = s;
+      mbstate_t ps = { 0, };
+      while (qspair(mem, curr) && (idx+1 < slen-MB_CUR_MAX))
+	{
+	  qsptr_t elt = qspair_ref_a(mem, curr);
+	  wchar_t ch = ISCHAR24(elt) ? CCHAR24(elt) : 0;
+	  int span = wcrtomb(cstr + idx, ch, &ps);
+	  if (span > 0)
+	    {
+	      idx += span;
+	    }
+	  else
+	    {
+	      abort();
+	    }
+
+	  curr = qspair_ref_d(mem, curr);
+	}
+      cstr[idx] = 0;
+      retval = idx;
+    }
+  else if (qsvector(mem, s, &lim))
+    {
+      qsword i;
+      mbstate_t ps = { 0, };
+      for (i = 0; (i+1 < slen) && (i < lim); i++)
+	{
+	  qsptr_t elt = qsvector_ref(mem, s, i);
+	  wchar_t ch = ISCHAR24(elt) ? CCHAR24(elt) : 0;
+	  int span = wcrtomb(cstr + idx, ch, &ps);
+	  if (span > 0)
+	    {
+	      idx += span;
+	    }
+	  else
+	    {
+	      abort();
+	    }
+	}
+      cstr[idx] = 0;
+      retval = idx;
+    }
+  else if (qsbytevec(mem, s, &lim))
+    {
+      const char * bvstr = qsbytevec_cptr(mem, s, &lim);
+      qsword i;
+      for (i = 0; (i < lim) && (i+1 < slen); i++)
+	{
+	  cstr[i] = bvstr[i];
+	}
+      cstr[i] = 0;
+    }
+  return retval;
+}
+
+/* copy out as C wide-string; list/vector of char to wchar, or bytevector to wchar */
+qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wlen)
+{
+  qsword retval = 0;
+  qsword lim = 0;
+  qsword idx = 0;
+  if (qspair(mem, s))
+    {
+      qsptr_t curr = s;
+      while (qspair(mem, curr) && (idx+1 < wlen))
+	{
+	  qsptr_t elt = qspair_ref_a(mem, curr);
+	  if (! ISCHAR24(elt)) elt = QSCHAR(0);
+	  ws[idx] = CCHAR24(elt);
+	  idx++;
+	  curr = qspair_ref_d(mem, curr);
+	}
+      ws[idx] = 0;
+      retval = idx;
+    }
+  else if (qsvector(mem, s, &lim))
+    {
+      qsword i;
+      for (i = 0; (i+1 < wlen) && (i < lim); i++)
+	{
+	  qsptr_t elt = qsvector_ref(mem, s, i);
+	  if (! ISCHAR24(elt)) elt = QSCHAR(0);
+	  ws[idx] = qsvector_ref(mem, s, idx);
+	  idx++;
+	}
+      ws[idx] = 0;
+      retval = idx;
+    }
+  else if (qsbytevec(mem, s, &lim))
+    {
+      const char * cstr = qsbytevec_cptr(mem, s, &lim);
+      retval = mbstowcs(ws, cstr, wlen);
+    }
+  return retval;
+}
 
 
 

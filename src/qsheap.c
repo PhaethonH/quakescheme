@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
 
 #include "qsheap.h"
@@ -336,6 +335,9 @@ int qsfreelist_crepr (qsheap_t * heap, qsheapaddr_t cell_addr, char * buf, int b
 
 qsheap_t * qsheap_init (qsheap_t * heap, uint32_t ncells)
 {
+  /* Setting locale necessary for string encoding conversion. */
+  setlocale(LC_ALL, "");
+
   heap->wlock = 0;
   heap->cap = ncells;
 

@@ -6,6 +6,7 @@ TESTS = test_qsptr \
   test_qsbytevec \
   test_qswidenum \
   test_qsiter \
+  test_qsstr \
   test_gc
 
 

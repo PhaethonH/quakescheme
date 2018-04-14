@@ -198,7 +198,9 @@ qsword qsbytevec_length (qsmem_t * mem, qsptr_t bv);
 qsptr_t qsbytevec_ref (qsmem_t * mem, qsptr_t bv, qsword ofs);
 qsptr_t qsbytevec_setq (qsmem_t * mem, qsptr_t bv, qsword ofs, qsword val);
 qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsptr_t fill);
-int qsbytevec_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen);
+int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen);
+uint8_t * qsbytevec_cptr (qsmem_t * mem, qsptr_t bv, qsword * out_len);
+qsptr_t qsbytevec_inject (qsmem_t * mem, qsword nbytes, uint8_t * carray);
 
 
 
@@ -336,6 +338,19 @@ qsptr_t qsconst (qsmem_t * mem, qsptr_t n);
 int qsconst_get (qsmem_t * mem, qsptr_t n);
 qsptr_t qsconst_make (qsmem_t * mem, int constcode);
 int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
+
+
+
+
+qsptr_t qsstr (qsmem_t * mem, qsptr_t s);
+qsword qsstr_length (qsmem_t * mem, qsptr_t s);
+qsword qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth);
+qsword qsstr_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword codepoint);
+qsptr_t qsstr_make (qsmem_t * mem, qsword k, qsword codepoint_fill);
+qsptr_t qsstr_inject (qsmem_t * mem, qsword slen, const char * cstr);
+qsptr_t qsstr_inject_wchar (qsmem_t * mem, qsword wslen, const wchar_t * ws);
+qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen);
+qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wslen);
 
 
 
