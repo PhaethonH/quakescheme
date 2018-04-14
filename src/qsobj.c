@@ -3,6 +3,7 @@
 #include "qsobj.h"
 
 
+/* printf-able, tag pointer with type. */
 const char * __p (qsptr_t p)
 {
   static char buf[32] = { 0, };
@@ -77,6 +78,13 @@ int qsobj_is_marked (qsmem_t * mem, qsptr_t p)
   return !!MGMT_IS_MARKED(obj->mgmt);
 }
 
+int qsobj_is_red (qsmem_t * mem, qsptr_t p)
+{
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!obj) return 0;
+  return !!MGMT_IS_RED(obj->mgmt);
+}
+
 qsptr_t qsobj_get (qsmem_t * mem, qsptr_t p, qsword field_idx)
 {
   qsobj_t * obj = qsobj(mem, p, NULL);
@@ -89,6 +97,36 @@ qsptr_t qsobj_get (qsmem_t * mem, qsptr_t p, qsword field_idx)
     default: return QSNIL; break;
     }
   return QSNIL;
+}
+
+qsptr_t qsobj_set_marked (qsmem_t * mem, qsptr_t p, qsword val)
+{
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!obj) return 0;
+  if (val)
+    MGMT_SET_MARKED(obj->mgmt);
+  else
+    MGMT_CLR_MARKED(obj->mgmt);
+  return p;
+}
+
+qsptr_t qsobj_set_red (qsmem_t * mem, qsptr_t p, qsword val)
+{
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!obj) return 0;
+  if (val)
+    MGMT_SET_RED(obj->mgmt);
+  else 
+    MGMT_CLR_RED(obj->mgmt);
+  return p;
+}
+
+qsptr_t qsobj_set_parent (qsmem_t * mem, qsptr_t p, qsword val)
+{
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!obj) return 0;
+  MGMT_SET_PARENT(obj->mgmt, val);
+  return p;
 }
 
 /* Object as single-celled pointer contents. */
@@ -139,6 +177,15 @@ qsobj_t * qsobj_multioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   return obj;
 }
 
+/*
+   Conglomerated allocation logic:
+
+   [in]k - number of cells (non-octetate) or number of bytes (octetate).
+   [in]octetate - contents are bytes, else contents are pointers.
+   [out]out_addr - linear address in heap space.
+
+Returns: pointer value of newly allocation object, or error code (QSERROR_*).
+*/
 qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_addr)
 {
   qsptr_t retval = QSERROR_NOMEM;
