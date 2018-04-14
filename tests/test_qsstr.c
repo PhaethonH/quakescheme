@@ -35,7 +35,7 @@ START_TEST(test_inject1)
 
   char * cs1 = "hello, world";
   wchar_t * ws1 = L"hello, world";
-  wchar_t * ws2 = L"\u51b0"; // zh: bīng (ice)
+  wchar_t * ws2 = L"\u51b0"; // zh: bīng (en: "ice")
 
   qsptr_t s1 = qsstr_inject(heap1, strlen(cs1), cs1);
   qsptr_t s2 = qsstr_inject_wchar(heap1, wcslen(ws1), ws1);
@@ -45,9 +45,13 @@ START_TEST(test_inject1)
   ck_assert_int_eq(qsstr_length(heap1, s2), 12);
   ck_assert_int_eq(qsstr_length(heap1, s3), 1);
 
-  char extract1[32];
+  unsigned char extract1[32] = { 0, };
   qsstr_extract(heap1, s3, extract1, sizeof(extract1));
   ck_assert_int_eq(strlen(extract1), 3);
+  ck_assert_int_eq(extract1[0], 0xe5);
+  ck_assert_int_eq(extract1[1], 0x86);
+  ck_assert_int_eq(extract1[2], 0xb0);
+  ck_assert_int_eq(extract1[3], 0);
 }
 END_TEST
 
