@@ -79,6 +79,16 @@ typedef qsheap_t qsmem_t;
 typedef qsheapaddr_t qsmemaddr_t;
 
 
+qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr);
+int qsobj_is_used (qsmem_t * mem, qsptr_t p);
+int qsobj_is_marked (qsmem_t * mem, qsptr_t p);
+int qsobj_is_red (qsmem_t * mem, qsptr_t p);
+int qsobj_get_allocscale (qsmem_t * mem, qsptr_t p);
+int qsobj_get_parent (qsmem_t * mem, qsptr_t p);
+int qsobj_set_marked (qsmem_t * mem, qsptr_t p, qsword val);
+int qsobj_set_red (qsmem_t * mem, qsptr_t p, qsword val);
+int qsobj_set_parent (qsmem_t * mem, qsptr_t p, qsword val);
+
 qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr);
 qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * next);
 qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p);

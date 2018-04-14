@@ -485,10 +485,10 @@ qsword qsvector_length (qsmem_t * mem, qsptr_t v)
 
 qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t v, qsword ofs)
 {
-  qsword lim;
+  qsword lim = 0;
   qsvector_t * vec = qsvector(mem, v, &lim);
   if (!vec) return QSNIL;
-  if ((lim < 0) || (lim >= vec->len))
+  if ((ofs < 0) || (ofs >= lim))
     {
       // TODO: exception.
       return QSNIL;
@@ -498,10 +498,10 @@ qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t v, qsword ofs)
 
 qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t v, qsword ofs, qsptr_t val)
 {
-  qsword lim;
+  qsword lim = 0;
   qsvector_t * vec = qsvector(mem, v, &lim);
   if (!vec) return QSNIL;
-  if ((lim < 0) || (lim >= vec->len))
+  if ((ofs < 0) || (ofs >= lim))
     {
       // TODO: exception.
       return QSNIL;
@@ -1192,9 +1192,18 @@ qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nex
   qsptr_t currptr = p;
   qsptr_t tempptr = QSNIL;
   qstree_t * tree = qstree(mem, p);
-  if (!tree) goto completed;
+  if (!tree)
+    {
+      *nextptr = backptr;
+      return QSERROR_OK;
+    }
   qsheapcell_t * heapcell = (qsheapcell_t*)tree;
-  if (qsheapcell_is_marked(heapcell)) goto completed; /* already marked; nothing to recurse. */
+  if (qsheapcell_is_marked(heapcell))
+    {
+      /* already marked; nothing to recurse. */
+      *nextptr = backptr;
+      return QSERROR_OK;
+    }
   int parent = 0;
 
   parent = qsheapcell_get_parent(heapcell);
@@ -1243,12 +1252,12 @@ qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nex
       qsheapcell_set_parent(heapcell, 0);
       // subtrees complete, set Marked.
       qsheapcell_set_marked(heapcell, 1);
+      printf("* marking tree %08x\n", p);
       break;
     default:
       break;
     }
 
-completed:
   *nextptr = currptr;
 
   return QSERROR_OK;
@@ -1292,6 +1301,7 @@ qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * n
 	  vec->gc_backtrack = QSNIL;
 	  vec->gc_iter = QSNIL;
 	  *nextptr = backptr;
+	  printf("* marking vec %08x\n", p);
 	  return 0;
 	}
       else
@@ -1337,6 +1347,8 @@ qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
 	  backptr = currptr;
 	}
       currptr = next_visit;
+      //printf("continue with curr=%s, back=%s\n", __p(currptr), __p(backptr));
+      printf("continue with curr=%08x, back=%08x\n", currptr, backptr);
     }
   return QSERROR_OK;
 }
