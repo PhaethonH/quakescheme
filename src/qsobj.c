@@ -47,6 +47,7 @@ const char * __p (qsptr_t p)
 
 
 
+
 /* Attempt to cast to object (else freelist or data) */
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
@@ -138,6 +139,62 @@ qsobj_t * qsobj_multioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   return obj;
 }
 
+qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_addr)
+{
+  qsptr_t retval = QSERROR_NOMEM;
+  qsmemaddr_t addr = 0;
+
+  if (octetate)
+    {
+      retval = qsheap_alloc_with_nbytes(mem, (k>0)?k:0, &addr);
+    }
+  else
+    {
+      retval = qsheap_alloc_ncells(mem, (k>1)?k:1, &addr);
+    }
+
+  if (retval == QSERROR_OK)
+    {
+      retval = QSOBJ(addr);
+      if (out_addr)
+	*out_addr = addr;
+    }
+  // else retval already holds error code.
+  return retval;
+}
+
+qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
+{
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return QSERROR_OK;
+  qsptr_t currptr = p;
+  qsptr_t backptr = QSNIL;
+  qsptr_t next_visit = QSNIL;
+
+  backptr = QSERROR_INVALID;
+  while (currptr != QSERROR_INVALID)
+    {
+      if (qstree(mem, currptr))
+	{
+	  qstree_kmark(mem, currptr, backptr, &next_visit);
+	  backptr = currptr;
+	}
+      else if (qsvector(mem, currptr, NULL))
+	{
+	  qsvector_kmark(mem, currptr, backptr, &next_visit);
+	  backptr = currptr;
+	}
+      else
+	{
+	  next_visit = backptr;
+	  backptr = currptr;
+	}
+      currptr = next_visit;
+    }
+  return QSERROR_OK;
+}
+
 
 
 
@@ -146,91 +203,6 @@ qstree_t * qstree (qsmem_t * mem, qsptr_t t)
   qsobj_t * obj = qsobj_unicellular(mem, t, NULL);
   if (!obj) return NULL;
   return (qstree_t *)obj;
-}
-
-qsptr_t qstree_mark (qsmem_t * mem, qsptr_t t)
-{
-  qsptr_t currptr = t;
-  qsptr_t backptr = QSNIL;
-  qsptr_t tempptr = QSNIL;
-
-  qstree_t * root = qstree(mem, t);
-  while (! MGMT_IS_MARKED(root->mgmt))
-    {
-      /* main loop */
-      qstree_t * tree = qstree(mem, currptr);
-      if (tree)
-	{
-	  qsheapcell_t * cell = (qsheapcell_t*)tree;
-	  if (! qsheapcell_is_marked(cell))
-	    {
-	      switch (qsheapcell_get_parent(cell))
-		{
-		case 0:
-		  /* chase left. */
-		  // store parent into "left" while chasing "left".
-		  tempptr = cell->fields[0];
-		  cell->fields[0] = backptr;
-		  // chase "left".
-		  backptr = currptr;
-		  currptr = tempptr;
-		  qsheapcell_set_parent(cell, 1);
-		  break;
-		case 1:
-		  /* chase center. */
-		  // swap "left=parent" with "center" while chasing "center".
-		  tempptr = cell->fields[1];
-		  cell->fields[1] = cell->fields[0];
-		  cell->fields[0] = backptr;
-		  // chase "center".
-		  backptr = currptr;
-		  currptr = tempptr;
-		  qsheapcell_set_parent(cell, 2);
-		  break;
-		case 2:
-		  /* chase right. */
-		  // swap "center=parent" with "right" while chasing "right".
-		  tempptr = cell->fields[2];
-		  cell->fields[2] = cell->fields[1];
-		  cell->fields[1] = backptr;
-		  // chase "center".
-		  backptr = currptr;
-		  currptr = tempptr;
-		  qsheapcell_set_parent(cell, 3);
-		  break;
-		case 3:
-		  /* backtrack to parent. */
-		  // restore "right=parent" and while chasing "parent".
-		  tempptr = cell->fields[2];
-		  cell->fields[2] = backptr;
-		  // chase "right=parent".
-		  backptr = currptr;
-		  currptr = tempptr;
-		  qsheapcell_set_parent(cell, 0);
-		  // subtrees complete, set Marked.
-		  qsheapcell_set_marked(cell, 1);
-		  break;
-		default:
-		  break;
-		}
-	    }
-	  else
-	    {
-	      tempptr = currptr;
-	      currptr = backptr;
-	      backptr = tempptr;
-	    }
-	}
-      else
-	{
-	  // TODO: hand off marking to other types.
-	  tempptr = currptr;
-	  currptr = backptr;
-	  backptr = tempptr;
-	}
-
-    }
-  return t;
 }
 
 qsptr_t qstree_get_left (qsmem_t * mem, qsptr_t t)
@@ -305,23 +277,87 @@ qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val)
 qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
 {
   qsptr_t retval = QSNIL;
-  qsheapaddr_t addr;
-  qserror_t err = qsheap_alloc_ncells(mem, 1, &addr);
-  if (err != QSERROR_OK) return err;
-  qstree_t * tree = (qstree_t*)qsheap_ref(mem, addr);
-  if (tree)
-    {
-      tree->left = left;
-      tree->data = data;
-      tree->right = right;
-      retval = QSOBJ(addr);
-    }
+  qsmemaddr_t addr = 0;
+  if (!ISOBJ26((retval = qsobj_make(mem, 1, 0, &addr)))) return retval;
+
+  qstree_t * tree = (qstree_t*)qsobj(mem, retval, NULL);
+  tree->left = left;
+  tree->data = data;
+  tree->right = right;
   return retval;
+}
+
+qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
+{
+  *nextptr = QSNIL;
+  qsptr_t currptr = p;
+  qsptr_t tempptr = QSNIL;
+  qstree_t * tree = qstree(mem, p);  // try to get as tree.
+  qsheapcell_t * heapcell = (qsheapcell_t*)tree;  // manipulate heap mgmt.
+  if (!heapcell || qsheapcell_is_marked(heapcell))
+    {
+      /* invalid tree or already marked; nothing to recurse. */
+      *nextptr = backptr;
+      return QSERROR_OK;
+    }
+  int parent = 0;
+
+  parent = qsheapcell_get_parent(heapcell);
+  switch (parent)
+    {
+    case 0:
+      /* chase left. */
+      // store parent into "left" while chasing "left".
+      tempptr = heapcell->fields[0];
+      heapcell->fields[0] = backptr;
+      // chase "left".
+      currptr = tempptr;
+      qsheapcell_set_parent(heapcell, 1);
+      break;
+    case 1:
+      /* chase center. */
+      // swap "left=parent" with "center" while chasing "center".
+      tempptr = heapcell->fields[1];
+      heapcell->fields[1] = heapcell->fields[0];
+      heapcell->fields[0] = backptr;
+      // chase "center".
+      currptr = tempptr;
+      qsheapcell_set_parent(heapcell, 2);
+      break;
+    case 2:
+      /* chase right. */
+      // swap "center=parent" with "right" while chasing "right".
+      tempptr = heapcell->fields[2];
+      heapcell->fields[2] = heapcell->fields[1];
+      heapcell->fields[1] = backptr;
+      // chase "center".
+      currptr = tempptr;
+      qsheapcell_set_parent(heapcell, 3);
+      break;
+    case 3:
+      /* backtrack to parent. */
+      // restore "right=parent" and while chasing "parent".
+      tempptr = heapcell->fields[2];
+      heapcell->fields[2] = backptr;
+      // chase "right=parent".
+      currptr = tempptr;
+      qsheapcell_set_parent(heapcell, 0);
+      // children are all chased, set Marked.
+      qsheapcell_set_marked(heapcell, 1);
+      break;
+    default:
+      break;
+    }
+
+  *nextptr = currptr;
+
+  return QSERROR_OK;
 }
 
 int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  return n;
 }
 
 
@@ -395,7 +431,8 @@ qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t b)
 
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  return n;
 }
 
 
@@ -518,24 +555,21 @@ qserror_t qsvector_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_ad
 qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
 {
   qsptr_t retval = QSNIL;
-  qsheapaddr_t addr;
+  qsmemaddr_t addr = 0;
   qsword ncells = 1 + (k / 4)+1;  // always terminate with QSEOL.
-  qserror_t err = qsheap_alloc_ncells(mem, ncells, &addr);
-  if (err != QSERROR_OK) return err;
+  if (!ISOBJ26((retval = qsobj_make(mem, ncells, 0, &addr)))) return retval;
+
   qsvector_t * vector = (qsvector_t*)qsheap_ref(mem, addr);
-  if (vector)
+  vector->len = QSINT(k);
+  vector->gc_backtrack = QSNIL;
+  vector->gc_iter = QSNIL;
+  qsword i;
+  for (i = 0; i < k; i++)
     {
-      vector->len = QSINT(k);
-      vector->gc_backtrack = QSNIL;
-      vector->gc_iter = QSNIL;
-      qsword i;
-      for (i = 0; i < k; i++)
-	{
-	  vector->_d[i] = fill;
-	}
-      retval = QSOBJ(addr);
-      vector->_d[k] = QSEOL; // termiante with QSEOL for qsiter implementation.
+      vector->_d[i] = fill;
     }
+  retval = QSOBJ(addr);
+  vector->_d[k] = QSEOL; // terminate with QSEOL for qsiter implementation.
   return retval;
 }
 
@@ -556,7 +590,7 @@ qserror_t qsvector_mark (qsmem_t * mem, qsptr_t v)
 	}
       else if (qsheapcell_get_parent(cell) == 1)
 	{
-	  qsheapaddr_t idx = CINT30(qsheapcell_get_field(cell, 2));
+	  qsmemaddr_t idx = CINT30(qsheapcell_get_field(cell, 2));
 	  while (idx < max)
 	    {
 	      qsptr_t elt = qsvector_ref(mem, v, idx);
@@ -572,9 +606,59 @@ qserror_t qsvector_mark (qsmem_t * mem, qsptr_t v)
   return QSERROR_OK;
 }
 
+qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
+{
+  qsword lim = 0;
+  qsvector_t * vec = qsvector(mem, p, &lim);  // try to get as vector.
+  qsheapcell_t * heapcell = (qsheapcell_t*)vec; // heap manipulation.
+  if (!heapcell || qsheapcell_is_marked(heapcell))
+    {
+      *nextptr = backptr;
+      return 0;
+    }
+
+  int parent = 0;
+  qsptr_t elt = QSNIL;
+
+  parent = qsheapcell_get_parent(heapcell);
+  if (parent == 0)
+    {
+      qsheapcell_set_parent(heapcell, 1);
+      vec->gc_backtrack = backptr;
+      vec->gc_iter = QSINT(0);
+    }
+  else if (parent == 1)
+    {
+      qsword idx = CINT30(vec->gc_iter);
+      if (idx >= lim)
+	{
+	  qsheapcell_set_marked(heapcell, 1);
+	  qsheapcell_set_parent(heapcell, 0);
+	  backptr = vec->gc_backtrack;
+	  vec->gc_backtrack = QSNIL;
+	  vec->gc_iter = QSNIL;
+	  *nextptr = backptr;
+	  return 0;
+	}
+      else
+	{
+	  elt = qsvector_ref(mem, p, idx);
+	  vec->gc_iter = QSINT(idx+1);
+	}
+    }
+  else
+    {
+      return QSERROR_INVALID;
+    }
+
+  *nextptr = elt;
+  return QSERROR_OK;
+}
+
 int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  return n;
 }
 
 
@@ -650,10 +734,9 @@ qsptr_t qsbytevec_setq (qsmem_t * mem, qsptr_t bv, qsword ofs, qsword octet)
 qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsword fill)
 {
   qsptr_t retval = QSNIL;
-  qsheapaddr_t addr = 0;
-  qserror_t err = qsheap_alloc_with_nbytes(mem, k, &addr);
-  if (err != QSERROR_OK) return err;
-  retval = QSOBJ(addr);
+  qsmemaddr_t addr = 0;
+  if (!ISOBJ26((retval = qsobj_make(mem, k, 1, &addr)))) return retval;
+
   qsbytevec_t * bytevec = qsbytevec(mem, retval, NULL);
   bytevec->len = QSINT(k);
   qsword i;
@@ -666,7 +749,8 @@ qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsword fill)
 
 int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  return n;
 }
 
 
@@ -714,7 +798,8 @@ qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t n)
 qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * out_ptr)
 {
   qswidenum_t * retval = NULL;
-  qsheapaddr_t addr = 0;
+  qsptr_t p = QSNIL;
+  qsmemaddr_t addr = 0;
   qserror_t err = QSERROR_OK;
   switch (variant)
     {
@@ -724,9 +809,8 @@ qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * o
     case QSNUMTYPE_FLOAT2:
     case QSNUMTYPE_FLOAT4:
     case QSNUMTYPE_FLOAT16CM:
-      err =  qsheap_alloc_with_nbytes(mem, 0, &addr);
-      if (err != QSERROR_OK) return NULL;
-      retval = (qswidenum_t*)(qsheap_ref(mem, addr));
+      if (!ISOBJ26((p = qsobj_make(mem, 0, 1, &addr)))) return NULL;
+      retval = (qswidenum_t*)qsobj(mem, p, NULL);
       retval->variant = variant;
       break;
     default:
@@ -788,7 +872,8 @@ qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low)
 
 int qslong_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  return n;
 }
 
 
@@ -836,7 +921,31 @@ qsptr_t qsdouble_make (qsmem_t * mem, double val)
 
 int qsdouble_crepr (qsmem_t * mem, qsptr_t d, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  return n;
+}
+
+
+
+
+int qswidenum_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
+{
+  int n = 0;
+  qsnumtype_t variant = 0;
+  qswidenum_t * wn = qswidenum(mem, n, &variant);
+  switch (variant)
+    {
+    case QSNUMTYPE_LONG:
+      n += qslong_crepr(mem, p, buf+n, buflen-n);
+      break;
+    case QSNUMTYPE_DOUBLE:
+      n += qsdouble_crepr(mem, p, buf+n, buflen-n);
+      break;
+    default:
+      n += snprintf(buf+n, buflen-n, "#<WIDENUM:%d:%08x>", variant, p);
+      break;
+    }
+  return n;
 }
 
 
@@ -879,7 +988,7 @@ int qsiter_on_pair (qsmem_t * mem, qsptr_t it, qsptr_t * out_pairptr)
   if (ISITER28(it))
     {
       qsword ofs = qsiter_get(mem, it);
-      qsheapaddr_t addr = (ofs >> 2);
+      qsmemaddr_t addr = (ofs >> 2);
       qsptr_t pairptr = QSOBJ(addr);
       qspair_t * pair = qspair(mem, pairptr);
       if (pair)
@@ -928,8 +1037,8 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
       qsptr_t next = qspair_ref_d(mem, pairptr);
       if (ISNIL(next))
 	return QSNIL;
-      qsheapaddr_t next_addr = COBJ26(next);
-      qsheapaddr_t iter_addr = next_addr << 2;
+      qsmemaddr_t next_addr = COBJ26(next);
+      qsmemaddr_t iter_addr = next_addr << 2;
       return qsiter_make(mem, iter_addr);
     }
   else if (ISITER28(it))
@@ -980,6 +1089,12 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
     }
   // invalid iterator, or iterator ended on end-of-list.
   return QSNIL;
+}
+
+qsptr_t qsiter_crepr (qsmem_t * mem, qsptr_t it, char * buf, int buflen)
+{
+  int n = 0;
+  return n;
 }
 
 
@@ -1156,7 +1271,32 @@ qsptr_t qserr_make (qsmem_t * mem, int errcode)
 
 int qserr_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  switch (c)
+    {
+    case QSERROR_OK:
+      n += snprintf(buf+n, buflen-n, "#<ERROR:%s>", "OK");
+      break;
+    case QSERROR_INVALID:
+      n += snprintf(buf+n, buflen-n, "#<ERROR:%s>", "INVALID");
+      break;
+    case QSERROR_NOMEM:
+      n += snprintf(buf+n, buflen-n, "#<ERROR:%s>", "NOMEM");
+      break;
+    case QSERROR_NOIMPL:
+      n += snprintf(buf+n, buflen-n, "#<ERROR:%s>", "NOIMPL");
+      break;
+    case QSERROR_RANGE:
+      n += snprintf(buf+n, buflen-n, "#<ERROR:%s>", "RANGE");
+      break;
+    case QSERROR_TYPE:
+      n += snprintf(buf+n, buflen-n, "#<ERROR:%s>", "TYPE");
+      break;
+    default:
+      n += snprintf(buf+n, buflen-n, "#<ERROR:%08x>", c);
+      break;
+    }
+  return n;
 }
 
 
@@ -1181,176 +1321,28 @@ qsptr_t qsconst_make (qsmem_t * mem, int constcode)
 
 int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 {
-  return 0;
-}
-
-
-
-qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
-{
-  *nextptr = QSNIL;
-  qsptr_t currptr = p;
-  qsptr_t tempptr = QSNIL;
-  qstree_t * tree = qstree(mem, p);
-  if (!tree)
+  int n = 0;
+  switch (c)
     {
-      *nextptr = backptr;
-      return QSERROR_OK;
-    }
-  qsheapcell_t * heapcell = (qsheapcell_t*)tree;
-  if (qsheapcell_is_marked(heapcell))
-    {
-      /* already marked; nothing to recurse. */
-      *nextptr = backptr;
-      return QSERROR_OK;
-    }
-  int parent = 0;
-
-  parent = qsheapcell_get_parent(heapcell);
-  switch (parent)
-    {
-    case 0:
-      /* chase left. */
-      // store parent into "left" while chasing "left".
-      tempptr = heapcell->fields[0];
-      heapcell->fields[0] = backptr;
-      // chase "left".
-      //backptr = currptr;
-      currptr = tempptr;
-      qsheapcell_set_parent(heapcell, 1);
+    case QSNIL:
+      n += snprintf(buf+n, buflen-n, "'()");
       break;
-    case 1:
-      /* chase center. */
-      // swap "left=parent" with "center" while chasing "center".
-      tempptr = heapcell->fields[1];
-      heapcell->fields[1] = heapcell->fields[0];
-      heapcell->fields[0] = backptr;
-      // chase "center".
-      //backptr = currptr;
-      currptr = tempptr;
-      qsheapcell_set_parent(heapcell, 2);
+    case QSTRUE:
+      n += snprintf(buf+n, buflen-n, "#t");
       break;
-    case 2:
-      /* chase right. */
-      // swap "center=parent" with "right" while chasing "right".
-      tempptr = heapcell->fields[2];
-      heapcell->fields[2] = heapcell->fields[1];
-      heapcell->fields[1] = backptr;
-      // chase "center".
-      //backptr = currptr;
-      currptr = tempptr;
-      qsheapcell_set_parent(heapcell, 3);
+    case QSBOL:
+      n += snprintf(buf+n, buflen-n, "#bol");
       break;
-    case 3:
-      /* backtrack to parent. */
-      // restore "right=parent" and while chasing "parent".
-      tempptr = heapcell->fields[2];
-      heapcell->fields[2] = backptr;
-      // chase "right=parent".
-      //backptr = currptr;
-      currptr = tempptr;
-      qsheapcell_set_parent(heapcell, 0);
-      // subtrees complete, set Marked.
-      qsheapcell_set_marked(heapcell, 1);
-      printf("* marking tree %08x\n", p);
+    case QSEOL:
+      n += snprintf(buf+n, buflen-n, "#eol");
+      break;
+    case QSBLACKHOLE:
       break;
     default:
+      n += snprintf(buf+n, buflen-n, "#<const:%08x>", c);
       break;
     }
-
-  *nextptr = currptr;
-
-  return QSERROR_OK;
-}
-
-qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
-{
-  qsword lim = 0;
-  qsvector_t * vec = qsvector(mem, p, &lim);
-  if (!vec)
-    {
-      *nextptr = backptr;
-      return 0;
-    }
-  qsobj_t * obj = (qsobj_t*)vec;
-  qsheapcell_t * heapcell = (qsheapcell_t*)vec;
-  if (qsheapcell_is_marked(heapcell))
-    {
-      *nextptr = backptr;
-      return 0;
-    }
-
-  int parent = 0;
-  qsptr_t elt = QSNIL;
-
-  parent = qsheapcell_get_parent(heapcell);
-  if (parent == 0)
-    {
-      qsheapcell_set_parent(heapcell, 1);
-      vec->gc_backtrack = backptr;
-      vec->gc_iter = QSINT(0);
-    }
-  else if (parent == 1)
-    {
-      qsword idx = CINT30(vec->gc_iter);
-      if (idx >= lim)
-	{
-	  qsheapcell_set_marked(heapcell, 1);
-	  qsheapcell_set_parent(heapcell, 0);
-	  backptr = vec->gc_backtrack;
-	  vec->gc_backtrack = QSNIL;
-	  vec->gc_iter = QSNIL;
-	  *nextptr = backptr;
-	  printf("* marking vec %08x\n", p);
-	  return 0;
-	}
-      else
-	{
-	  elt = qsvector_ref(mem, p, idx);
-	  vec->gc_iter = QSINT(idx+1);
-	}
-    }
-  else
-    {
-      return QSERROR_INVALID;
-    }
-
-  *nextptr = elt;
-  return QSERROR_OK;
-}
-
-qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
-{
-  qsmemaddr_t addr = 0;
-  qsobj_t * obj = qsobj(mem, p, &addr);
-  if (!obj) return QSERROR_OK;
-  qsptr_t currptr = p;
-  qsptr_t backptr = QSNIL;
-  qsptr_t next_visit = QSNIL;
-
-  backptr = QSERROR_INVALID;
-  while (currptr != QSERROR_INVALID)
-    {
-      if (qstree(mem, currptr))
-	{
-	  qstree_kmark(mem, currptr, backptr, &next_visit);
-	  backptr = currptr;
-	}
-      else if (qsvector(mem, currptr, NULL))
-	{
-	  qsvector_kmark(mem, currptr, backptr, &next_visit);
-	  backptr = currptr;
-	}
-      else
-	{
-	  next_visit = backptr;
-	  backptr = currptr;
-	}
-      currptr = next_visit;
-      //printf("continue with curr=%s, back=%s\n", __p(currptr), __p(backptr));
-      printf("continue with curr=%08x, back=%08x\n", currptr, backptr);
-    }
-  return QSERROR_OK;
+  return n;
 }
 
 
@@ -1372,3 +1364,77 @@ qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
    3. bytevector (UTF-8)
  */
 
+
+
+
+
+int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
+{
+  int n = 0;
+  if (qspair(mem, p))
+    {
+      n += qspair_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (qstree(mem, p))
+    {
+      n += qstree_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (qsvector(mem, p, NULL))
+    {
+      n += qsvector_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (qswidenum(mem, p, NULL))
+    {
+      n += qswidenum_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (qsbytevec(mem, p, NULL))
+    {
+      n += qsbytevec_crepr(mem, p, buf+n, buflen-n);
+    }
+  return n;
+}
+
+int qsunknown_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
+{
+  int n = 0;
+  n += snprintf(buf+n, buflen-n, "#<UNKNWON:%08x>", p);
+  return n;
+}
+
+int qsptr_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
+{
+  int n = 0;
+  if (ISFLOAT31(p))
+    {
+      n += qsfloat_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (ISINT30(p))
+    {
+      n += qsint_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (ISITER28(p))
+    {
+      n += qsiter_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (ISOBJ26(p))
+    {
+      n += qsobj_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (ISCHAR24(p))
+    {
+      n += qschar_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (ISERROR16(p))
+    {
+      n += qserr_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (ISCONST16(p))
+    {
+      n += qsconst_crepr(mem, p, buf+n, buflen-n);
+    }
+  else
+    {
+      n += qsunknown_crepr(mem, p, buf+n, buflen-n);
+    }
+  return n;
+}

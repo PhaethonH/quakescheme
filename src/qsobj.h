@@ -79,6 +79,13 @@ typedef qsheap_t qsmem_t;
 typedef qsheapaddr_t qsmemaddr_t;
 
 
+typedef struct qsobj_s {
+    qsptr_t mgmt;
+    qsptr_t _0;
+    qsptr_t _1;
+    qsptr_t _2;
+} qsobj_t;
+
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr);
 int qsobj_is_used (qsmem_t * mem, qsptr_t p);
 int qsobj_is_marked (qsmem_t * mem, qsptr_t p);
@@ -88,10 +95,9 @@ int qsobj_get_parent (qsmem_t * mem, qsptr_t p);
 int qsobj_set_marked (qsmem_t * mem, qsptr_t p, qsword val);
 int qsobj_set_red (qsmem_t * mem, qsptr_t p, qsword val);
 int qsobj_set_parent (qsmem_t * mem, qsptr_t p, qsword val);
-
-qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr);
-qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * next);
+qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_addr);
 qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p);
+int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
 
 typedef struct qstree_s {
@@ -110,7 +116,7 @@ qsptr_t qstree_setq_data (qsmem_t * mem, qsptr_t t, qsptr_t val);
 qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val);
 qserror_t qstree_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr);
 qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right);
-qserror_t qstree_mark (qsmem_t * mem, qsptr_t t);
+qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr);
 int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
 
 
@@ -153,6 +159,7 @@ qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t v, qsword ofs, qsptr_t val);
 qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill);
 qserror_t qsvector_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr, qsword cap);
 qserror_t qsvector_mark (qsmem_t * mem, qsword k);
+qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * next);
 int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen);
 
 
@@ -331,5 +338,7 @@ int qsconst_get (qsmem_t * mem, qsptr_t n);
 qsptr_t qsconst_make (qsmem_t * mem, int constcode);
 int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
 
+
+int qsptr_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
 
 #endif // _QSOBJ_H_
