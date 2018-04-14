@@ -349,6 +349,8 @@ qsword qsstr_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword codepoint);
 qsptr_t qsstr_make (qsmem_t * mem, qsword k, qsword codepoint_fill);
 qsptr_t qsstr_inject (qsmem_t * mem, qsword slen, const char * cstr);
 qsptr_t qsstr_inject_wchar (qsmem_t * mem, qsword wslen, const wchar_t * ws);
+qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen);
+qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wslen);
 
 
 
