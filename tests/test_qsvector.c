@@ -101,6 +101,14 @@ START_TEST(test_inject1)
   ck_assert_int_eq(CINT30(qsvector_ref(heap1,v1,4)), 5);
 
   ck_assert(ISERROR16(qsvector_ref(heap1, v1, 5)));
+
+
+  qsword veclen = 0;
+  qsptr_t * xvec = 0;
+  xvec = qsvector_cptr(heap1, v1, &veclen);
+  ck_assert_int_eq(veclen, 5);
+  ck_assert(xvec != NULL);
+  ck_assert_int_eq(xvec[0], QSINT(1));
 }
 END_TEST
 

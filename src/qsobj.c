@@ -722,6 +722,13 @@ qsptr_t qsvector_inject (qsmem_t * mem, qsword nelts, qsptr_t * carray)
   return v;
 }
 
+qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t v, qsword * out_len)
+{
+  qsvector_t * cvec = qsvector(mem, v, out_len);
+  if (!cvec) return NULL;
+  return cvec->_d;
+}
+
 
 
 
