@@ -122,7 +122,8 @@ qsfreelist_t * qsfreelist_ref (qsheap_t * heap, qsheapaddr_t addr)
     {
       return NULL;
     }
-  if (qsobj_is_used((qsobj_t*)probe)) return NULL;
+  if (MGMT_IS_USED(probe->mgmt)) return NULL;
+  if (qsheapcell_is_used((qsheapcell_t*)probe)) return NULL;
   return probe;
 }
 
@@ -611,6 +612,7 @@ qserror_t qsheap_sweep (qsheap_t * heap)
 
 
 
+#if  0
 qsobj_t * qsobj_init (qsobj_t * obj, int is_octet)
 {
   obj->_0 = QSNIL;
@@ -700,4 +702,5 @@ void qsobj_up (qsobj_t * obj)
 void qsobj_down (qsobj_t * obj)
 {
 }
+#endif //0
 

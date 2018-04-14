@@ -5,7 +5,8 @@ TESTS = test_qsptr \
   test_qsvector \
   test_qsbytevec \
   test_qswidenum \
-  test_qsiter
+  test_qsiter \
+  test_gc
 
 
 
