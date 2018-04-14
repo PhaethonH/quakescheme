@@ -1629,14 +1629,20 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
   if (qspair(mem, s))
     {
       qsptr_t curr = s;
-      mbstate_t ps;
-      mbsinit(&ps);
+      mbstate_t ps = { 0, };
       while (qspair(mem, curr) && (idx+1 < slen-MB_CUR_MAX))
 	{
 	  qsptr_t elt = qspair_ref_a(mem, curr);
 	  wchar_t ch = ISCHAR24(elt) ? CCHAR24(elt) : 0;
 	  int span = wcrtomb(cstr + idx, ch, &ps);
-	  idx += span;
+	  if (span > 0)
+	    {
+	      idx += span;
+	    }
+	  else
+	    {
+	      abort();
+	    }
 
 	  curr = qspair_ref_d(mem, curr);
 	}
@@ -1646,14 +1652,20 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
   else if (qsvector(mem, s, &lim))
     {
       qsword i;
-      mbstate_t ps;
-      mbsinit(&ps);
+      mbstate_t ps = { 0, };
       for (i = 0; (i+1 < slen) && (i < lim); i++)
 	{
 	  qsptr_t elt = qsvector_ref(mem, s, i);
 	  wchar_t ch = ISCHAR24(elt) ? CCHAR24(elt) : 0;
 	  int span = wcrtomb(cstr + idx, ch, &ps);
-	  idx += span;
+	  if (span > 0)
+	    {
+	      idx += span;
+	    }
+	  else
+	    {
+	      abort();
+	    }
 	}
       cstr[idx] = 0;
       retval = idx;

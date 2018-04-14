@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+#include <ctype.h>
+#include <wctype.h>
+#include <wchar.h>
+#include <locale.h>
+
 #include "qsptr.h"
 
 /* Heap memory. */
