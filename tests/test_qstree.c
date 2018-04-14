@@ -8,7 +8,7 @@
 #include "qsobj.h"
 #include "qsmach.h"
 
-/* Unit test  skeleton */
+/* Unit test  tree/cons */
 
 #define SPACELEN 20000
 
