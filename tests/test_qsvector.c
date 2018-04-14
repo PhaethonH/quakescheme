@@ -56,7 +56,8 @@ START_TEST(test_sweep1)
   qsptr_t v2 = qsvector_make(heap1, 2, QSNIL);  // throwaway garbage
   qsptr_t v = qsvector_make(heap1, 10, QSNIL);
   qsptr_t v3 = qsvector_make(heap1, 2, QSNIL);  // throwaway garbage
-  qsvector_mark(heap1, v);
+  //qsvector_mark(heap1, v);
+  qsobj_kmark(heap1, v);
   ck_assert(MGMT_IS_MARKED(qsvector(heap1,v,NULL)->mgmt));
 
   qsheap_sweep(heap1);

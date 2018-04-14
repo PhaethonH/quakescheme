@@ -79,6 +79,11 @@ typedef qsheap_t qsmem_t;
 typedef qsheapaddr_t qsmemaddr_t;
 
 
+qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr);
+qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * next);
+qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p);
+
+
 typedef struct qstree_s {
     qsptr_t mgmt;
     qsptr_t left;

@@ -83,7 +83,8 @@ START_TEST(test_sweep1)
   cells[7] = qstree_make(heap1, QSNIL, QSINT(0), QSNIL);
   ck_assert_int_ne(cells[7], QSNIL);
 
-  qstree_mark(heap1, cells[6]);
+  //qstree_mark(heap1, cells[6]);
+  qsobj_kmark(heap1, cells[6]);
 
   int i;
   for (i = 0; i < 7; i++)

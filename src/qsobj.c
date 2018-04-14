@@ -3,6 +3,49 @@
 #include "qsobj.h"
 
 
+const char * __p (qsptr_t p)
+{
+  static char buf[32] = { 0, };
+  if (ISFLOAT31(p))
+    {
+      snprintf(buf, sizeof(buf), "#f:%08x", p);
+    }
+  else if (ISINT30(p))
+    {
+      snprintf(buf, sizeof(buf), "#i:%08x", p);
+    }
+  else if (ISSYNC29(p))
+    {
+      snprintf(buf, sizeof(buf), "#s:%08x", p);
+    }
+  else if (ISITER28(p))
+    {
+      snprintf(buf, sizeof(buf), "#ι:%08x", p);
+    }
+  else if (ISOBJ26(p))
+    {
+      snprintf(buf, sizeof(buf), "#o:%08x", p);
+    }
+  else if (ISCHAR24(p))
+    {
+      snprintf(buf, sizeof(buf), "#c:%08x", p);
+    }
+  else if (ISERROR16(p))
+    {
+      snprintf(buf, sizeof(buf), "#E:%08x", p);
+    }
+  else if (ISCONST16(p))
+    {
+      snprintf(buf, sizeof(buf), "#k:%08x", p);
+    }
+  else
+    {
+      snprintf(buf, sizeof(buf), "#?:%08x", p);
+    }
+  return buf;
+}
+
+
 
 /* Attempt to cast to object (else freelist or data) */
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
@@ -11,12 +54,40 @@ qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   qsmemaddr_t addr = COBJ26(p);
   qsobj_t * retval = (qsobj_t*)qsheap_ref(mem, addr);
   if (!retval) return NULL;
-  if (!qsobj_is_used(retval)) return NULL;
   qsptr_t mgmt = retval->mgmt;
   if (!ISSYNC29(mgmt)) return NULL;
+  if (!MGMT_IS_USED(mgmt)) return NULL;
   if (out_addr)
     *out_addr = addr;
   return retval;
+}
+
+int qsobj_is_used (qsmem_t * mem, qsptr_t p)
+{
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!obj) return 0;
+  return !!MGMT_IS_USED(obj->mgmt);
+}
+
+int qsobj_is_marked (qsmem_t * mem, qsptr_t p)
+{
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!obj) return 0;
+  return !!MGMT_IS_MARKED(obj->mgmt);
+}
+
+qsptr_t qsobj_get (qsmem_t * mem, qsptr_t p, qsword field_idx)
+{
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!obj) return QSNIL;
+  switch (field_idx)
+    {
+    case 0: return obj->_0; break;
+    case 1: return obj->_1; break;
+    case 2: return obj->_2; break;
+    default: return QSNIL; break;
+    }
+  return QSNIL;
 }
 
 /* Object as single-celled pointer contents. */
@@ -396,10 +467,10 @@ qsvector_t * qsvector (qsmem_t * mem, qsptr_t v, qsword * out_lim)
 {
   qsobj_t * obj = qsobj_multicellular(mem, v, NULL);
   if (!obj) return NULL;
-  if (! ISINT30(qsobj_get(obj, 0))) return NULL;
+  if (! ISINT30(qsobj_get(mem, v, 0))) return NULL;
   if (out_lim)
     {
-      *out_lim = CINT30(qsobj_get(obj, 0));
+      *out_lim = CINT30(qsobj_get(mem, v, 0));
     }
   return (qsvector_t*)obj;
 }
@@ -521,10 +592,10 @@ qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim)
 {
   qsobj_t * obj = qsobj_multioctetate(mem, bv, NULL);
   if (!obj) return NULL;
-  if (! ISINT30(qsobj_get(obj, 0))) return NULL;
+  if (! ISINT30(qsobj_get(mem, bv, 0))) return NULL;
   if (out_lim)
     {
-      *out_lim = CINT30(qsobj_get(obj, 0));
+      *out_lim = CINT30(qsobj_get(mem, bv, 0));
     }
   return (qsbytevec_t *)obj;
 }
@@ -1111,6 +1182,163 @@ qsptr_t qsconst_make (qsmem_t * mem, int constcode)
 int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 {
   return 0;
+}
+
+
+
+qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
+{
+  *nextptr = QSNIL;
+  qsptr_t currptr = p;
+  qsptr_t tempptr = QSNIL;
+  qstree_t * tree = qstree(mem, p);
+  if (!tree) goto completed;
+  qsheapcell_t * heapcell = (qsheapcell_t*)tree;
+  if (qsheapcell_is_marked(heapcell)) goto completed; /* already marked; nothing to recurse. */
+  int parent = 0;
+
+  parent = qsheapcell_get_parent(heapcell);
+  switch (parent)
+    {
+    case 0:
+      /* chase left. */
+      // store parent into "left" while chasing "left".
+      tempptr = heapcell->fields[0];
+      heapcell->fields[0] = backptr;
+      // chase "left".
+      //backptr = currptr;
+      currptr = tempptr;
+      qsheapcell_set_parent(heapcell, 1);
+      break;
+    case 1:
+      /* chase center. */
+      // swap "left=parent" with "center" while chasing "center".
+      tempptr = heapcell->fields[1];
+      heapcell->fields[1] = heapcell->fields[0];
+      heapcell->fields[0] = backptr;
+      // chase "center".
+      //backptr = currptr;
+      currptr = tempptr;
+      qsheapcell_set_parent(heapcell, 2);
+      break;
+    case 2:
+      /* chase right. */
+      // swap "center=parent" with "right" while chasing "right".
+      tempptr = heapcell->fields[2];
+      heapcell->fields[2] = heapcell->fields[1];
+      heapcell->fields[1] = backptr;
+      // chase "center".
+      //backptr = currptr;
+      currptr = tempptr;
+      qsheapcell_set_parent(heapcell, 3);
+      break;
+    case 3:
+      /* backtrack to parent. */
+      // restore "right=parent" and while chasing "parent".
+      tempptr = heapcell->fields[2];
+      heapcell->fields[2] = backptr;
+      // chase "right=parent".
+      //backptr = currptr;
+      currptr = tempptr;
+      qsheapcell_set_parent(heapcell, 0);
+      // subtrees complete, set Marked.
+      qsheapcell_set_marked(heapcell, 1);
+      break;
+    default:
+      break;
+    }
+
+completed:
+  *nextptr = currptr;
+
+  return QSERROR_OK;
+}
+
+qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
+{
+  qsword lim = 0;
+  qsvector_t * vec = qsvector(mem, p, &lim);
+  if (!vec)
+    {
+      *nextptr = backptr;
+      return 0;
+    }
+  qsobj_t * obj = (qsobj_t*)vec;
+  qsheapcell_t * heapcell = (qsheapcell_t*)vec;
+  if (qsheapcell_is_marked(heapcell))
+    {
+      *nextptr = backptr;
+      return 0;
+    }
+
+  int parent = 0;
+  qsptr_t elt = QSNIL;
+
+  parent = qsheapcell_get_parent(heapcell);
+  if (parent == 0)
+    {
+      qsheapcell_set_parent(heapcell, 1);
+      vec->gc_backtrack = backptr;
+      vec->gc_iter = QSINT(0);
+    }
+  else if (parent == 1)
+    {
+      qsword idx = CINT30(vec->gc_iter);
+      if (idx >= lim)
+	{
+	  qsheapcell_set_marked(heapcell, 1);
+	  qsheapcell_set_parent(heapcell, 0);
+	  backptr = vec->gc_backtrack;
+	  vec->gc_backtrack = QSNIL;
+	  vec->gc_iter = QSNIL;
+	  *nextptr = backptr;
+	  return 0;
+	}
+      else
+	{
+	  elt = qsvector_ref(mem, p, idx);
+	  vec->gc_iter = QSINT(idx+1);
+	}
+    }
+  else
+    {
+      return QSERROR_INVALID;
+    }
+
+  *nextptr = elt;
+  return QSERROR_OK;
+}
+
+qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
+{
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return QSERROR_OK;
+  qsptr_t currptr = p;
+  qsptr_t backptr = QSNIL;
+  qsptr_t next_visit = QSNIL;
+
+  backptr = QSERROR_INVALID;
+  while (currptr != QSERROR_INVALID)
+    {
+      if (qstree(mem, currptr))
+	{
+	  qstree_kmark(mem, currptr, backptr, &next_visit);
+	  backptr = currptr;
+	}
+      else if (qsvector(mem, currptr, NULL))
+	{
+	  qsvector_kmark(mem, currptr, backptr, &next_visit);
+	  backptr = currptr;
+	}
+      else
+	{
+	  next_visit = backptr;
+	  backptr = currptr;
+	}
+      currptr = next_visit;
+    }
+  return QSERROR_OK;
 }
 
 

@@ -70,18 +70,18 @@ u       |        |        |          used
 
 qsobj_t * qsobj_init ();
 qsobj_t * qsobj_destroy ();
-qsptr_t qsobj_get_mgmt (qsobj_t *);
-qsobj_t * qsobj_set_marked (qsobj_t *);
-int qsobj_is_used (qsobj_t *);
-int qsobj_is_marked (qsobj_t *);
-int qsobj_is_octet (qsobj_t *);
-int qsobj_get_allocscale (qsobj_t *);
-qsptr_t qsobj_get (qsobj_t *, int /* 0, 1, 2 */);
-void qsobj_set (qsobj_t *, int /* [012] */, qsptr_t val);
+//qsptr_t qsobj_get_mgmt (qsobj_t *);
+//qsobj_t * qsobj_set_marked (qsobj_t *);
+//int qsobj_is_used (qsobj_t *);
+//int qsobj_is_marked (qsobj_t *);
+//int qsobj_is_octet (qsobj_t *);
+//int qsobj_get_allocscale (qsobj_t *);
+//qsptr_t qsobj_get (qsobj_t *, int /* 0, 1, 2 */);
+//void qsobj_set (qsobj_t *, int /* [012] */, qsptr_t val);
 // increment reference count, for byte-objects.
-void qsobj_up ();
+//void qsobj_up ();
 // decrement reference count, for byte-objects.
-void qsobj_down ();
+//void qsobj_down ();
 
 
 
