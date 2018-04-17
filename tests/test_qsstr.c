@@ -37,9 +37,9 @@ START_TEST(test_inject1)
   wchar_t * ws1 = L"hello, world";
   wchar_t * ws2 = L"\u51b0"; // zh: bīng (en: "ice")
 
-  qsptr_t s1 = qsstr_inject(heap1, strlen(cs1), cs1);
-  qsptr_t s2 = qsstr_inject_wchar(heap1, wcslen(ws1), ws1);
-  qsptr_t s3 = qsstr_inject_wchar(heap1, wcslen(ws2), ws2);
+  qsptr_t s1 = qsstr_inject(heap1, cs1, strlen(cs1));
+  qsptr_t s2 = qsstr_inject_wchar(heap1, ws1, wcslen(ws1));
+  qsptr_t s3 = qsstr_inject_wchar(heap1, ws2, wcslen(ws2));
 
   ck_assert_int_eq(qsstr_length(heap1, s1), 12);
   ck_assert_int_eq(qsstr_length(heap1, s2), 12);
@@ -55,16 +55,37 @@ START_TEST(test_inject1)
 }
 END_TEST
 
-START_TEST(test_test2)
+START_TEST(test_cmp1)
 {
   init();
+
+  qsptr_t s1 = qsstr_inject(heap1, "foo", 0);
+  qsptr_t s2 = qsstr_inject(heap1, "quux", 0);
+  qsptr_t s3 = qsstr_inject(heap1, "foo", 0);
+  qsptr_t s4 = qsstr_inject(heap1, "foot", 0);
+
+  ck_assert_int_eq(qsstr_length(heap1, s1), 3);
+  ck_assert_int_eq(qsstr_length(heap1, s2), 4);
+  ck_assert_int_eq(qsstr_length(heap1, s3), 3);
+
+  int cmp = qsstr_cmp(heap1, s1, s2);
+  ck_assert_int_eq(cmp, -1);
+
+  cmp = qsstr_cmp(heap1, s1, s1);
+  ck_assert_int_eq(cmp, 0);
+
+  cmp = qsstr_cmp(heap1, s1, s3);
+  ck_assert_int_eq(cmp, 0);
+
+  cmp = qsstr_cmp(heap1, s1, s4);
+  ck_assert_int_eq(cmp, 1);
 }
 END_TEST
 
 
 TESTCASE(str1,
   TFUNC(test_inject1)
-  TFUNC(test_test2)
+  TFUNC(test_cmp1)
   )
 
 TESTSUITE(suite1,

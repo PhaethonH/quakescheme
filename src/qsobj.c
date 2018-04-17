@@ -1,6 +1,7 @@
 #include <math.h>
 #include <wchar.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "qsobj.h"
 
@@ -80,11 +81,19 @@ int qsobj_is_marked (qsmem_t * mem, qsptr_t p)
   return !!MGMT_IS_MARKED(obj->mgmt);
 }
 
-int qsobj_is_red (qsmem_t * mem, qsptr_t p)
+int qsobj_get_score (qsmem_t * mem, qsptr_t p)
 {
   qsobj_t * obj = qsobj(mem, p, NULL);
   if (!obj) return 0;
-  return !!MGMT_IS_RED(obj->mgmt);
+  return MGMT_GET_SCORE(obj->mgmt);
+}
+
+qsword qsobj_get_allocsize (qsmem_t * mem, qsptr_t p)
+{
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!obj) return 0;
+  int allocscale = MGMT_GET_ALLOCSCALE(obj->mgmt);
+  return (1 << allocscale);
 }
 
 qsptr_t qsobj_get (qsmem_t * mem, qsptr_t p, qsword field_idx)
@@ -112,14 +121,11 @@ qsptr_t qsobj_set_marked (qsmem_t * mem, qsptr_t p, qsword val)
   return p;
 }
 
-qsptr_t qsobj_set_red (qsmem_t * mem, qsptr_t p, qsword val)
+qsptr_t qsobj_set_score (qsmem_t * mem, qsptr_t p, qsword val)
 {
   qsobj_t * obj = qsobj(mem, p, NULL);
   if (!obj) return 0;
-  if (val)
-    MGMT_SET_RED(obj->mgmt);
-  else 
-    MGMT_CLR_RED(obj->mgmt);
+  MGMT_SET_SCORE(obj->mgmt, val);
   return p;
 }
 
@@ -254,7 +260,7 @@ qstree_t * qstree (qsmem_t * mem, qsptr_t t)
   return (qstree_t *)obj;
 }
 
-qsptr_t qstree_get_left (qsmem_t * mem, qsptr_t t)
+qsptr_t qstree_ref_left (qsmem_t * mem, qsptr_t t)
 {
   qstree_t * tree = qstree(mem, t);
   if (!tree)
@@ -265,7 +271,7 @@ qsptr_t qstree_get_left (qsmem_t * mem, qsptr_t t)
   return tree->left;
 }
 
-qsptr_t qstree_get_data (qsmem_t * mem, qsptr_t t)
+qsptr_t qstree_ref_data (qsmem_t * mem, qsptr_t t)
 {
   qstree_t * tree = qstree(mem, t);
   if (!tree)
@@ -276,7 +282,7 @@ qsptr_t qstree_get_data (qsmem_t * mem, qsptr_t t)
   return tree->data;
 }
 
-qsptr_t qstree_get_right (qsmem_t * mem, qsptr_t t)
+qsptr_t qstree_ref_right (qsmem_t * mem, qsptr_t t)
 {
   qstree_t * tree = qstree(mem, t);
   if (!tree)
@@ -407,6 +413,95 @@ int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen)
 {
   int n = 0;
   return n;
+}
+
+
+/* imbuing qstree with Red-Black Tree behavior. */
+/*
+The root node is subject to functional-language immutability.
+
+Child nodes are mutable in place, being intrinsic members of the root.
+
+
+struct qsrbtree_root_s {
+  qsptr_t mgmt;
+  qsptr_t splits;
+  qsptr_t top;     // (data)
+  qsptr_t mutex;   // (right)
+};
+
+struct qsrbtree_splits_s {
+  qsptr_t mgmt;
+  qsptr_t split_parent;
+  qsptr_t split_dangle;
+  qsptr_t splits_path;
+};
+
+
+Tree is split when balancing is required.
+Splitting involves:
+* maintaining a reference to root of the detached subtree (->split_dangle)
+* maintain a weakref to parent of the just-detached subtree (->split_parent).
+* replacing a child node with path to parent.
+* updating mgmt->parent marker to indicate which field holds path to parent.
+* the last two turns take, helps find uncle node (->splits_path).
+
+
+struct qsrbtree_child_s {
+  qsptr_t mgmt;
+  qsptr_t left;
+  qsptr_t data;  // typically association-list pair.
+  qsptr_t right;
+};
+*/
+
+qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t tree)
+{
+  qsptr_t splits = qstree_make(mem, QSNIL, QSNIL, QSINT(0));
+  qsptr_t root = qstree_make(mem, splits, tree, QSNIL);
+  return root;
+}
+
+/* Rotate the (sub)tree left, returns new root. */
+qsptr_t qsrbtree_rotate_left (qsmem_t * mem, qsptr_t pivot)
+{
+  if (ISNIL(pivot)) return pivot;  // no tree.
+  qsptr_t rchild = qstree_ref_right(mem, pivot);
+  if (ISNIL(rchild)) return pivot;  // no child to bring up.
+  qsptr_t temp = qstree_ref_left(mem, rchild);
+  qstree_setq_left(mem, rchild, pivot);
+  qstree_setq_right(mem, pivot, temp);
+  return rchild;
+}
+
+/* Rotate the (sub)tree right, returns new root. */
+qsptr_t qsrbtree_rotate_right (qsmem_t * mem, qsptr_t pivot)
+{
+  if (ISNIL(pivot)) return pivot;  // no tree.
+  qsptr_t lchild = qstree_ref_left(mem, pivot);
+  if (ISNIL(lchild)) return pivot;  // no child to bring up.
+  qsptr_t temp = qstree_ref_right(mem, lchild);
+  qstree_setq_right(mem, lchild, pivot);
+  qstree_setq_left(mem, pivot, temp);
+  return lchild;
+}
+
+/* Lock tree for update, indicates tree may be in inconsistent state. */
+qsptr_t qsrbtree_lock (qsmem_t * mem, qsptr_t root)
+{
+  return QSTRUE;
+}
+
+/* Unlock tree after updating. */
+qsptr_t qsrbtree_unlock (qsmem_t * mem, qsptr_t root)
+{
+  return QSTRUE;
+}
+
+/* Insert subtree, rebalancing as needed. */
+qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t subtree)
+{
+  return root;
 }
 
 
@@ -807,7 +902,7 @@ qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsword fill)
   qsmemaddr_t addr = 0;
   if (!ISOBJ26((retval = qsobj_make(mem, k, 1, &addr)))) return retval;
 
-  qsbytevec_t * bytevec = qsbytevec(mem, retval, NULL);
+  qsbytevec_t * bytevec = (qsbytevec_t*)qsheap_ref(mem, addr);
   bytevec->len = QSINT(k);
   qsword i;
   for (i = 0; i < k; i++)
@@ -1456,9 +1551,136 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
    3. cstr8: bytevector (UTF-8)
  */
 
+
+/*
+   qsutf8 = using qsbytevector space as C string.
+   Canonical string format (due to interchange with string.h functions).
+*/
+qsutf8_t * qsutf8 (qsmem_t * mem, qsptr_t s)
+{
+  qsobj_t * obj = qsobj_multioctetate(mem, s, NULL);
+  if (!obj) return NULL;
+  if (! ISNIL(qsobj_get(mem, s, 0))) return NULL;
+  return (qsutf8_t*)obj;
+}
+
+static
+qsword _qsutf8_hardlimit (qsmem_t * mem, qsptr_t s)
+{
+  qsword ncells = qsobj_get_allocsize(mem, s);
+  qsword retval = (ncells - 1) * (sizeof(qsheapcell_t) / sizeof(qsptr_t));
+  return retval;
+}
+
+qsword qsutf8_length (qsmem_t * mem, qsptr_t s)
+{
+  qsword retval = 0;
+  qsutf8_t * utf8str = qsutf8(mem, s);
+  if (!utf8str) return retval;
+  retval = strlen(utf8str->_d);
+  return retval;
+}
+
+int qsutf8_ref (qsmem_t * mem, qsptr_t s, qsword k)
+{
+  qsword retval = 0;
+  qsutf8_t * utf8str = qsutf8(mem, s);
+  if (!utf8str) return -1;
+  qsword max = _qsutf8_hardlimit(mem, s);
+  if ((k < 0) || (k >= max))
+    {
+      return 0;
+    }
+  return utf8str->_d[k];
+}
+
+qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t s, qsword k, qsword val)
+{
+  qsutf8_t * utf8str = qsutf8(mem, s);
+  if (!utf8str) return -1;
+  qsword max = _qsutf8_hardlimit(mem, s);
+  if ((k < 0) || (k >= max))
+    {
+      return 0;
+    }
+  utf8str->_d[k] = (uint8_t)(val & 0xff);
+  return s;
+}
+
+qsptr_t qsutf8_make (qsmem_t * mem, qsword slen)
+{
+  qsptr_t retval = QSNIL;
+  qsmemaddr_t addr = 0;
+  qsword k = slen + 1;
+  if (!ISOBJ26((retval = qsobj_make(mem, k, 1, &addr)))) return retval;
+
+  qsutf8_t * utf8str = (qsutf8_t*)qsheap_ref(mem, addr);
+  utf8str->variant = QSNIL;
+  qsword i;
+  for (i = 0; i < k; i++)
+    {
+      utf8str->_d[i] = (uint8_t)0;
+    }
+  return retval;
+}
+
+int qsutf8_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen)
+{
+  return 0;
+}
+
+uint8_t * qsutf8_cptr (qsmem_t * mem, qsptr_t s)
+{
+  qsutf8_t * utf8str = qsutf8(mem, s);
+  if (!utf8str) return NULL;
+  return utf8str->_d;
+}
+
+qsptr_t qsutf8_inject (qsmem_t * mem, const char * cstr, qsword slen)
+{
+  qsptr_t retval;
+  qsword k = slen;
+  if (k < 1)
+    {
+      k = strlen(cstr) + 1;
+    }
+  retval = qsutf8_make(mem, k);
+  if (! ISOBJ26(retval)) return retval;
+  uint8_t * target = qsutf8_cptr(mem, retval);
+  qsword i = 0;
+  for (i = 0; i < k; i++)
+    {
+      target[i] = cstr[i];
+    }
+  target[i] = 0;
+  i++;
+  return retval;
+}
+
+int qsutf8_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
+{
+  qsword lim = _qsutf8_hardlimit(mem, s);
+  const char * _d = qsutf8_cptr(mem, s);
+  qsword i;
+  for (i = 0; (i < lim) && (i+1 < slen) && (cstr[i] != 0); i++)
+    {
+      cstr[i] = _d[i];
+    }
+  cstr[i] = 0;
+  i++;
+  return i;
+}
+
+
+
+
 qsptr_t qsstr (qsmem_t * mem, qsptr_t s)
 {
-  if (qspair(mem,s))
+  if (qsutf8(mem,s))
+    {
+      return s;
+    }
+  else if (qspair(mem,s))
     {
       // naive check: first element is character.
       if (! ISCHAR24(qspair_ref_a(mem,s))) return QSNIL;
@@ -1500,7 +1722,11 @@ static qsword qsstr_length_bytevec (qsmem_t * mem, qsptr_t s)
 qsword qsstr_length (qsmem_t * mem, qsptr_t s)
 {
   qsword lim = 0;
-  if (qspair(mem,s))
+  if (qsutf8(mem,s))
+    {
+      return qsutf8_length(mem, s);
+    }
+  else if (qspair(mem,s))
     {
       lim = qsstr_length_cons(mem,s);
       return qsstr_length_cons(mem,s);
@@ -1557,7 +1783,11 @@ static qsptr_t qsstr_ref_bytevec (qsmem_t * mem, qsptr_t s, qsword nth, qsword h
 qsptr_t qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth)
 {
   qsword lim;
-  if (qspair(mem, s))
+  if (qsutf8(mem, s))
+    {
+      return qsutf8_ref(mem, s, nth);
+    }
+  else if (qspair(mem, s))
     {
       return qsstr_ref_cons(mem, s, nth);
     }
@@ -1575,7 +1805,11 @@ qsptr_t qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth)
 qsptr_t qsstr_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword codepoint)
 {
   qsword lim = 0;
-  if (qsvector(mem, s, &lim))
+  if (qsutf8(mem, s))
+    {
+      return qsutf8_setq(mem, s, nth, codepoint);
+    }
+  else if (qsvector(mem, s, &lim))
     {
       if (nth >= lim) return QSERROR_RANGE;
       qsvector_setq(mem, s, nth, QSCHAR(codepoint));
@@ -1592,22 +1826,22 @@ qsptr_t qsstr_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword codepoint)
   return QSERROR_INVALID;
 }
 
-/* default is vector of char. */
 qsptr_t qsstr_make (qsmem_t * mem, qsword k, qsword codepoint_fill)
 {
   qsptr_t retval = QSNIL;
-  retval = qsvector_make(mem, k, QSCHAR(codepoint_fill));
+  /* default is qsutf8 */
+  retval = qsutf8_make(mem, k);
   return retval;
 }
 
 /* inject C string as utf-8 bytevector */
-qsptr_t qsstr_inject (qsmem_t * mem, qsword slen, const char * cstr)
+qsptr_t qsstr_inject (qsmem_t * mem, const char * cstr, qsword slen)
 {
-  return qsbytevec_inject(mem, slen, (uint8_t*)cstr);
+  return qsutf8_inject(mem, cstr, slen);
 }
 
 /* inject C wide-char string as utf-32 vector */
-qsptr_t qsstr_inject_wchar (qsmem_t * mem, qsword wslen, const wchar_t * ws)
+qsptr_t qsstr_inject_wchar (qsmem_t * mem, const wchar_t * ws, qsword wslen)
 {
   qsptr_t retval = QSNIL;
   retval = qsvector_make(mem, wslen, QSCHAR(0));
@@ -1626,7 +1860,11 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
   qsword retval = 0;
   qsword lim = 0;
   qsword idx = 0;
-  if (qspair(mem, s))
+  if (qsutf8(mem, s))
+    {
+      return qsutf8_extract(mem, s, cstr, slen);
+    }
+  else if (qspair(mem, s))
     {
       qsptr_t curr = s;
       mbstate_t ps = { 0, };
@@ -1679,6 +1917,7 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
 	  cstr[i] = bvstr[i];
 	}
       cstr[i] = 0;
+      retval = i;
     }
   return retval;
 }
@@ -1722,6 +1961,28 @@ qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wlen)
       retval = mbstowcs(ws, cstr, wlen);
     }
   return retval;
+}
+
+int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
+{
+  if (a == b) return 0;
+  qsword k = 0;
+  qsword lim_a = qsstr_length(mem, a);
+  qsword lim_b = qsstr_length(mem, b);
+  qsword lim = (lim_a < lim_b) ? lim_a : lim_b;
+  for (k = 0; k < lim; k++)
+    {
+      int ch_a = k < lim_a ? qsstr_ref(mem, a, k) : 0;
+      int ch_b = k < lim_b ? qsstr_ref(mem, b, k) : 0;
+      if (ch_a < ch_b) return -1;
+      if (ch_a > ch_b) return 1;
+      if (ch_a <= 0) return -1;
+      if (ch_b <= 0) return 1;
+      // else ch_a == ch_b  =>  continue
+    }
+  if (lim_a < lim_b) return 1;
+  else if (lim_a > lim_b) return -1;
+  return 0;
 }
 
 

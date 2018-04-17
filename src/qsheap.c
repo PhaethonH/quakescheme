@@ -25,14 +25,14 @@ int qsheapcell_is_marked (qsheapcell_t * heapcell)
   return !!(MGMT_IS_MARKED(heapcell->mgmt));
 }
 
-int qsheapcell_is_red (qsheapcell_t * heapcell)
-{
-  return !!(MGMT_IS_RED(heapcell->mgmt));
-}
-
 int qsheapcell_is_octet (qsheapcell_t * heapcell)
 {
   return !!(MGMT_IS_OCTET(heapcell->mgmt));
+}
+
+int qsheapcell_get_score (qsheapcell_t * heapcell)
+{
+  return MGMT_GET_SCORE(heapcell->mgmt);
 }
 
 int qsheapcell_get_parent (qsheapcell_t * heapcell)
@@ -72,17 +72,16 @@ qsheapcell_t * qsheapcell_set_marked (qsheapcell_t * heapcell, int val)
   return heapcell;
 }
 
-qsheapcell_t * qsheapcell_set_red (qsheapcell_t * heapcell, int val)
-{
-  if (val) MGMT_SET_RED(heapcell->mgmt);
-  else MGMT_CLR_RED(heapcell->mgmt);
-  return heapcell;
-}
-
 qsheapcell_t * qsheapcell_set_octet (qsheapcell_t * heapcell, int val)
 {
   if (val) MGMT_SET_OCTET(heapcell->mgmt);
   else MGMT_CLR_OCTET(heapcell->mgmt);
+  return heapcell;
+}
+
+qsheapcell_t * qsheapcell_set_score (qsheapcell_t * heapcell, int val)
+{
+  MGMT_SET_SCORE(heapcell->mgmt, val);
   return heapcell;
 }
 
@@ -134,12 +133,15 @@ qserror_t qsfreelist_reap (qsheap_t * heap, qsheapaddr_t addr, qsfreelist_t ** o
   //int allocscale = qsobj_get_allocscale((qsobj_t*)probe);
   int allocscale = MGMT_GET_ALLOCSCALE(probe->mgmt);
   qsword ncells = 1 << allocscale;
+  /*
   MGMT_CLR_USED(probe->mgmt);
   MGMT_CLR_MARKED(probe->mgmt);
   MGMT_CLR_GREY(probe->mgmt);
-  MGMT_CLR_RED(probe->mgmt);
   MGMT_CLR_OCTET(probe->mgmt);
+  MGMT_SET_SCORE(probe->mgmt, 0);
   MGMT_SET_ALLOCSCALE(probe->mgmt, 0);
+  */
+  probe->mgmt = TAG_SYNC29;
   probe->span = QSINT(ncells);
   probe->next = QSNIL;
   probe->prev = QSNIL;

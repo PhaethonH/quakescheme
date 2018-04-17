@@ -34,6 +34,8 @@ portFILE| 1		| 'QSFILE	| FILE*
 portFD	| 0		| 'QSFD		| fd:int32_t	| mode:int
 portMEM	| 0		| str:ptr26	| ofs:int30	| max:int30
 bytevec	| >0		| :int30	| refcount	| mutex
+utf8	| >0		| =QSNIL	| refcount	| mutex
+utf32	| >0		| =QSCHAR24(0)	| refcount	| mutex
 */
 
 /*
@@ -89,12 +91,13 @@ typedef struct qsobj_s {
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr);
 int qsobj_is_used (qsmem_t * mem, qsptr_t p);
 int qsobj_is_marked (qsmem_t * mem, qsptr_t p);
-int qsobj_is_red (qsmem_t * mem, qsptr_t p);
-int qsobj_get_allocscale (qsmem_t * mem, qsptr_t p);
+int qsobj_get_score (qsmem_t * mem, qsptr_t p);
 int qsobj_get_parent (qsmem_t * mem, qsptr_t p);
+qsword qsobj_get_allocsize (qsmem_t * mem, qsptr_t p);   // number of heapcells in allocation unit.
+int qsobj_get_allocscale (qsmem_t * mem, qsptr_t p);
 qsptr_t qsobj_set_marked (qsmem_t * mem, qsptr_t p, qsword val);
-qsptr_t qsobj_set_red (qsmem_t * mem, qsptr_t p, qsword val);
 qsptr_t qsobj_set_parent (qsmem_t * mem, qsptr_t p, qsword val);
+qsptr_t qsobj_set_score (qsmem_t * mem, qsptr_t p, qsword val);
 qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_addr);
 qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p);
 int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
@@ -117,6 +120,9 @@ qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val);
 qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right);
 qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr);
 int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
+
+qsptr_t qsrbtree_rotate_left (qsmem_t * mem, qsptr_t pivot);
+qsptr_t qsrbtree_rotate_right (qsmem_t * mem, qsptr_t pivot);
 
 
 /* Pair - linked list as degenerate case of tree with no left child */
@@ -342,15 +348,33 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
 
 
 
+typedef struct qsutf8_s {
+    qsptr_t mgmt;
+    qsptr_t variant;
+    qsptr_t refcount;
+    qsptr_t mutex;
+    uint8_t _d[];
+} qsutf8_t;
+
+qsutf8_t * qsutf8 (qsmem_t * mem, qsptr_t s);
+qsword qsutf8_length (qsmem_t * mem, qsptr_t s);
+int qsutf8_ref (qsmem_t * mem, qsptr_t s, qsword k);
+qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t s, qsword k, qsword u8);
+int qsutf8_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen);
+
+
+
+
 qsptr_t qsstr (qsmem_t * mem, qsptr_t s);
 qsword qsstr_length (qsmem_t * mem, qsptr_t s);
 qsword qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth);
 qsword qsstr_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword codepoint);
 qsptr_t qsstr_make (qsmem_t * mem, qsword k, qsword codepoint_fill);
-qsptr_t qsstr_inject (qsmem_t * mem, qsword slen, const char * cstr);
-qsptr_t qsstr_inject_wchar (qsmem_t * mem, qsword wslen, const wchar_t * ws);
+qsptr_t qsstr_inject (qsmem_t * mem, const char * cstr, qsword slen);
+qsptr_t qsstr_inject_wchar (qsmem_t * mem, const wchar_t * ws, qsword wslen);
 qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen);
 qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wslen);
+int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
 
 

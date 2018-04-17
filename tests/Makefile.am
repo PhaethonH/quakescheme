@@ -7,6 +7,7 @@ TESTS = test_qsptr \
   test_qswidenum \
   test_qsiter \
   test_qsstr \
+  test_rbtree \
   test_gc
 
 

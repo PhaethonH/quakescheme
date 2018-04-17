@@ -30,21 +30,34 @@ typedef struct qsheapcell_s {
 u       |        |        |          used
  m      |        |        |          marked
   g     |        |        |          grey-marked
-   .    |        |        |          ?
-    T   |        |        |          tree-balance mark (red-black tree)
+   ..   |        |        |          ?
+        |TTTTTTTT|        |          tree-balance score
      o  |        |        |          content is octet (else ptr)
       Rr|        |        |          pointer reversals
         |        |        |abcde     alloc-scale
+*/
+/* Tree-Balance Score
+Provided for self-balancing trees.
+Most implementations of interest use height or depth of (sub)tree, which is
+limited by the log of the tree size.
+In a 32b space, the maximum such value would be 31, so 5 bits would suffice.
+6 bits for a 64b space.
+8 bits allow for 256b space.
+8 bits also allow overloading the Score field for the prefix of a utf-8 trie.
+
+Red-Black: 0=black, 1=red
+AVL: height (<= 27, as tree nodes occupy a 26b space)
+Random Access List: lg(n+1), where n<=2**26, i.e. Score <= 26
 */
 
 #define MGMT_IS_USED(w)		((w) & (1 << 31))
 #define MGMT_IS_MARKED(w)	((w) & (1 << 30))
 #define MGMT_IS_GREY(w)		((w) & (1 << 29))
 
-#define MGMT_IS_RED(w)		((w) & (1 << 27))
 #define MGMT_IS_BLACK(w)	(!MGMT_ISRED(w))
 #define MGMT_IS_OCTET(w)	((w) & (1 << 26))
 #define MGMT_GET_PARENT(w)	(((w) >> 24) & 0x3)
+#define MGMT_GET_SCORE(w)	(((w) >> 16) & 0xff)
 
 #define MGMT_SET_USED(w)	((w) |= (1 << 31))
 #define MGMT_CLR_USED(w)	((w) &= ~(1 << 31))
@@ -52,12 +65,12 @@ u       |        |        |          used
 #define MGMT_CLR_MARKED(w)	((w) &= ~(1 << 30))
 #define MGMT_SET_GREY(w)	((w) |= (1 << 29))
 #define MGMT_CLR_GREY(w)	((w) &= ~(1 << 29))
-#define MGMT_SET_RED(w)		((w) |= (1 << 27))
-#define MGMT_CLR_RED(w)		((w) &= ~(1 << 27))
 #define MGMT_SET_OCTET(w)	((w) |= (1 << 26))
 #define MGMT_CLR_OCTET(w)	((w) &= ~(1 << 26))
 #define MGMT_SET_PARENT(w,v)	((w) = ((w) & ~(0x03000000)) | (((v) & 0x3) << 24))
 #define MGMT_CLR_PARENT(w)	((w) &= ~(3 << 24))
+#define MGMT_SET_SCORE(w,v)	((w) = ((w) & ~(0x00ff0000)) | (((v) & 0xff) << 16))
+#define MGMT_CLR_SCORE(w,v)	((w) &= ~(0xff << 16))
 
 #define MGMT_GET_ALLOCSCALE(w)	((w & 0xf8) >> 3)
 #define MGMT_SET_ALLOCSCALE(w,v) (w = (w & ~(0x000000f8) | ((v & 0x1f) << 3)))
@@ -76,12 +89,12 @@ int qsheapcell_is_marked (qsheapcell_t *);
 qsheapcell_t * qsheapcell_set_marked (qsheapcell_t *, int);
 //int qsheapcell_is_grey (qsheapcell_t *);
 //qsheapcell_t qsheapcell_set_grey (qsheapcell_t *, int);
-int qsheapcell_is_red (qsheapcell_t *);
-qsheapcell_t * qsheapcell_set_red (qsheapcell_t *, int);
 int qsheapcell_is_octet (qsheapcell_t *);
 qsheapcell_t * qsheapcell_set_octet (qsheapcell_t *, int);
 int qsheapcell_get_parent (qsheapcell_t *);
 qsheapcell_t * qsheapcell_set_parent (qsheapcell_t *, int);
+int qsheapcell_get_score (qsheapcell_t *);
+qsheapcell_t * qsheapcell_set_score (qsheapcell_t *, int);
 int qsheapcell_get_allocscale (qsheapcell_t *);
 qsheapcell_t * qsheapcell_set_allocscale (qsheapcell_t *, int);
 qsptr_t qsheapcell_get_field (qsheapcell_t *, int);
