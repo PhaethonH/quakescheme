@@ -89,15 +89,15 @@ typedef struct qsobj_s {
 } qsobj_t;
 
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr);
-int qsobj_is_used (qsmem_t * mem, qsptr_t p);
-int qsobj_is_marked (qsmem_t * mem, qsptr_t p);
-int qsobj_get_score (qsmem_t * mem, qsptr_t p);
-int qsobj_get_parent (qsmem_t * mem, qsptr_t p);
-qsword qsobj_get_allocsize (qsmem_t * mem, qsptr_t p);   // number of heapcells in allocation unit.
-int qsobj_get_allocscale (qsmem_t * mem, qsptr_t p);
-qsptr_t qsobj_set_marked (qsmem_t * mem, qsptr_t p, qsword val);
-qsptr_t qsobj_set_parent (qsmem_t * mem, qsptr_t p, qsword val);
-qsptr_t qsobj_set_score (qsmem_t * mem, qsptr_t p, qsword val);
+int qsobj_used_p (qsmem_t * mem, qsptr_t p);
+int qsobj_marked_p (qsmem_t * mem, qsptr_t p);
+int qsobj_ref_score (qsmem_t * mem, qsptr_t p);
+int qsobj_ref_parent (qsmem_t * mem, qsptr_t p);
+qsword qsobj_ref_allocsize (qsmem_t * mem, qsptr_t p);   // number of heapcells in allocation unit.
+int qsobj_ref_allocscale (qsmem_t * mem, qsptr_t p);
+qsptr_t qsobj_setq_marked (qsmem_t * mem, qsptr_t p, qsword val);
+qsptr_t qsobj_setq_parent (qsmem_t * mem, qsptr_t p, qsword val);
+qsptr_t qsobj_setq_score (qsmem_t * mem, qsptr_t p, qsword val);
 qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_addr);
 qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p);
 int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
@@ -120,6 +120,9 @@ qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val);
 qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right);
 qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr);
 int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
+
+qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest);
+qsptr_t qstree_aget (qsmem_t * mem, qsptr_t t, qsptr_t key);
 
 qsptr_t qsrbtree_rotate_left (qsmem_t * mem, qsptr_t pivot);
 qsptr_t qsrbtree_rotate_right (qsmem_t * mem, qsptr_t pivot);

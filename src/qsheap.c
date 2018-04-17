@@ -15,6 +15,11 @@ qsheapcell_t * qsheapcell_init (qsheapcell_t * cell, int used, int marked, int a
   return cell;
 }
 
+int qsheapcell_is_synced (qsheapcell_t * heapcell)
+{
+  return ISSYNC29(heapcell->mgmt);
+}
+
 int qsheapcell_is_used (qsheapcell_t * heapcell)
 {
   return !!(MGMT_IS_USED(heapcell->mgmt));
@@ -40,7 +45,7 @@ int qsheapcell_get_parent (qsheapcell_t * heapcell)
   return MGMT_GET_PARENT(heapcell->mgmt);
 }
 
-int qsheapcell_get_alloscale (qsheapcell_t * heapcell)
+int qsheapcell_get_allocscale (qsheapcell_t * heapcell)
 {
   return MGMT_GET_ALLOCSCALE(heapcell->mgmt);
 }

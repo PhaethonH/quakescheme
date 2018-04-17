@@ -85,10 +85,51 @@ ends:
 }
 END_TEST
 
+START_TEST(test_aget1)
+{
+  init();
+
+  qsptr_t keys[8];
+  keys[0] = qsstr_inject(heap1, "alpha", 0);
+  keys[1] = qsstr_inject(heap1, "bravo", 0);
+  keys[2] = qsstr_inject(heap1, "charlie", 0);
+
+  qsptr_t apairs[8];
+  apairs[0] = qspair_make(heap1, keys[0], QSINT(1));
+  apairs[1] = qspair_make(heap1, keys[1], QSINT(2));
+  apairs[2] = qspair_make(heap1, keys[2], QSINT(3));
+
+  qsptr_t cells[8];
+  cells[0] = qstree_make(heap1, QSNIL, apairs[0], QSNIL);
+  cells[1] = qstree_make(heap1, QSNIL, apairs[2], QSNIL);
+  cells[2] = qstree_make(heap1, cells[0], apairs[1], cells[1]);
+
+  qsptr_t treeroot = cells[2];
+/*
+dict:
+     bravo
+  alpha  charlie
+*/
+
+  qsptr_t x = qstree_aget(heap1, treeroot, keys[0]);
+  ck_assert(!ISNIL(x));
+  ck_assert_int_eq(x, apairs[0]);
+
+  x = qstree_aget(heap1, treeroot, QSNIL);
+  ck_assert(ISNIL(x));
+
+  qsptr_t almost = QSNIL;
+  x = qstree_find(heap1, treeroot, QSNIL, &almost);
+  ck_assert(ISNIL(x));
+  ck_assert(!ISNIL(almost));
+}
+END_TEST
+
 
 TESTCASE(rbtree1,
   TFUNC(test_rotleft1)
   TFUNC(test_rotright2)
+  TFUNC(test_aget1)
   )
 
 TESTSUITE(suite1,

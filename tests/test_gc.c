@@ -66,12 +66,12 @@ START_TEST(test_mark1)
 
   qsobj_kmark(heap1, v);
 
-  ck_assert(qsobj_is_marked(heap1, cells[0]));
-  ck_assert(qsobj_is_marked(heap1, cells[1]));
-  ck_assert(qsobj_is_marked(heap1, cells[2]));
-  ck_assert(qsobj_is_marked(heap1, cells[3]));
-  ck_assert(qsobj_is_marked(heap1, cells[4]));
-  ck_assert(qsobj_is_marked(heap1, v));
+  ck_assert(qsobj_marked_p(heap1, cells[0]));
+  ck_assert(qsobj_marked_p(heap1, cells[1]));
+  ck_assert(qsobj_marked_p(heap1, cells[2]));
+  ck_assert(qsobj_marked_p(heap1, cells[3]));
+  ck_assert(qsobj_marked_p(heap1, cells[4]));
+  ck_assert(qsobj_marked_p(heap1, v));
 }
 END_TEST
 

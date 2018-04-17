@@ -59,40 +59,48 @@ qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   qsmemaddr_t addr = COBJ26(p);
   qsobj_t * retval = (qsobj_t*)qsheap_ref(mem, addr);
   if (!retval) return NULL;
-  qsptr_t mgmt = retval->mgmt;
-  if (!ISSYNC29(mgmt)) return NULL;
-  if (!MGMT_IS_USED(mgmt)) return NULL;
+  if (! qsheapcell_is_synced((qsheapcell_t*)retval)) return NULL;
+  if (! qsheapcell_is_used((qsheapcell_t*)retval)) return NULL;
   if (out_addr)
     *out_addr = addr;
   return retval;
 }
 
-int qsobj_is_used (qsmem_t * mem, qsptr_t p)
+int qsobj_used_p (qsmem_t * mem, qsptr_t p)
 {
-  qsobj_t * obj = qsobj(mem, p, NULL);
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return !!MGMT_IS_USED(obj->mgmt);
+  return qsheapcell_is_used((qsheapcell_t*)obj);
 }
 
-int qsobj_is_marked (qsmem_t * mem, qsptr_t p)
+int qsobj_marked_p (qsmem_t * mem, qsptr_t p)
 {
   qsobj_t * obj = qsobj(mem, p, NULL);
   if (!obj) return 0;
-  return !!MGMT_IS_MARKED(obj->mgmt);
+  return qsheapcell_is_marked((qsheapcell_t*)obj);
 }
 
-int qsobj_get_score (qsmem_t * mem, qsptr_t p)
+int qsobj_ref_parent (qsmem_t * mem, qsptr_t p)
 {
-  qsobj_t * obj = qsobj(mem, p, NULL);
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return MGMT_GET_SCORE(obj->mgmt);
+  return qsheapcell_get_parent((qsheapcell_t*)obj);
 }
 
-qsword qsobj_get_allocsize (qsmem_t * mem, qsptr_t p)
+int qsobj_ref_score (qsmem_t * mem, qsptr_t p)
 {
   qsobj_t * obj = qsobj(mem, p, NULL);
   if (!obj) return 0;
-  int allocscale = MGMT_GET_ALLOCSCALE(obj->mgmt);
+  return qsheapcell_get_score((qsheapcell_t*)obj);
+}
+
+qsword qsobj_ref_allocsize (qsmem_t * mem, qsptr_t p)
+{
+  qsobj_t * obj = qsobj(mem, p, NULL);
+  if (!obj) return 0;
+  int allocscale = qsheapcell_get_allocscale((qsheapcell_t*)obj);
   return (1 << allocscale);
 }
 
@@ -110,30 +118,27 @@ qsptr_t qsobj_get (qsmem_t * mem, qsptr_t p, qsword field_idx)
   return QSNIL;
 }
 
-qsptr_t qsobj_set_marked (qsmem_t * mem, qsptr_t p, qsword val)
+qsptr_t qsobj_setq_marked (qsmem_t * mem, qsptr_t p, qsword val)
 {
   qsobj_t * obj = qsobj(mem, p, NULL);
   if (!obj) return 0;
-  if (val)
-    MGMT_SET_MARKED(obj->mgmt);
-  else
-    MGMT_CLR_MARKED(obj->mgmt);
+  qsheapcell_set_marked((qsheapcell_t*)obj, val);
   return p;
 }
 
-qsptr_t qsobj_set_score (qsmem_t * mem, qsptr_t p, qsword val)
+qsptr_t qsobj_setq_score (qsmem_t * mem, qsptr_t p, qsword val)
 {
   qsobj_t * obj = qsobj(mem, p, NULL);
   if (!obj) return 0;
-  MGMT_SET_SCORE(obj->mgmt, val);
+  qsheapcell_set_score((qsheapcell_t*)obj, val);
   return p;
 }
 
-qsptr_t qsobj_set_parent (qsmem_t * mem, qsptr_t p, qsword val)
+qsptr_t qsobj_setq_parent (qsmem_t * mem, qsptr_t p, qsword val)
 {
   qsobj_t * obj = qsobj(mem, p, NULL);
   if (!obj) return 0;
-  MGMT_SET_PARENT(obj->mgmt, val);
+  qsheapcell_set_parent((qsheapcell_t*)obj, val);
   return p;
 }
 
@@ -143,9 +148,8 @@ qsobj_t * qsobj_unicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
   qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  qsptr_t mgmt = heapcell->mgmt;
-  if (MGMT_IS_OCTET(mgmt)) return NULL;
-  if (MGMT_GET_ALLOCSCALE(mgmt) > 0) return NULL;
+  if (qsheapcell_is_octet(heapcell)) return NULL;
+  if (qsheapcell_get_allocscale(heapcell) > 0) return NULL;
   return obj;
 }
 
@@ -155,9 +159,8 @@ qsobj_t * qsobj_multicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
   qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  qsptr_t mgmt = heapcell->mgmt;
-  if (MGMT_IS_OCTET(mgmt)) return NULL;
-  if (MGMT_GET_ALLOCSCALE(mgmt) == 0) return NULL;
+  if (qsheapcell_is_octet(heapcell)) return NULL;
+  if (qsheapcell_get_allocscale(heapcell) == 0) return NULL;
   return obj;
 }
 
@@ -167,9 +170,8 @@ qsobj_t * qsobj_unioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
   qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  qsptr_t mgmt = heapcell->mgmt;
-  if (! MGMT_IS_OCTET(mgmt)) return NULL;
-  if (MGMT_GET_ALLOCSCALE(mgmt) > 0) return NULL;
+  if (! qsheapcell_is_octet(heapcell)) return NULL;
+  if (qsheapcell_get_allocscale(heapcell) > 0) return NULL;
   return obj;
 }
 
@@ -179,9 +181,8 @@ qsobj_t * qsobj_multioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
   qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  qsptr_t mgmt = heapcell->mgmt;
-  if (! MGMT_IS_OCTET(mgmt)) return NULL;
-  if (MGMT_GET_ALLOCSCALE(mgmt) == 0) return NULL;
+  if (! qsheapcell_is_octet(heapcell)) return NULL;
+  if (qsheapcell_get_allocscale(heapcell) == 0) return NULL;
   return obj;
 }
 
@@ -455,11 +456,72 @@ struct qsrbtree_child_s {
 };
 */
 
+struct qsrbtree_splits_s {
+    qsptr_t mgmt;
+    qsptr_t split_parent;
+    qsptr_t split_dangle;
+    qsptr_t splits_path;
+};
+
+qsptr_t qsrbtree_splits_ref_parent (qsmem_t * mem, qsptr_t splits)
+{
+  return qstree_ref_left(mem, splits);
+}
+qsptr_t qsrbtree_splits_ref_dangle (qsmem_t * mem, qsptr_t splits)
+{
+  return qstree_ref_data(mem, splits);
+}
+qsptr_t qsrbtree_splits_ref_path (qsmem_t * mem, qsptr_t splits)
+{
+  return qstree_ref_right(mem, splits);
+}
+
+qsptr_t qsrbtree_splits_setq_parent (qsmem_t * mem, qsptr_t splits, qsptr_t val)
+{
+  return qstree_setq_left(mem, splits, val);
+}
+qsptr_t qsrbtree_splits_setq_dangle (qsmem_t * mem, qsptr_t splits, qsptr_t val)
+{
+  return qstree_setq_data(mem, splits, val);
+}
+qsptr_t qsrbtree_splits_setq_path (qsmem_t * mem, qsptr_t splits, qsptr_t val)
+{
+  return qstree_setq_right(mem, splits, val);
+}
+
+
+
+
 qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t tree)
 {
   qsptr_t splits = qstree_make(mem, QSNIL, QSNIL, QSINT(0));
   qsptr_t root = qstree_make(mem, splits, tree, QSNIL);
   return root;
+}
+
+int qsrbtree_red_p (qsmem_t * mem, qsptr_t tree)
+{
+  return (1 == qsobj_ref_score(mem, tree));
+}
+
+int qsrbtree_black_p (qsmem_t * mem, qsptr_t tree)
+{
+  return !qsrbtree_red_p(mem, tree);
+}
+
+qsptr_t qsrbtree_paint (qsmem_t * mem, qsptr_t tree, int val)
+{
+  return qsobj_setq_score(mem, tree, val ? 1 : 0);
+}
+
+qsptr_t qsrbtree_paint_red (qsmem_t * mem, qsptr_t tree)
+{
+  return qsrbtree_paint(mem, tree, 1);
+}
+
+qsptr_t qsrbtree_paint_black (qsmem_t * mem, qsptr_t tree)
+{
+  return qsrbtree_paint(mem, tree, 0);
 }
 
 /* Rotate the (sub)tree left, returns new root. */
@@ -498,10 +560,360 @@ qsptr_t qsrbtree_unlock (qsmem_t * mem, qsptr_t root)
   return QSTRUE;
 }
 
+/* Split a tree to set up reverse pointers.
+   Updates internal "splits" state to track the current split point.
+   Returns pointer to root of newly detached subtree.
+ */
+qsptr_t qsrbtree_split (qsmem_t * mem, int leftward, qsptr_t rootptr, qsptr_t currptr)
+{
+  qsptr_t next = QSNIL;
+  qsptr_t parent = QSNIL;
+  qstree_t * tree = qstree(mem, rootptr);
+  if (!tree) abort();
+  qsptr_t splits = qstree_ref_left(mem, rootptr);
+  if (!splits) abort();
+  if (leftward)
+    {
+      next = qstree_ref_left(mem, currptr);
+      qsptr_t parent = qsrbtree_splits_ref_parent(mem, splits);
+      qstree_setq_left(mem, currptr, parent);
+      qsobj_setq_parent(mem, currptr, 1);  // ->left is actually parent.
+    }
+  else
+    {
+      next = qstree_ref_right(mem, currptr);
+      qsptr_t parent = qstree_ref_right(mem, splits); // splits_parent.
+      qstree_setq_right(mem, currptr, parent);
+      qsobj_setq_parent(mem, currptr, 2);  // ->right is actually parent.
+    }
+  qsrbtree_splits_setq_dangle(mem, splits, next);  // reference root of subtree.
+  qsrbtree_splits_setq_parent(mem, splits, currptr); // parent of subtree.
+  return currptr;
+}
+
+qsptr_t qsrbtree_split_left (qsmem_t * mem, qsptr_t rootptr, qsptr_t currptr)
+{
+  return qsrbtree_split(mem, 1, rootptr, currptr);
+}
+
+qsptr_t qsrbtree_split_right (qsmem_t * mem, qsptr_t rootptr, qsptr_t currptr)
+{
+  return qsrbtree_split(mem, 0, rootptr, currptr);
+}
+
+/* Mend a tree to restore from reverse pointers.
+   Attaches 'currptr' back into 'root' based on internal "splits" state.
+   Returns pointer to newly mended parent node (parent of subtree).
+ */
+qsptr_t qsrbtree_mend (qsmem_t * mem, qsptr_t rootptr, qsptr_t currptr)
+{
+  qsptr_t up = QSNIL;
+  if (!rootptr) abort();
+  if ISNIL(currptr) return 0;
+
+  qsptr_t splits = qstree_ref_left(mem, rootptr);
+  qsptr_t parent = qsrbtree_splits_ref_parent(mem, splits);
+  qsptr_t dangle = qsrbtree_splits_ref_dangle(mem, splits);
+  int ancestry = qsobj_ref_parent(mem, currptr);
+  if (ancestry == 1)
+    {
+      // restore left.
+      up = qstree_ref_left(mem, parent);
+      qstree_setq_left(mem, currptr, dangle);
+    }
+  else if (ancestry == 2)
+    {
+      // return right.
+      up = qstree_ref_right(mem, parent);
+      qstree_setq_right(mem, currptr, dangle);
+    }
+  else
+    {
+      // inconsistent state.
+      abort();
+    }
+  qsobj_setq_parent(mem, parent, 0);  // clear reversal.
+
+  // move up.
+  qsrbtree_splits_setq_parent(mem, splits, up);
+  qsrbtree_splits_setq_dangle(mem, splits, parent);
+
+  return parent;
+}
+
+qsptr_t qsrbtree_splits_get_sibling (qsmem_t * mem, qsptr_t splits)
+{
+  qsptr_t currptr = qsrbtree_splits_ref_dangle(mem, splits);
+  qsptr_t parent = qsrbtree_splits_ref_parent(mem, splits);
+  if (ISNIL(currptr)) return QSNIL;
+  if (ISNIL(parent)) return QSNIL;
+  int ancestry = qsobj_ref_score(mem, parent);
+  if (ancestry == 1)
+    {
+      // (grand)parent is stored in "left".
+      return qstree_ref_right(mem, parent);
+    }
+  else if (ancestry == 2)
+    {
+      // (grand)parent is stored in "right".
+      return qstree_ref_left(mem, parent);
+    }
+  else
+    {
+      // inconsistent state.
+      abort();
+    }
+}
+
+qsptr_t qsrbtree_splits_get_grandparent (qsmem_t * mem, qsptr_t splits)
+{
+  qsptr_t currptr = qsrbtree_splits_ref_dangle(mem, splits);
+  qsptr_t parent = qsrbtree_splits_ref_parent(mem, splits);
+  if (ISNIL(currptr)) return QSNIL;
+  if (ISNIL(parent)) return QSNIL;
+  int ancestry = qsobj_ref_score(mem, parent);
+  if (ancestry == 1)
+    {
+      // (grand)parent is stored in "left".
+      return qstree_ref_left(mem, parent);
+    }
+  else if (ancestry == 2)
+    {
+      // (grand)parent is stored in "right".
+      return qstree_ref_right(mem, parent);
+    }
+  else
+    {
+      // inconsistent state.
+      abort();
+    }
+}
+
+
 /* Insert subtree, rebalancing as needed. */
+#if 1
 qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t subtree)
 {
+  if (ISNIL(root))
+    {
+      /* case 1: new tree, subtree is root. */
+      qsrbtree_make(mem, subtree);
+    }
+  if (ISNIL(qstree_ref_data(mem, root)))
+    {
+      /* also case 1: rbtree has empty root, subtree is root. */
+      qstree_setq_data(mem, root, subtree);
+    }
+
+  // TODO: resolve to raw tree for subtree?
+  qsptr_t N = subtree;
+
+  qsrbtree_lock(mem, root);
+  /* traverse until bottom of tree. */
+
+  qsptr_t splits = qstree_ref_left(mem, root);
+  qsptr_t d = QSNIL;
+  qsptr_t currptr = root;
+  qsptr_t currkey = QSNIL;
+  int libra = 0;  /* "balance"; comparison result: -1, 0, +1 */
+  qsword lim = 258;  // avoid infinite loop; maximum depth should be about 31.
+
+  qsptr_t key = qspair_ref_a(mem, qstree_ref_data(mem, N));
+
+  /* drill down to bottom-most non-leaf node. */
+  while (!ISNIL(currptr) && (--lim > 0))
+    {
+      d = qstree_ref_data(mem, currptr);
+      if (ISNIL(d))
+	goto unwind;
+      if (qspair(mem, d))
+	{
+	  currkey = qspair_ref_a(mem, d);
+	  libra = qsstr_cmp(mem, key, currkey);
+	}
+      else
+	{
+	  libra = 1;  // uncomparable; choose right.
+	}
+      if (libra == 0)
+	break;  //match.
+      else if (libra < 0)
+	{
+	  // to left.
+	  currptr = qsrbtree_split_left(mem, root, currptr);
+	}
+      else if (libra > 0)
+	{
+	  // to right.
+	  currptr = qsrbtree_split_right(mem, root, currptr);
+	}
+    }
+
+
+  int case3recursion = 0;
+
+  do
+    {
+      /* at this point, currptr is null; overwrite with new node. */
+      currptr = N;
+      qsptr_t parent = qsrbtree_splits_ref_parent(mem, splits);
+      if (! qsrbtree_red_p(mem, parent))
+	{
+	  // case 2: parent is black, N is red.
+	  qsrbtree_paint_red(mem, currptr);
+	  goto unwind;  // undo reversal.
+	}
+
+      // parent is red.
+
+      qsptr_t P = parent;
+      qsptr_t U = qsrbtree_splits_get_sibling(mem, splits);
+      qsptr_t G = qsrbtree_splits_get_grandparent(mem, splits);
+      if (qsrbtree_red_p(mem, U))
+	{
+	  /* case 3: red P, red U
+	     => blacken P, blacken U, redden G, recurse on G.
+	     */
+	  qsrbtree_paint_black(mem, P);
+	  qsrbtree_paint_black(mem, U);
+	  qsrbtree_paint_red(mem, G);
+	  qsrbtree_paint_red(mem, N);
+
+	  /* recurse on G. */
+	  currptr = qsrbtree_mend(mem, root, currptr);
+	  currptr = qsrbtree_mend(mem, root, currptr);
+	  N = G;
+
+	  parent = qsrbtree_splits_ref_parent(mem, splits);
+	  if (ISNIL(parent) || ISNIL(currptr))
+	    {
+	      // ended up at root.
+	      qsptr_t rootdata = qstree_ref_data(mem, root);
+	      qsrbtree_paint_black(mem, rootdata);
+	      goto unwind;
+	    }
+
+	  case3recursion = 1;
+	  continue;  /* recursion point. */
+	}
+
+      /* case 4 or 5: red P, U black.
+	 => find out if inner-rotation or outer-rotation.
+	 */
+      /* Path Grandparent-to-Parent; left=-1, right=1 */
+      int gp = qsobj_ref_parent(mem, G) == 1 ? -1 : 1;
+      /* Path Parent-to-Node; left=-1, right=1 */
+      int pn = qsobj_ref_parent(mem, P) == 1 ? -1 : 1;
+
+      /* Move up two to rotate on G. */
+      currptr = qsrbtree_mend(mem, root, currptr);
+      currptr = qsrbtree_mend(mem, root, currptr);
+
+      if (gp != pn)
+	{
+	  /* case 4: G.left,P.right || G.right,P.left
+	     => Convert to case 5.
+	     */
+	  if (pn == -1)
+	    {
+	      P = qsrbtree_rotate_right(mem, P);
+	      qstree_setq_right(mem, G, P);
+	      pn = 1;
+	    }
+	  else
+	    {
+	      P = qsrbtree_rotate_left(mem, P);
+	      qstree_setq_left(mem, G, P);
+	      pn = -1;
+	    }
+	}
+
+      if (gp == pn)
+	{
+	  if (pn == -1)
+	    {
+	      G = qsrbtree_rotate_right(mem, G);
+	    }
+	  else
+	    {
+	      G = qsrbtree_rotate_left(mem, G);
+	    }
+	  /* paint P black, paint G red. */
+	  qsrbtree_paint_black(mem, P);
+	  qsrbtree_paint_red(mem, G);
+	  /* rearrange splits. */
+	  qsrbtree_splits_setq_dangle(mem, splits, G);
+
+	  goto unwind;
+	}
+      else
+	{
+	  // inconsistent state.
+	  abort();
+	}
+    }
+  while (case3recursion);
+
+
+unwind:
+  // TODO: recursive mend
+//  if (!ISNIL(currptr))
+//    while (qsrbtree_mend(mem, &currptr, &parent) == QSEROR_OK);
+  while (!ISNIL(currptr))
+    {
+      currptr = qsrbtree_mend(mem, root, currptr);
+    }
+
+  qsrbtree_unlock(mem, subtree);
   return root;
+}
+#endif //0
+
+/* Return best tree node fulfilling critera 'key'.
+   nil if not found.
+ */
+qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
+{
+  qsptr_t probe = t;
+  qsptr_t prev = QSNIL;
+  qsptr_t d;
+  int libra = 0;
+  qsptr_t probekey = QSNIL;
+  while (!ISNIL(probe))
+    {
+      prev = probe;
+      d = qstree_ref_data(mem, probe);
+      probekey = QSNIL;
+      libra = 0;
+      if (qspair(mem, d))
+	{
+	  probekey = qspair_ref_a(mem, d);
+	  // TODO: custom comparator
+	  libra = qsstr_cmp(mem, key, probekey);
+	}
+      else
+	{
+	  /* uncomparable; just go right. */
+	  libra = 1;
+	}
+      if (libra == 0) return probe;  // match.
+      else if (libra < 0) probe = qstree_ref_left(mem, probe);
+      else if (libra > 0) probe = qstree_ref_right(mem, probe);
+    }
+  if (nearest)
+    *nearest = prev;  // best match (ready for insert).
+  return QSNIL;
+}
+
+/* Returns association-pair matching criteria 'key'.
+   nil if not found.
+   */
+qsptr_t qstree_aget (qsmem_t * mem, qsptr_t t, qsptr_t key)
+{
+  qsptr_t probe = qstree_find(mem, t, key, NULL);
+  if (ISNIL(probe)) return QSNIL;
+  qsptr_t d = qstree_ref_data(mem, probe);
+  return d;
 }
 
 
@@ -724,7 +1136,7 @@ qserror_t qsvector_mark (qsmem_t * mem, qsptr_t v)
   if (!vec) return QSERROR_INVALID;
   qsheapcell_t * cell = (qsheapcell_t*)vec;
 
-  while (! MGMT_IS_MARKED(vec->mgmt))
+  while (! qsobj_marked_p(mem, v))
     {
       /* main loop */
       if (qsheapcell_get_parent(cell) == 0)
@@ -1567,7 +1979,7 @@ qsutf8_t * qsutf8 (qsmem_t * mem, qsptr_t s)
 static
 qsword _qsutf8_hardlimit (qsmem_t * mem, qsptr_t s)
 {
-  qsword ncells = qsobj_get_allocsize(mem, s);
+  qsword ncells = qsobj_ref_allocsize(mem, s);
   qsword retval = (ncells - 1) * (sizeof(qsheapcell_t) / sizeof(qsptr_t));
   return retval;
 }

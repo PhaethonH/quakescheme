@@ -83,6 +83,7 @@ Random Access List: lg(n+1), where n<=2**26, i.e. Score <= 26
 
 /* initialize cell as object or freelist. */
 qsheapcell_t * qsheapcell_init (qsheapcell_t *, int used, int red, int allocscale);
+int qsheapcell_is_synced (qsheapcell_t *);
 int qsheapcell_is_used (qsheapcell_t *);
 qsheapcell_t * qsheapcell_set_used (qsheapcell_t *, int);
 int qsheapcell_is_marked (qsheapcell_t *);
