@@ -85,7 +85,7 @@ ends:
 }
 END_TEST
 
-START_TEST(test_aget1)
+START_TEST(test_assoc1)
 {
   init();
 
@@ -111,11 +111,15 @@ dict:
   alpha  charlie
 */
 
-  qsptr_t x = qstree_aget(heap1, treeroot, keys[0]);
+  qsptr_t x = qstree_assoc(heap1, treeroot, keys[0]);
   ck_assert(!ISNIL(x));
   ck_assert_int_eq(x, apairs[0]);
 
-  x = qstree_aget(heap1, treeroot, QSNIL);
+  x = qstree_assoc(heap1, treeroot, keys[2]);
+  ck_assert(!ISNIL(x));
+  ck_assert_int_eq(x, apairs[2]);
+
+  x = qstree_assoc(heap1, treeroot, QSNIL);
   ck_assert(ISNIL(x));
 
   qsptr_t almost = QSNIL;
@@ -129,7 +133,7 @@ END_TEST
 TESTCASE(rbtree1,
   TFUNC(test_rotleft1)
   TFUNC(test_rotright2)
-  TFUNC(test_aget1)
+  TFUNC(test_assoc1)
   )
 
 TESTSUITE(suite1,

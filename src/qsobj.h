@@ -122,7 +122,7 @@ qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nex
 int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
 
 qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest);
-qsptr_t qstree_aget (qsmem_t * mem, qsptr_t t, qsptr_t key);
+qsptr_t qstree_assoc (qsmem_t * mem, qsptr_t t, qsptr_t key);
 
 qsptr_t qsrbtree_rotate_left (qsmem_t * mem, qsptr_t pivot);
 qsptr_t qsrbtree_rotate_right (qsmem_t * mem, qsptr_t pivot);

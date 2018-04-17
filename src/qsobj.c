@@ -908,7 +908,7 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
 /* Returns association-pair matching criteria 'key'.
    nil if not found.
    */
-qsptr_t qstree_aget (qsmem_t * mem, qsptr_t t, qsptr_t key)
+qsptr_t qstree_assoc (qsmem_t * mem, qsptr_t t, qsptr_t key)
 {
   qsptr_t probe = qstree_find(mem, t, key, NULL);
   if (ISNIL(probe)) return QSNIL;
