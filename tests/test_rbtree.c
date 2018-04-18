@@ -129,11 +129,88 @@ dict:
 }
 END_TEST
 
+START_TEST(test_split1)
+{
+  init();
+
+  qsptr_t keys[8];
+  keys[0] = qsstr_inject(heap1, "alpha", 0);
+  keys[1] = qsstr_inject(heap1, "bravo", 0);
+  keys[2] = qsstr_inject(heap1, "charlie", 0);
+
+  qsptr_t apairs[8];
+  apairs[0] = qspair_make(heap1, keys[0], QSINT(1));
+  apairs[1] = qspair_make(heap1, keys[1], QSINT(2));
+  apairs[2] = qspair_make(heap1, keys[2], QSINT(3));
+
+  qsptr_t cells[8];
+  cells[0] = qstree_make(heap1, QSNIL, apairs[0], QSNIL);
+  cells[1] = qstree_make(heap1, QSNIL, apairs[2], QSNIL);
+  cells[2] = qstree_make(heap1, cells[0], apairs[1], cells[1]);
+
+  qsptr_t rbtree = qsrbtree_make(heap1, cells[2]);
+
+  rbtree = qsrbtree_split_left(heap1, rbtree);
+  ck_assert_int_ne(QSNIL, rbtree);
+  ck_assert_int_eq(QSNIL, qstree_ref_left(heap1, cells[2]));
+}
+END_TEST
+
+START_TEST(test_build1)
+{
+  init();
+
+  qsptr_t keys[8];
+  keys[0] = qsstr_inject(heap1, "alpha", 0);
+  keys[1] = qsstr_inject(heap1, "bravo", 0);
+  keys[2] = qsstr_inject(heap1, "charlie", 0);
+
+  qsptr_t apairs[8];
+  apairs[0] = qspair_make(heap1, keys[0], QSINT(1));
+  apairs[1] = qspair_make(heap1, keys[1], QSINT(2));
+  apairs[2] = qspair_make(heap1, keys[2], QSINT(3));
+
+//  qsptr_t treenode = qstree_make(heap1, QSNIL, apairs[0], QSNIL);
+
+  qsptr_t treeroot = QSNIL;
+  // insert "alpha" into (empty) tree.
+  treeroot = qsrbtree_insert(heap1, treeroot, apairs[0]);
+  ck_assert(!ISNIL(treeroot));
+  ck_assert(!ISNIL(qstree_ref_data(heap1, treeroot)));
+  // raw tree
+  qsptr_t t0 = qstree_ref_data(heap1, treeroot);
+  ck_assert_int_ne(QSNIL, t0);
+  // data node (apair)
+  qsptr_t d = qstree_ref_data(heap1, t0);
+  ck_assert_int_eq(d, apairs[0]);
+  // "alpha" should resolve.
+  qsptr_t x = QSNIL;
+  x = qsrbtree_assoc(heap1, treeroot, keys[0]);
+  ck_assert_int_ne(QSNIL, x);
+
+  // insert "bravo" into tree.
+  treeroot = qsrbtree_insert(heap1, treeroot, apairs[1]);
+  ck_assert(!ISNIL(treeroot));
+  ck_assert(!ISNIL(qstree_ref_data(heap1, treeroot)));
+  ck_assert_int_eq(qsobj_ref_parent(heap1, treeroot), 0);
+  ck_assert(!ISNIL(qstree_ref_right(heap1, t0)));
+
+  // "alpha" and "bravo" should still resolve.
+  t0 = qstree_ref_data(heap1, treeroot);
+  qsptr_t q0 = qstree_assoc(heap1, t0, keys[0]);
+  ck_assert_int_ne(QSNIL, q0);
+  qsptr_t q1 = qstree_assoc(heap1, t0, keys[1]);
+  ck_assert_int_ne(QSNIL, q1);
+}
+END_TEST
+
 
 TESTCASE(rbtree1,
   TFUNC(test_rotleft1)
   TFUNC(test_rotright2)
   TFUNC(test_assoc1)
+  //TFUNC(test_build1)
+  TFUNC(test_split1)
   )
 
 TESTSUITE(suite1,

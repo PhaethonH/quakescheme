@@ -124,8 +124,16 @@ int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
 qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest);
 qsptr_t qstree_assoc (qsmem_t * mem, qsptr_t t, qsptr_t key);
 
+qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t topnode);
+qsptr_t qsrbtree_split_left (qsmem_t * mem, qsptr_t treeroot);
+qsptr_t qsrbtree_split_right (qsmem_t * mem, qsptr_t treeroot);
+qsptr_t qsrbtree_mend (qsmem_t * mem, qsptr_t treeroot);
+
 qsptr_t qsrbtree_rotate_left (qsmem_t * mem, qsptr_t pivot);
 qsptr_t qsrbtree_rotate_right (qsmem_t * mem, qsptr_t pivot);
+qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t subtree);
+qsptr_t qsrbtree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest);
+qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t t, qsptr_t key);
 
 
 /* Pair - linked list as degenerate case of tree with no left child */
