@@ -50,7 +50,7 @@ ends:
 
 */
 
-  qsptr_t t = qsrbtree_rotate_left(heap1, cells[2]);
+  qsptr_t t = qsrbnode_rotate_left(heap1, cells[2]);
   ck_assert_int_eq(t, cells[1]);
   ck_assert_int_eq(qstree_ref_left(heap1, t), cells[2]);
   ck_assert_int_eq(qstree_ref_left(heap1, cells[2]), cells[0]);
@@ -78,7 +78,7 @@ ends:
 
 */
 
-  qsptr_t t = qsrbtree_rotate_right(heap1, cells[2]);
+  qsptr_t t = qsrbnode_rotate_right(heap1, cells[2]);
   ck_assert_int_eq(t, cells[0]);
   ck_assert_int_eq(qstree_ref_right(heap1, t), cells[2]);
   ck_assert_int_eq(qstree_ref_right(heap1, cells[2]), cells[1]);
@@ -137,22 +137,55 @@ START_TEST(test_split1)
   keys[0] = qsstr_inject(heap1, "alpha", 0);
   keys[1] = qsstr_inject(heap1, "bravo", 0);
   keys[2] = qsstr_inject(heap1, "charlie", 0);
+  keys[3] = qsstr_inject(heap1, "delta", 0);
 
   qsptr_t apairs[8];
   apairs[0] = qspair_make(heap1, keys[0], QSINT(1));
   apairs[1] = qspair_make(heap1, keys[1], QSINT(2));
   apairs[2] = qspair_make(heap1, keys[2], QSINT(3));
+  apairs[3] = qspair_make(heap1, keys[3], QSINT(4));
 
   qsptr_t cells[8];
   cells[0] = qstree_make(heap1, QSNIL, apairs[0], QSNIL);
   cells[1] = qstree_make(heap1, QSNIL, apairs[2], QSNIL);
   cells[2] = qstree_make(heap1, cells[0], apairs[1], cells[1]);
 
-  qsptr_t rbtree = qsrbtree_make(heap1, cells[2]);
+  cells[3] = qstree_make(heap1, QSNIL, apairs[3], QSNIL);
+  cells[1] = qstree_setq_right(heap1, cells[1], cells[3]);
+
+  //qsptr_t rbtree = qsrbtree_make(heap1, cells[2]);
+  qsptr_t rbtree = qsrbtree_make(heap1, cells[2], QSNIL);
+  ck_assert(qsrbtree(heap1, rbtree));
+
+  qsrbtree_setq_up(heap1, rbtree, QSNIL);
+  qsrbtree_setq_down(heap1, rbtree, qsrbtree_ref_top(heap1, rbtree));
 
   rbtree = qsrbtree_split_left(heap1, rbtree);
   ck_assert_int_ne(QSNIL, rbtree);
-  ck_assert_int_eq(QSNIL, qstree_ref_left(heap1, cells[2]));
+  ck_assert_int_eq(QSNIL, qstree_ref_left(heap1, qsrbtree_ref_top(heap1, rbtree)));
+
+  rbtree = qsrbtree_mend(heap1, rbtree);
+  ck_assert_int_eq(cells[0], qstree_ref_left(heap1, qsrbtree_ref_top(heap1, rbtree)));
+  ck_assert_int_eq(cells[1], qstree_ref_right(heap1, qsrbtree_ref_top(heap1, rbtree)));
+  ck_assert_int_eq(cells[3], qstree_ref_right(heap1, qstree_ref_right(heap1, qsrbtree_ref_top(heap1, rbtree))));
+
+/*
+   B
+ A   C
+       D
+*/
+  qsrbtree_setq_up(heap1, rbtree, QSNIL);
+  qsrbtree_setq_down(heap1, rbtree, qsrbtree_ref_top(heap1, rbtree));
+  rbtree = qsrbtree_split_right(heap1, rbtree);
+  rbtree = qsrbtree_split_right(heap1, rbtree);
+  ck_assert_int_eq(apairs[1], qstree_ref_data(heap1, qsrbtree_ref_top(heap1, rbtree)));
+  ck_assert_int_eq(apairs[2], qstree_ref_data(heap1, qsrbtree_ref_up(heap1, rbtree)));
+  ck_assert_int_eq(apairs[3], qstree_ref_data(heap1, qsrbtree_ref_down(heap1, rbtree)));
+  qsptr_t P = qsrbtree_ref_up(heap1, rbtree);
+  qsptr_t U = qsrbtree_ref_uncle(heap1, rbtree);
+  qsptr_t G = qsrbtree_ref_grandparent(heap1, rbtree);
+  rbtree = qsrbtree_mend(heap1, rbtree);
+  rbtree = qsrbtree_mend(heap1, rbtree);
 }
 END_TEST
 
@@ -164,11 +197,15 @@ START_TEST(test_build1)
   keys[0] = qsstr_inject(heap1, "alpha", 0);
   keys[1] = qsstr_inject(heap1, "bravo", 0);
   keys[2] = qsstr_inject(heap1, "charlie", 0);
+  keys[3] = qsstr_inject(heap1, "delta", 0);
+  keys[4] = qsstr_inject(heap1, "echo", 0);
 
   qsptr_t apairs[8];
   apairs[0] = qspair_make(heap1, keys[0], QSINT(1));
   apairs[1] = qspair_make(heap1, keys[1], QSINT(2));
   apairs[2] = qspair_make(heap1, keys[2], QSINT(3));
+  apairs[3] = qspair_make(heap1, keys[3], QSINT(4));
+  apairs[4] = qspair_make(heap1, keys[4], QSINT(5));
 
 //  qsptr_t treenode = qstree_make(heap1, QSNIL, apairs[0], QSNIL);
 
@@ -176,9 +213,10 @@ START_TEST(test_build1)
   // insert "alpha" into (empty) tree.
   treeroot = qsrbtree_insert(heap1, treeroot, apairs[0]);
   ck_assert(!ISNIL(treeroot));
-  ck_assert(!ISNIL(qstree_ref_data(heap1, treeroot)));
+  ck_assert(qsrbtree(heap1, treeroot));
+  ck_assert(!ISNIL(qsrbtree_ref_top(heap1, treeroot)));
   // raw tree
-  qsptr_t t0 = qstree_ref_data(heap1, treeroot);
+  qsptr_t t0 = qsrbtree_ref_top(heap1, treeroot);
   ck_assert_int_ne(QSNIL, t0);
   // data node (apair)
   qsptr_t d = qstree_ref_data(heap1, t0);
@@ -191,26 +229,128 @@ START_TEST(test_build1)
   // insert "bravo" into tree.
   treeroot = qsrbtree_insert(heap1, treeroot, apairs[1]);
   ck_assert(!ISNIL(treeroot));
-  ck_assert(!ISNIL(qstree_ref_data(heap1, treeroot)));
-  ck_assert_int_eq(qsobj_ref_parent(heap1, treeroot), 0);
+  t0 = qsrbtree_ref_top(heap1, treeroot);
+  ck_assert(!ISNIL(t0));
+  ck_assert_int_eq(qsobj_ref_parent(heap1, t0), 0);
+  ck_assert(ISNIL(qstree_ref_left(heap1, t0)));
   ck_assert(!ISNIL(qstree_ref_right(heap1, t0)));
+  ck_assert_int_eq(qstree_ref_data(heap1, qstree_ref_right(heap1, t0)), apairs[1]);
 
   // "alpha" and "bravo" should still resolve.
-  t0 = qstree_ref_data(heap1, treeroot);
-  qsptr_t q0 = qstree_assoc(heap1, t0, keys[0]);
+  qsptr_t q0 = qsrbtree_assoc(heap1, treeroot, keys[0]);
   ck_assert_int_ne(QSNIL, q0);
-  qsptr_t q1 = qstree_assoc(heap1, t0, keys[1]);
+  qsptr_t q1 = qsrbtree_assoc(heap1, treeroot, keys[1]);
   ck_assert_int_ne(QSNIL, q1);
+
+
+  // insert "charlie" into tree.
+/*
+   B
+  / \
+ A   C
+*/
+  treeroot = qsrbtree_insert(heap1, treeroot, apairs[2]);
+  ck_assert(!ISNIL(treeroot));
+  t0 = qsrbtree_ref_top(heap1, treeroot);
+  ck_assert_int_ne(t0, QSNIL);
+  ck_assert_int_eq(qstree_ref_data(heap1, t0), apairs[1]);
+  ck_assert_int_eq(qstree_ref_data(heap1, qstree_ref_left(heap1, t0)), apairs[0]);
+  ck_assert_int_eq(qstree_ref_data(heap1, qstree_ref_right(heap1, t0)), apairs[2]);
+
+  // insert "delta" into tree.
+/*
+   B
+  / \
+ A   C
+      \
+       D
+*/
+  treeroot = qsrbtree_insert(heap1, treeroot, apairs[3]);
+  ck_assert(!ISNIL(treeroot));
+  t0 = qsrbtree_ref_top(heap1, treeroot);
+  ck_assert_int_eq(qstree_ref_data(heap1, qstree_ref_right(heap1, qstree_ref_right(heap1, t0))), apairs[3]);
+
+  // "delta" resolves.
+  qsptr_t q3 = qsrbtree_assoc(heap1, treeroot, keys[3]);
+  ck_assert_int_ne(QSNIL, q3);
+
+
+/*
+   B
+  / \
+ A   D
+    / \
+    C E
+*/
+  // insert "echo" into tree.
+  treeroot = qsrbtree_insert(heap1, treeroot, apairs[4]);
+  ck_assert(!ISNIL(treeroot));
+  t0 = qsrbtree_ref_top(heap1, treeroot);
+  ck_assert(!ISNIL(t0));
+  ck_assert_int_eq(qstree_ref_data(heap1, qstree_ref_right(heap1, qstree_ref_right(heap1, t0))), apairs[4]);
 }
 END_TEST
 
+START_TEST(test_mass1)
+{
+  init();
+
+  qsptr_t keys[32];
+  keys[0] = qsstr_inject(heap1, "alpha", 0);
+  keys[1] = qsstr_inject(heap1, "bravo", 0);
+  keys[2] = qsstr_inject(heap1, "charlie", 0);
+  keys[3] = qsstr_inject(heap1, "delta", 0);
+  keys[4] = qsstr_inject(heap1, "echo", 0);
+  keys[5] = qsstr_inject(heap1, "foxtrot", 0);
+  keys[6] = qsstr_inject(heap1, "golf", 0);
+  keys[7] = qsstr_inject(heap1, "hotel", 0);
+  keys[8] = qsstr_inject(heap1, "india", 0);
+  keys[9] = qsstr_inject(heap1, "juliet", 0);
+  keys[10] = qsstr_inject(heap1, "kilo", 0);
+  keys[11] = qsstr_inject(heap1, "lima", 0);
+  keys[12] = qsstr_inject(heap1, "mike", 0);
+  keys[13] = qsstr_inject(heap1, "november", 0);
+  keys[14] = qsstr_inject(heap1, "october", 0);
+  keys[15] = qsstr_inject(heap1, "papa", 0);
+  keys[16] = qsstr_inject(heap1, "quebec", 0);
+  keys[17] = qsstr_inject(heap1, "romeo", 0);
+  keys[18] = qsstr_inject(heap1, "sierra", 0);
+  keys[19] = qsstr_inject(heap1, "tango", 0);
+  keys[20] = qsstr_inject(heap1, "uniform", 0);
+  keys[21] = qsstr_inject(heap1, "victor", 0);
+  keys[22] = qsstr_inject(heap1, "whiskey", 0);
+  keys[23] = qsstr_inject(heap1, "xray", 0);
+
+  qsptr_t apairs[32];
+  int i;
+  for (i = 0; i < 24; i++)
+    {
+      apairs[i] = qspair_make(heap1, keys[i], QSINT(i+1));
+    }
+
+  qsptr_t treeroot = QSNIL;
+  for (i = 0; i < 24; i++)
+    {
+      treeroot = qsrbtree_insert(heap1, treeroot, apairs[i]);
+    }
+
+  // "alpha" and "bravo" should resolve.
+  qsptr_t q0 = qsrbtree_assoc(heap1, treeroot, keys[0]);
+  ck_assert_int_ne(QSNIL, q0);
+  qsptr_t q1 = qsrbtree_assoc(heap1, treeroot, keys[1]);
+  ck_assert_int_ne(QSNIL, q1);
+  qsptr_t q20 = qsrbtree_assoc(heap1, treeroot, keys[20]);
+  ck_assert_int_ne(QSNIL, q20);
+}
+END_TEST
 
 TESTCASE(rbtree1,
   TFUNC(test_rotleft1)
   TFUNC(test_rotright2)
   TFUNC(test_assoc1)
-  //TFUNC(test_build1)
   TFUNC(test_split1)
+  TFUNC(test_build1)
+  TFUNC(test_mass1)
   )
 
 TESTSUITE(suite1,

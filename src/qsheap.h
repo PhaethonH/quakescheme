@@ -163,4 +163,7 @@ int qsfreelist_crepr (qsheap_t *, qsheapaddr_t cell_addr, char * buf, int buflen
 
 
 
+struct qsheapcell_report_s;
+struct qsheapcell_report_s qsobj_report (qsheap_t *, qsheapaddr_t obj_addr);
+
 #endif // _QSHEAP_H_

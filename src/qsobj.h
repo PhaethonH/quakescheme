@@ -124,16 +124,53 @@ int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
 qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest);
 qsptr_t qstree_assoc (qsmem_t * mem, qsptr_t t, qsptr_t key);
 
-qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t topnode);
-qsptr_t qsrbtree_split_left (qsmem_t * mem, qsptr_t treeroot);
-qsptr_t qsrbtree_split_right (qsmem_t * mem, qsptr_t treeroot);
-qsptr_t qsrbtree_mend (qsmem_t * mem, qsptr_t treeroot);
 
-qsptr_t qsrbtree_rotate_left (qsmem_t * mem, qsptr_t pivot);
-qsptr_t qsrbtree_rotate_right (qsmem_t * mem, qsptr_t pivot);
-qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t subtree);
-qsptr_t qsrbtree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest);
-qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t t, qsptr_t key);
+/* Manage linked collection of tree nodes as a Red-Black tree. */
+typedef struct qsrbtree_s {
+    qsptr_t mgmt;   /* ptr, allocscale=1 */
+    qsptr_t variant;
+    qsptr_t top;    /* Top-most node of tree (i.e. root node). */
+    qsptr_t cmp;    /* Comparator function.  Default (nil) => string-cmp */
+
+    qsptr_t reserved4;	/* (set to nil) */
+    qsptr_t mutex;	/* Lock for modifying. */
+    qsptr_t up;		/* Parent node of a split point. */
+    qsptr_t down;	/* Top of subtree that has been split. */
+} qsrbtree_t;
+
+/* Perform rotation on arbitrary node (presumably in a red-black tree) */
+qsptr_t qsrbnode_rotate_left (qsmem_t * mem, qsptr_t pivot);
+qsptr_t qsrbnode_rotate_right (qsmem_t * mem, qsptr_t pivot);
+
+//qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node);
+qsrbtree_t * qsrbtree (qsmem_t * mem, qsptr_t t);
+qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp);
+
+qsptr_t qsrbtree_ref_top (qsmem_t * mem, qsptr_t rbtree);
+qsptr_t qsrbtree_ref_cmp (qsmem_t * mem, qsptr_t rbtree);
+qsptr_t qsrbtree_ref_up (qsmem_t * mem, qsptr_t rbtree);
+qsptr_t qsrbtree_ref_down (qsmem_t * mem, qsptr_t rbtree);
+qsptr_t qsrbtree_setq_top (qsmem_t * mem, qsptr_t rbtree, qsptr_t val);
+qsptr_t qsrbtree_setq_cmp (qsmem_t * mem, qsptr_t rbtree, qsptr_t val);
+qsptr_t qsrbtree_setq_up (qsmem_t * mem, qsptr_t rbtree, qsptr_t val);
+qsptr_t qsrbtree_setq_down (qsmem_t * mem, qsptr_t rbtree, qsptr_t val);
+
+qsptr_t qsrbtree_ref_uncle (qsmem_t * mem, qsptr_t rbtree);
+qsptr_t qsrbtree_ref_grandparent (qsmem_t * mem, qsptr_t rbtree);
+
+// (mutably) traverse tree, splitting with reversal pointers.
+qsptr_t qsrbtree_split_left (qsmem_t * mem, qsptr_t rbtree);
+qsptr_t qsrbtree_split_right (qsmem_t * mem, qsptr_t rbtree);
+// go up one level, splicing back together a split tree (undo split).
+qsptr_t qsrbtree_mend (qsmem_t * mem, qsptr_t rbtree);
+
+/* Insert data node (association pair) into red-black tree. */
+qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair);
+/* Find tree node in red-black tree; and/or best match (via comparison) where
+   tree node can be attached as a child. */
+qsptr_t qsrbtree_find (qsmem_t * mem, qsptr_t rbtree, qsptr_t key, qsptr_t * nearest_match);
+/* Find data node (assocation pair) based on key in red-black tree. */
+qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t rbtree, qsptr_t key);
 
 
 /* Pair - linked list as degenerate case of tree with no left child */

@@ -6,6 +6,33 @@
 
 
 
+#include <stdbool.h>
+
+struct qsheapcell_report_s {
+    qsheapaddr_t addr;
+    bool used;
+    bool marked;
+    bool octetate;
+    int allocscale;
+    long allocsize;
+};
+
+struct qsheapcell_report_s qsobj_report (qsheap_t * heap, qsptr_t ptr)
+{
+  struct qsheapcell_report_s report;
+  qsheapaddr_t addr = COBJ26(ptr);
+  report.addr = addr;
+  qsheapcell_t * heapcell = qsheap_ref(heap, addr);
+  report.used = qsheapcell_is_used(heapcell);
+  report.marked = qsheapcell_is_marked(heapcell);
+  report.octetate = qsheapcell_is_octet(heapcell);
+  report.allocscale = qsheapcell_get_allocscale(heapcell);
+  report.allocsize = 1 << report.allocscale;
+  return report;
+}
+
+
+
 qsheapcell_t * qsheapcell_init (qsheapcell_t * cell, int used, int marked, int allocscale)
 {
   cell->mgmt = TAG_SYNC29;

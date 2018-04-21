@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include <math.h>
 #include <wchar.h>
 #include <stdlib.h>
@@ -417,6 +419,7 @@ int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen)
 }
 
 
+#if 0
 /* imbuing qstree with Red-Black Tree behavior. */
 /*
 The root node is subject to functional-language immutability.
@@ -488,51 +491,9 @@ qsptr_t qsrbtree_splits_setq_path (qsmem_t * mem, qsptr_t splits, qsptr_t val)
 {
   return qstree_setq_right(mem, splits, val);
 }
+#endif //0
 
-
-/* Separate red-black balancer state information. */
-struct qsrbbal_s {
-    qsptr_t mgmt;
-    qsptr_t topnode;	  // top of tree (rotations may change top-ness).
-    qsptr_t split_up;	  // reference to parent of severed subtree.
-    qsptr_t split_down;	  // top of severed subtree == traversal curr pointer.
-};
-
-
-
-
-qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t tree)
-{
-  qsptr_t splits = qstree_make(mem, QSNIL, QSNIL, QSINT(0));
-  qsptr_t root = qstree_make(mem, splits, tree, QSNIL);
-  return root;
-}
-
-int qsrbtree_red_p (qsmem_t * mem, qsptr_t tree)
-{
-  return (1 == qsobj_ref_score(mem, tree));
-}
-
-int qsrbtree_black_p (qsmem_t * mem, qsptr_t tree)
-{
-  return !qsrbtree_red_p(mem, tree);
-}
-
-qsptr_t qsrbtree_paint (qsmem_t * mem, qsptr_t tree, int val)
-{
-  return qsobj_setq_score(mem, tree, val ? 1 : 0);
-}
-
-qsptr_t qsrbtree_paint_red (qsmem_t * mem, qsptr_t tree)
-{
-  return qsrbtree_paint(mem, tree, 1);
-}
-
-qsptr_t qsrbtree_paint_black (qsmem_t * mem, qsptr_t tree)
-{
-  return qsrbtree_paint(mem, tree, 0);
-}
-
+#if 0
 qsptr_t qsrbtree_ref_splits (qsmem_t * mem, qsptr_t root)
 {
   return qstree_ref_left(mem, root);
@@ -563,10 +524,13 @@ qsptr_t qsrbtree_setq_splits_dangle (qsmem_t * mem, qsptr_t root, qsptr_t val)
   splits = qsrbtree_splits_setq_dangle(mem, splits, val);
   return root;
 }
+#endif //0
+
+
 
 
 /* Rotate the (sub)tree left, returns new root. */
-qsptr_t qsrbtree_rotate_left (qsmem_t * mem, qsptr_t pivot)
+qsptr_t qsrbnode_rotate_left (qsmem_t * mem, qsptr_t pivot)
 {
   if (ISNIL(pivot)) return pivot;  // no tree.
   qsptr_t rchild = qstree_ref_right(mem, pivot);
@@ -578,7 +542,7 @@ qsptr_t qsrbtree_rotate_left (qsmem_t * mem, qsptr_t pivot)
 }
 
 /* Rotate the (sub)tree right, returns new root. */
-qsptr_t qsrbtree_rotate_right (qsmem_t * mem, qsptr_t pivot)
+qsptr_t qsrbnode_rotate_right (qsmem_t * mem, qsptr_t pivot)
 {
   if (ISNIL(pivot)) return pivot;  // no tree.
   qsptr_t lchild = qstree_ref_left(mem, pivot);
@@ -588,6 +552,131 @@ qsptr_t qsrbtree_rotate_right (qsmem_t * mem, qsptr_t pivot)
   qstree_setq_left(mem, pivot, temp);
   return lchild;
 }
+
+int qsrbnode_red_p (qsmem_t * mem, qsptr_t node)
+{
+  if (ISNIL(node)) return 0;
+  return (1 == qsobj_ref_score(mem, node));
+}
+
+int qsrbnode_black_p (qsmem_t * mem, qsptr_t node)
+{
+  if (ISNIL(node)) return 1;
+  return !qsrbnode_red_p(mem, node);
+}
+
+qsptr_t qsrbnode_paint (qsmem_t * mem, qsptr_t node, int val)
+{
+  return qsobj_setq_score(mem, node, val ? 1 : 0);
+}
+
+qsptr_t qsrbnode_paint_red (qsmem_t * mem, qsptr_t node)
+{
+  return qsrbnode_paint(mem, node, 1);
+}
+
+qsptr_t qsrbnode_paint_black (qsmem_t * mem, qsptr_t node)
+{
+  return qsrbnode_paint(mem, node, 0);
+}
+
+
+
+
+qsrbtree_t * qsrbtree (qsmem_t * mem, qsptr_t t)
+{
+  qsobj_t * obj = qsobj_multicellular(mem, t, NULL);
+  if (!obj) return NULL;
+  if (qsobj_ref_allocsize(mem, t) != 2) return NULL;
+  qsrbtree_t * tree = (qsrbtree_t*)obj;
+  if (tree->variant != QSRBTREE) return NULL;
+  return tree;
+}
+
+#if 0
+qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t tree)
+{
+  qsptr_t splits = qstree_make(mem, QSNIL, QSNIL, QSINT(0));
+  qsptr_t root = qstree_make(mem, splits, tree, QSNIL);
+  return root;
+}
+#else
+qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp)
+{
+  qsptr_t retval = QSNIL;
+  qsmemaddr_t addr = 0;
+  if (!ISOBJ26((retval = qsobj_make(mem, 2, 0, &addr)))) return retval;
+
+  qsrbtree_t * rbtree = (qsrbtree_t*)qsobj(mem, retval, NULL);
+  rbtree->variant = QSRBTREE;
+  rbtree->top = top_node;
+  rbtree->cmp = cmp;
+  rbtree->mutex = QSINT(0);
+  return retval;
+}
+#endif //0
+
+
+qsptr_t qsrbtree_ref_top (qsmem_t * mem, qsptr_t root)
+{
+  qsrbtree_t * rbtree = qsrbtree(mem, root);
+  if (!rbtree) return QSNIL;
+  return rbtree->top;
+}
+
+qsptr_t qsrbtree_ref_cmp (qsmem_t * mem, qsptr_t root)
+{
+  qsrbtree_t * rbtree = qsrbtree(mem, root);
+  if (!rbtree) return QSNIL;
+  return rbtree->cmp;
+}
+
+qsptr_t qsrbtree_ref_up (qsmem_t * mem, qsptr_t root)
+{
+  qsrbtree_t * rbtree = qsrbtree(mem, root);
+  if (!rbtree) return QSNIL;
+  return rbtree->up;
+}
+
+qsptr_t qsrbtree_ref_down (qsmem_t * mem, qsptr_t root)
+{
+  qsrbtree_t * rbtree = qsrbtree(mem, root);
+  if (!rbtree) return QSNIL;
+  return rbtree->down;
+}
+
+qsptr_t qsrbtree_setq_top (qsmem_t * mem, qsptr_t root, qsptr_t val)
+{
+  qsrbtree_t * rbtree = qsrbtree(mem, root);
+  if (!rbtree) return QSNIL;
+  rbtree->top = val;
+  return root;
+}
+
+qsptr_t qsrbtree_setq_cmp (qsmem_t * mem, qsptr_t root, qsptr_t val)
+{
+  qsrbtree_t * rbtree = qsrbtree(mem, root);
+  if (!rbtree) return QSNIL;
+  rbtree->cmp = val;
+  return root;
+}
+
+qsptr_t qsrbtree_setq_up (qsmem_t * mem, qsptr_t root, qsptr_t val)
+{
+  qsrbtree_t * rbtree = qsrbtree(mem, root);
+  if (!rbtree) return QSNIL;
+  rbtree->up = val;
+  return root;
+}
+
+qsptr_t qsrbtree_setq_down (qsmem_t * mem, qsptr_t root, qsptr_t val)
+{
+  qsrbtree_t * rbtree = qsrbtree(mem, root);
+  if (!rbtree) return QSNIL;
+  rbtree->down = val;
+  return root;
+}
+
 
 /* Lock tree for update, indicates tree may be in inconsistent state. */
 qsptr_t qsrbtree_lock (qsmem_t * mem, qsptr_t root)
@@ -609,13 +698,13 @@ qsptr_t qsrbtree_split (qsmem_t * mem, int leftward, qsptr_t rootptr)
 {
   qsptr_t next = QSNIL;
   qsptr_t parent = QSNIL;
-  qstree_t * tree = qstree(mem, rootptr);
-  if (!tree) abort();
-  qsptr_t currptr = qsrbtree_ref_splits_dangle(mem, rootptr);
+  qsrbtree_t * rbtree = qsrbtree(mem, rootptr);
+  assert(rbtree);
+  qsptr_t currptr = qsrbtree_ref_down(mem, rootptr);
   if (leftward)
     {
       next = qstree_ref_left(mem, currptr);
-      qsptr_t parent = qsrbtree_ref_splits_parent(mem, rootptr);
+      qsptr_t parent = qsrbtree_ref_up(mem, rootptr);
       /* indicate ->left is actually parent. */
       currptr = qstree_setq_left(mem, currptr, parent);
       currptr = qsobj_setq_parent(mem, currptr, 1); 
@@ -623,14 +712,14 @@ qsptr_t qsrbtree_split (qsmem_t * mem, int leftward, qsptr_t rootptr)
   else
     {
       next = qstree_ref_right(mem, currptr);
-      qsptr_t parent = qsrbtree_ref_splits_parent(mem, rootptr);
+      qsptr_t parent = qsrbtree_ref_up(mem, rootptr);
       /* indicate ->right is actually parent. */
-      currptr = qstree_setq_left(mem, currptr, parent);
+      currptr = qstree_setq_right(mem, currptr, parent);
       currptr = qsobj_setq_parent(mem, currptr, 2); 
     }
-  qsrbtree_setq_splits_parent(mem, rootptr, currptr); // parent of subtree.
-  qsrbtree_setq_splits_dangle(mem, rootptr, next); // subtree
-  return currptr;
+  qsrbtree_setq_up(mem, rootptr, currptr); // parent of subtree.
+  qsrbtree_setq_down(mem, rootptr, next); // subtree
+  return rootptr;
 }
 
 qsptr_t qsrbtree_split_left (qsmem_t * mem, qsptr_t rootptr)
@@ -650,12 +739,17 @@ qsptr_t qsrbtree_split_right (qsmem_t * mem, qsptr_t rootptr)
 qsptr_t qsrbtree_mend (qsmem_t * mem, qsptr_t rootptr)
 {
   qsptr_t up = QSNIL;
-  if (!rootptr) abort();
+  assert(rootptr);
 
-  qsptr_t parent = qsrbtree_ref_splits_parent(mem, rootptr);
-  if (ISNIL(parent)) return QSNIL;
-  qsptr_t currptr = qsrbtree_ref_splits_dangle(mem, rootptr);
-  if ISNIL(currptr) return QSNIL;
+  qsptr_t parent = qsrbtree_ref_up(mem, rootptr);
+  if (ISNIL(parent))
+    {
+      /* Done. */
+      rootptr = qsrbtree_setq_down(mem, rootptr, QSNIL);
+      return rootptr;
+    }
+  qsptr_t currptr = qsrbtree_ref_down(mem, rootptr);
+//  if ISNIL(currptr) return rootptr;
 
   int ancestry = qsobj_ref_parent(mem, parent);
   if (ancestry == 1)
@@ -678,67 +772,63 @@ qsptr_t qsrbtree_mend (qsmem_t * mem, qsptr_t rootptr)
   currptr = qsobj_setq_parent(mem, parent, 0);  // clear reversal.
 
   // move up.
-  rootptr = qsrbtree_setq_splits_parent(mem, rootptr, up);
-  rootptr = qsrbtree_setq_splits_dangle(mem, rootptr, currptr);
+  rootptr = qsrbtree_setq_up(mem, rootptr, up);
+  rootptr = qsrbtree_setq_down(mem, rootptr, currptr);
 
-  return parent;
+  return rootptr;
 }
 
-qsptr_t qsrbtree_splits_get_sibling (qsmem_t * mem, qsptr_t splits)
+qsptr_t qsrbtree_ref_uncle (qsmem_t * mem, qsptr_t rootptr)
 {
-  qsptr_t currptr = qsrbtree_splits_ref_dangle(mem, splits);
-  qsptr_t parent = qsrbtree_splits_ref_parent(mem, splits);
-  if (ISNIL(currptr)) return QSNIL;
+  qsptr_t parent = qsrbtree_ref_up(mem, rootptr);
   if (ISNIL(parent)) return QSNIL;
-  int ancestry = qsobj_ref_score(mem, parent);
+  int ancestry = qsobj_ref_parent(mem, parent);
+  qsptr_t grandparent = QSNIL;
   if (ancestry == 1)
     {
       // (grand)parent is stored in "left".
-      return qstree_ref_right(mem, parent);
+      grandparent = qstree_ref_left(mem, parent);
     }
   else if (ancestry == 2)
     {
       // (grand)parent is stored in "right".
-      return qstree_ref_left(mem, parent);
+      grandparent = qstree_ref_right(mem, parent);
     }
   else
     {
       // inconsistent state.
       abort();
     }
-}
 
-qsptr_t qsrbtree_ref_splits_sibling (qsmem_t * mem, qsptr_t rootptr)
-{
-  qsptr_t currptr = qsrbtree_ref_splits_dangle(mem, rootptr);
-  qsptr_t parent = qsrbtree_ref_splits_parent(mem, rootptr);
-  if (ISNIL(currptr)) return QSNIL;
-  if (ISNIL(parent)) return QSNIL;
-  int ancestry = qsobj_ref_score(mem, parent);
+  if (ISNIL(grandparent)) return QSNIL;
+
+  ancestry = qsobj_ref_parent(mem, grandparent);
   if (ancestry == 1)
     {
-      // (grand)parent is stored in "left".
-      return qstree_ref_right(mem, parent);
+      // greatgrandparent in "left", sibling is right.
+      return qstree_ref_right(mem, grandparent);
     }
   else if (ancestry == 2)
     {
-      // (grand)parent is stored in "right".
-      return qstree_ref_left(mem, parent);
+      // greatgrandparent in "right", sibling is left.
+      return qstree_ref_left(mem, grandparent);
     }
   else
     {
       // inconsistent state.
       abort();
     }
+
+  return QSNIL;
 }
 
-qsptr_t qsrbtree_splits_get_grandparent (qsmem_t * mem, qsptr_t splits)
+qsptr_t qsrbtree_ref_grandparent (qsmem_t * mem, qsptr_t rootptr)
 {
-  qsptr_t currptr = qsrbtree_splits_ref_dangle(mem, splits);
-  qsptr_t parent = qsrbtree_splits_ref_parent(mem, splits);
+  qsptr_t currptr = qsrbtree_ref_down(mem, rootptr);
+  qsptr_t parent = qsrbtree_ref_up(mem, rootptr);
   if (ISNIL(currptr)) return QSNIL;
   if (ISNIL(parent)) return QSNIL;
-  int ancestry = qsobj_ref_score(mem, parent);
+  int ancestry = qsobj_ref_parent(mem, parent);
   if (ancestry == 1)
     {
       // (grand)parent is stored in "left".
@@ -754,30 +844,7 @@ qsptr_t qsrbtree_splits_get_grandparent (qsmem_t * mem, qsptr_t splits)
       // inconsistent state.
       abort();
     }
-}
-
-qsptr_t qsrbtree_ref_splits_grandparent (qsmem_t * mem, qsptr_t rootptr)
-{
-  qsptr_t currptr = qsrbtree_ref_splits_dangle(mem, rootptr);
-  qsptr_t parent = qsrbtree_ref_splits_parent(mem, rootptr);
-  if (ISNIL(currptr)) return QSNIL;
-  if (ISNIL(parent)) return QSNIL;
-  int ancestry = qsobj_ref_score(mem, parent);
-  if (ancestry == 1)
-    {
-      // (grand)parent is stored in "left".
-      return qstree_ref_left(mem, parent);
-    }
-  else if (ancestry == 2)
-    {
-      // (grand)parent is stored in "right".
-      return qstree_ref_right(mem, parent);
-    }
-  else
-    {
-      // inconsistent state.
-      abort();
-    }
+  return QSNIL;
 }
 
 
@@ -786,113 +853,110 @@ qsptr_t qsrbtree_ref_splits_grandparent (qsmem_t * mem, qsptr_t rootptr)
  */
 qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
 {
-  if (ISNIL(root))
-    {
-      /* case 1: new tree, subtree is root. */
-      qsptr_t N = qstree_make(mem, QSNIL, apair, QSNIL);
-      N = qsrbtree_paint_black(mem, N);
-      root = qsrbtree_make(mem, N);
-      return root;
-    }
-  if (ISNIL(qstree_ref_data(mem, root)))
-    {
-      /* also case 1: rbtree has empty root, subtree is root. */
-      qsptr_t N = qstree_make(mem, QSNIL, apair, QSNIL);
-      N = qsrbtree_paint_black(mem, N);
-      root = qstree_setq_data(mem, root, N);
-      return root;
-    }
-
+  /* the "New" tree node; starts off black. */
   qsptr_t N = qstree_make(mem, QSNIL, apair, QSNIL);
 
+  if (ISNIL(root))
+    {
+      /* create tree. */
+      root = qsrbtree_make(mem, N, QSNIL);
+      return root;
+    }
+  if (ISNIL(qsrbtree_ref_top(mem, root)))
+    {
+      /* empty tree. */
+      root = qsrbtree_setq_top(mem, N, QSNIL);
+      return root;
+    }
+
   qsrbtree_lock(mem, root);
-  /* traverse until bottom of tree. */
+  root = qsrbtree_setq_up(mem, root, QSNIL);
+  root = qsrbtree_setq_down(mem, root, qsrbtree_ref_top(mem, root));
 
   qsptr_t d = QSNIL;
-  qsptr_t currptr = qstree_ref_data(mem, root);
-  qsptr_t currkey = QSNIL;
-  int libra = 0;  /* "balance"; comparison result: -1, 0, +1 */
-  qsword lim = 258;  // avoid infinite loop; maximum depth should be about 31.
+  qsptr_t newkey = qspair_ref_a(mem, apair);
+  int libra = 0;
+  qsword lim = 258;  // avoid infinite loop; max used depth should be about 31.
 
-  qsptr_t key = qspair_ref_a(mem, qstree_ref_data(mem, N));
-
-  /* drill down to bottom-most non-leaf node. */
-  while (!ISNIL(currptr) && (--lim > 0))
+  /* traverse to bottom of tree. */
+  while (!ISNIL(qsrbtree_ref_down(mem, root)) && (--lim > 0))
     {
-      d = qstree_ref_data(mem, currptr);
-//      if (ISNIL(d))
-//	goto unwind;
+      qsptr_t currnode = qsrbtree_ref_down(mem, root);
+      d = qstree_ref_data(mem, currnode);
       if (qspair(mem, d))
 	{
-	  currkey = qspair_ref_a(mem, d);
-	  libra = qsstr_cmp(mem, key, currkey);
+	  qsptr_t currkey = qspair_ref_a(mem, d);
+	  libra = qsstr_cmp(mem, newkey, currkey);
 	}
       else
 	{
-	  libra = 1;  // uncomparable; choose right.
+	  /* No compare; bias to right (as would a list). */
+	  libra = 1;
 	}
       if (libra == 0)
-	break;  //match.
+	break; /* match. */
       else if (libra < 0)
 	{
-	  // to left.
-	  currptr = qsrbtree_split_left(mem, root);
+	  /* go left. */
+	  root = qsrbtree_split_left(mem, root);
+	  assert(!ISNIL(root));
 	}
       else if (libra > 0)
 	{
-	  // to right.
-	  currptr = qsrbtree_split_right(mem, root);
+	  /* go right. */
+	  root = qsrbtree_split_right(mem, root);
+	  assert(!ISNIL(root));
 	}
     }
 
+  /* insertion. */
+  /* mend() naturally stitches new node into correct place. */
+  root = qsrbtree_setq_down(mem, root, N);
 
-  int case3recursion = 0;
+  /* rebalancing. */
+  int case3recursion = 0;  /* Case 3 requires recursion of rebalancing. */
 
   do
     {
-      /* at this point, currptr is null; overwrite with new node. */
-      currptr = N;
-      qsptr_t parent = qsrbtree_ref_splits_parent(mem, root);
-      if (! qsrbtree_red_p(mem, parent))
+      qsptr_t P = qsrbtree_ref_up(mem, root);
+      if (!qsrbnode_red_p(mem, P))
 	{
-	  // case 2: parent is black, N is red.
-	  qsrbtree_paint_red(mem, currptr);
-	  goto unwind;  // undo reversal.
+	  /* case 2: parent is black, N (should be) red. */
+	  qsrbnode_paint_red(mem, N);
+	  goto unwind;
 	}
-
-      // parent is red.
-
-      qsptr_t P = parent;
-//      qsptr_t U = qsrbtree_splits_get_sibling(mem, splits);
-//      qsptr_t G = qsrbtree_splits_get_grandparent(mem, splits);
-      qsptr_t U = qsrbtree_ref_splits_sibling(mem, root);
-      qsptr_t G = qsrbtree_ref_splits_grandparent(mem, root);
-      if (qsrbtree_red_p(mem, U))
+      /* Parent is red. */
+      N = qsrbnode_paint_red(mem, N);
+      qsptr_t U = qsrbtree_ref_uncle(mem, root);
+      qsptr_t G = qsrbtree_ref_grandparent(mem, root);
+      if (qsrbnode_red_p(mem, U))
 	{
 	  /* case 3: red P, red U
 	     => blacken P, blacken U, redden G, recurse on G.
 	     */
-	  qsrbtree_paint_black(mem, P);
-	  qsrbtree_paint_black(mem, U);
-	  qsrbtree_paint_red(mem, G);
-	  qsrbtree_paint_red(mem, N);
+	  P = qsrbnode_paint_black(mem, P);
+	  U = qsrbnode_paint_black(mem, U);
+	  G = qsrbnode_paint_red(mem, G);
 
 	  /* recurse on G. */
-	  currptr = qsrbtree_mend(mem, root);
-	  currptr = qsrbtree_mend(mem, root);
-	  N = G;
+	  root = qsrbtree_mend(mem, root);  /* curr = P */
+	  assert(!ISNIL(root));
+	  root = qsrbtree_mend(mem, root);  /* curr = G */
+	  assert(!ISNIL(root));
 
-	  parent = qsrbtree_ref_splits_parent(mem, root);
-	  if (ISNIL(parent) || ISNIL(currptr))
+	  P = qsrbtree_ref_up(mem, root);
+	  if (ISNIL(P) || (N == qsrbtree_ref_top(mem, root)))
 	    {
-	      // ended up at root.
-	      qsptr_t rootdata = qstree_ref_data(mem, root);
-	      qsrbtree_paint_black(mem, rootdata);
+	      /* ended up at root: make it black, done. */
+	      qsptr_t rootnode = qsrbtree_ref_top(mem, root);
+	      rootnode = qsrbnode_paint_black(mem, rootnode);
+	      root = qsrbtree_setq_top(mem, root, rootnode);
 	      goto unwind;
 	    }
 
 	  case3recursion = 1;
-	  continue;  /* recursion point. */
+	  N = G;
+	  continue;  /* repeat loop: recurse on G (N' = G). */
 	}
 
       /* case 4 or 5: red P, U black.
@@ -903,9 +967,17 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
       /* Path Parent-to-Node; left=-1, right=1 */
       int pn = qsobj_ref_parent(mem, P) == 1 ? -1 : 1;
 
-      /* Move up two to rotate on G. */
-      currptr = qsrbtree_mend(mem, root);
-      currptr = qsrbtree_mend(mem, root);
+      /* Move up to grandparent to track rotates on G. */
+      root = qsrbtree_mend(mem, root);
+      assert(!ISNIL(root));
+      root = qsrbtree_mend(mem, root);
+      assert(!ISNIL(root));
+//      qsptr_t GG = qsrbtree_ref_up(mem, root);  /* G is detached subtree */
+
+      assert(qsobj_ref_parent(mem, P) == 0);
+      assert(qsobj_ref_parent(mem, U) == 0);
+      assert(qsobj_ref_parent(mem, G) == 0);
+      assert(qsobj_ref_parent(mem, N) == 0);
 
       if (gp != pn)
 	{
@@ -914,55 +986,68 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
 	     */
 	  if (pn == -1)
 	    {
-	      P = qsrbtree_rotate_right(mem, P);
-	      qstree_setq_right(mem, G, P);
+	      /* G.right, P.left  becomes  G.right, P.right (case 5) */
+	      P = qsrbnode_rotate_right(mem, P);
+	      G = qstree_setq_right(mem, G, P);
 	      pn = 1;
 	    }
 	  else
 	    {
-	      P = qsrbtree_rotate_left(mem, P);
-	      qstree_setq_left(mem, G, P);
+	      /* G.left, P.right  becomes  G.left, P.left (case 5) */
+	      P = qsrbnode_rotate_left(mem, P);
+	      G = qstree_setq_left(mem, G, P);
 	      pn = -1;
 	    }
 	}
 
       if (gp == pn)
 	{
+	  /* case 5: G.left,P.left || G.right,P.right */
+	  qsptr_t S = QSNIL;  /* sibling to N after rotation. */
 	  if (pn == -1)
 	    {
-	      G = qsrbtree_rotate_right(mem, G);
+	      G = qsrbnode_rotate_right(mem, G);
+	      S = qstree_ref_right(mem, G);
 	    }
 	  else
 	    {
-	      G = qsrbtree_rotate_left(mem, G);
+	      G = qsrbnode_rotate_left(mem, G);
+	      S = qstree_ref_left(mem, G);
 	    }
-	  /* paint P black, paint G red. */
-	  qsrbtree_paint_black(mem, P);
-	  qsrbtree_paint_red(mem, G);
+	  /* paint S red, paint G' black, N is red. */
+	  S = qsrbnode_paint_red(mem, S);
+	  G = qsrbnode_paint_black(mem, G);
 	  /* rearrange splits. */
-	  root = qsrbtree_setq_splits_dangle(mem, root, G);
+	  root = qsrbtree_setq_down(mem, root, G);
 
 	  goto unwind;
 	}
       else
 	{
-	  // inconsistent state.
+	  /* inconsistent state. */
 	  abort();
 	}
+
     }
   while (case3recursion);
 
-
 unwind:
-  // TODO: recursive mend
-//  if (!ISNIL(currptr))
-//    while (qsrbtree_mend(mem, &currptr, &parent) == QSEROR_OK);
-  while (!ISNIL(currptr))
+  /* recursive mend */
+  while (!ISNIL(qsrbtree_ref_up(mem, root)))
     {
-      currptr = qsrbtree_mend(mem, root);
+      root = qsrbtree_mend(mem, root);
+      assert(!ISNIL(root));
     }
 
+  qsptr_t final_mend = qsrbtree_ref_down(mem, root);
+  if (final_mend != qsrbtree_ref_top(mem, root))
+    {
+      root = qsrbtree_setq_top(mem, root, final_mend);
+    }
+  assert(ISNIL(qsrbtree_ref_up(mem, root)));
+  root = qsrbtree_setq_down(mem, root, QSNIL);
   qsrbtree_unlock(mem, root);
+
   return root;
 }
 
@@ -1015,8 +1100,8 @@ qsptr_t qstree_assoc (qsmem_t * mem, qsptr_t t, qsptr_t key)
 
 qsptr_t qsrbtree_find (qsmem_t * mem, qsptr_t root, qsptr_t key, qsptr_t * nearest)
 {
-  qsptr_t tree = qstree_ref_data(mem, root);
-  return qstree_find(mem, tree, key, nearest);
+  qsptr_t raw_tree = qsrbtree_ref_top(mem, root);
+  return qstree_find(mem, raw_tree, key, nearest);
 }
 
 qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t root, qsptr_t key)

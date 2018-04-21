@@ -140,6 +140,7 @@ typedef union qsbits_u qsbits_t;
 #define QSBOL QSCONST(3)  // beginning-of-list, nested immlist.
 #define QSEOL QSCONST(4)  // end-of-list, for immlist.
 #define QSBLACKHOLE QSCONST(8)  // 'unassigned' value.
+#define QSRBTREE QSCONST(100)
 // 0x40..0x4f reserved for numeric types.
 /* Numeric tower type enumeration. */
 #define QSNUMTYPE_NAN		QSCONST(0x40)
