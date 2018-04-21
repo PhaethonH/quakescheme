@@ -419,115 +419,9 @@ int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen)
 }
 
 
-#if 0
-/* imbuing qstree with Red-Black Tree behavior. */
-/*
-The root node is subject to functional-language immutability.
-
-Child nodes are mutable in place, being intrinsic members of the root.
 
 
-struct qsrbtree_root_s {
-  qsptr_t mgmt;
-  qsptr_t splits;
-  qsptr_t top;     // (data)
-  qsptr_t mutex;   // (right)
-};
-
-struct qsrbtree_splits_s {
-  qsptr_t mgmt;
-  qsptr_t split_parent;
-  qsptr_t split_dangle;
-  qsptr_t splits_path;
-};
-
-
-Tree is split when balancing is required.
-Splitting involves:
-* maintaining a reference to root of the detached subtree (->split_dangle)
-* maintain a weakref to parent of the just-detached subtree (->split_parent).
-* replacing a child node with path to parent.
-* updating mgmt->parent marker to indicate which field holds path to parent.
-* the last two turns take, helps find uncle node (->splits_path).
-
-
-struct qsrbtree_child_s {
-  qsptr_t mgmt;
-  qsptr_t left;
-  qsptr_t data;  // typically association-list pair.
-  qsptr_t right;
-};
-*/
-
-struct qsrbtree_splits_s {
-    qsptr_t mgmt;
-    qsptr_t split_parent;
-    qsptr_t split_dangle;
-    qsptr_t splits_path;
-};
-
-qsptr_t qsrbtree_splits_ref_parent (qsmem_t * mem, qsptr_t splits)
-{
-  return qstree_ref_left(mem, splits);
-}
-qsptr_t qsrbtree_splits_ref_dangle (qsmem_t * mem, qsptr_t splits)
-{
-  return qstree_ref_data(mem, splits);
-}
-qsptr_t qsrbtree_splits_ref_path (qsmem_t * mem, qsptr_t splits)
-{
-  return qstree_ref_right(mem, splits);
-}
-
-qsptr_t qsrbtree_splits_setq_parent (qsmem_t * mem, qsptr_t splits, qsptr_t val)
-{
-  return qstree_setq_left(mem, splits, val);
-}
-qsptr_t qsrbtree_splits_setq_dangle (qsmem_t * mem, qsptr_t splits, qsptr_t val)
-{
-  return qstree_setq_data(mem, splits, val);
-}
-qsptr_t qsrbtree_splits_setq_path (qsmem_t * mem, qsptr_t splits, qsptr_t val)
-{
-  return qstree_setq_right(mem, splits, val);
-}
-#endif //0
-
-#if 0
-qsptr_t qsrbtree_ref_splits (qsmem_t * mem, qsptr_t root)
-{
-  return qstree_ref_left(mem, root);
-}
-qsptr_t qsrbtree_ref_splits_parent (qsmem_t * mem, qsptr_t root)
-{
-  qsptr_t splits = qsrbtree_ref_splits(mem, root);
-  if (ISNIL(splits)) abort();
-  return qsrbtree_splits_ref_parent(mem, splits);
-}
-qsptr_t qsrbtree_ref_splits_dangle (qsmem_t * mem, qsptr_t root)
-{
-  qsptr_t splits = qsrbtree_ref_splits(mem, root);
-  if (ISNIL(splits)) abort();
-  return qsrbtree_splits_ref_dangle(mem, splits);
-}
-qsptr_t qsrbtree_setq_splits_parent (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsptr_t splits = qsrbtree_ref_splits(mem, root);
-  if (ISNIL(splits)) abort();
-  splits = qsrbtree_splits_setq_parent(mem, splits, val);
-  return root;
-}
-qsptr_t qsrbtree_setq_splits_dangle (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsptr_t splits = qsrbtree_ref_splits(mem, root);
-  if (ISNIL(splits)) abort();
-  splits = qsrbtree_splits_setq_dangle(mem, splits, val);
-  return root;
-}
-#endif //0
-
-
-
+/* Helper functions for R-B tree. */
 
 /* Rotate the (sub)tree left, returns new root. */
 qsptr_t qsrbnode_rotate_left (qsmem_t * mem, qsptr_t pivot)
@@ -593,14 +487,6 @@ qsrbtree_t * qsrbtree (qsmem_t * mem, qsptr_t t)
   return tree;
 }
 
-#if 0
-qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t tree)
-{
-  qsptr_t splits = qstree_make(mem, QSNIL, QSNIL, QSINT(0));
-  qsptr_t root = qstree_make(mem, splits, tree, QSNIL);
-  return root;
-}
-#else
 qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp)
 {
   qsptr_t retval = QSNIL;
@@ -614,8 +500,6 @@ qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp)
   rbtree->mutex = QSINT(0);
   return retval;
 }
-#endif //0
-
 
 qsptr_t qsrbtree_ref_top (qsmem_t * mem, qsptr_t root)
 {
@@ -749,29 +633,28 @@ qsptr_t qsrbtree_mend (qsmem_t * mem, qsptr_t rootptr)
       return rootptr;
     }
   qsptr_t currptr = qsrbtree_ref_down(mem, rootptr);
-//  if ISNIL(currptr) return rootptr;
 
   int ancestry = qsobj_ref_parent(mem, parent);
   if (ancestry == 1)
     {
-      // restore left.
+      /* restore left. */
       up = qstree_ref_left(mem, parent);
       currptr = qstree_setq_left(mem, parent, currptr);
     }
   else if (ancestry == 2)
     {
-      // return right.
+      /* restore right. */
       up = qstree_ref_right(mem, parent);
       currptr = qstree_setq_right(mem, parent, currptr);
     }
   else
     {
-      // inconsistent state.
+      /* inconsistent state. */
       abort();
     }
-  currptr = qsobj_setq_parent(mem, parent, 0);  // clear reversal.
+  currptr = qsobj_setq_parent(mem, parent, 0);  /* clear reversal. */
 
-  // move up.
+  /* move up. */
   rootptr = qsrbtree_setq_up(mem, rootptr, up);
   rootptr = qsrbtree_setq_down(mem, rootptr, currptr);
 
@@ -786,17 +669,17 @@ qsptr_t qsrbtree_ref_uncle (qsmem_t * mem, qsptr_t rootptr)
   qsptr_t grandparent = QSNIL;
   if (ancestry == 1)
     {
-      // (grand)parent is stored in "left".
+      /* (grand)parent is stored in "left". */
       grandparent = qstree_ref_left(mem, parent);
     }
   else if (ancestry == 2)
     {
-      // (grand)parent is stored in "right".
+      /* (grand)parent is stored in "right". */
       grandparent = qstree_ref_right(mem, parent);
     }
   else
     {
-      // inconsistent state.
+      /* inconsistent state. */
       abort();
     }
 
@@ -805,17 +688,17 @@ qsptr_t qsrbtree_ref_uncle (qsmem_t * mem, qsptr_t rootptr)
   ancestry = qsobj_ref_parent(mem, grandparent);
   if (ancestry == 1)
     {
-      // greatgrandparent in "left", sibling is right.
+      /* greatgrandparent in "left", sibling is right. */
       return qstree_ref_right(mem, grandparent);
     }
   else if (ancestry == 2)
     {
-      // greatgrandparent in "right", sibling is left.
+      /* greatgrandparent in "right", sibling is left. */
       return qstree_ref_left(mem, grandparent);
     }
   else
     {
-      // inconsistent state.
+      /* inconsistent state. */
       abort();
     }
 
@@ -831,17 +714,17 @@ qsptr_t qsrbtree_ref_grandparent (qsmem_t * mem, qsptr_t rootptr)
   int ancestry = qsobj_ref_parent(mem, parent);
   if (ancestry == 1)
     {
-      // (grand)parent is stored in "left".
+      /* (grand)parent is stored in "left". */
       return qstree_ref_left(mem, parent);
     }
   else if (ancestry == 2)
     {
-      // (grand)parent is stored in "right".
+      /* (grand)parent is stored in "right". */
       return qstree_ref_right(mem, parent);
     }
   else
     {
-      // inconsistent state.
+      /* inconsistent state. */
       abort();
     }
   return QSNIL;
@@ -849,7 +732,7 @@ qsptr_t qsrbtree_ref_grandparent (qsmem_t * mem, qsptr_t rootptr)
 
 
 /* Insert association pair, rebalancing as needed.
-   Merging whole trees not supported to simplify race conditions.
+   Merging whole trees not supported.
  */
 qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
 {
@@ -876,7 +759,7 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
   qsptr_t d = QSNIL;
   qsptr_t newkey = qspair_ref_a(mem, apair);
   int libra = 0;
-  qsword lim = 258;  // avoid infinite loop; max used depth should be about 31.
+  qsword lim = 258;  /* avoid infinite loop; max used depth around  31. */
 
   /* traverse to bottom of tree. */
   while (!ISNIL(qsrbtree_ref_down(mem, root)) && (--lim > 0))
@@ -972,7 +855,6 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
       assert(!ISNIL(root));
       root = qsrbtree_mend(mem, root);
       assert(!ISNIL(root));
-//      qsptr_t GG = qsrbtree_ref_up(mem, root);  /* G is detached subtree */
 
       assert(qsobj_ref_parent(mem, P) == 0);
       assert(qsobj_ref_parent(mem, U) == 0);
@@ -981,7 +863,7 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
 
       if (gp != pn)
 	{
-	  /* case 4: G.left,P.right || G.right,P.left
+	  /* case 4: G.left,P.right || G.right,P.left  (inner rotation)
 	     => Convert to case 5.
 	     */
 	  if (pn == -1)
@@ -1002,7 +884,7 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
 
       if (gp == pn)
 	{
-	  /* case 5: G.left,P.left || G.right,P.right */
+	  /* case 5: G.left,P.left || G.right,P.right  (outer rotation) */
 	  qsptr_t S = QSNIL;  /* sibling to N after rotation. */
 	  if (pn == -1)
 	    {
@@ -1039,6 +921,7 @@ unwind:
       assert(!ISNIL(root));
     }
 
+  /* Top node might have changed. */
   qsptr_t final_mend = qsrbtree_ref_down(mem, root);
   if (final_mend != qsrbtree_ref_top(mem, root))
     {

@@ -334,11 +334,13 @@ START_TEST(test_mass1)
       treeroot = qsrbtree_insert(heap1, treeroot, apairs[i]);
     }
 
-  // "alpha" and "bravo" should resolve.
+  // "alpha"
   qsptr_t q0 = qsrbtree_assoc(heap1, treeroot, keys[0]);
   ck_assert_int_ne(QSNIL, q0);
+  // "bravo"
   qsptr_t q1 = qsrbtree_assoc(heap1, treeroot, keys[1]);
   ck_assert_int_ne(QSNIL, q1);
+  // "uniform"
   qsptr_t q20 = qsrbtree_assoc(heap1, treeroot, keys[20]);
   ck_assert_int_ne(QSNIL, q20);
 }
