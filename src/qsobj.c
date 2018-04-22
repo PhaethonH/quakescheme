@@ -998,6 +998,170 @@ qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t root, qsptr_t key)
 
 
 
+qsibtree_t * qsibtree (qsmem_t * mem, qsptr_t t)
+{
+  qstree_t * tree = qstree(mem, t);
+  return (qsibtree_t*)tree;
+}
+
+qsptr_t qsibtree_make (qsmem_t * mem)
+{
+  qsptr_t retval = qstree_make(mem, QSINT(0), QSNIL, QSNIL);
+  return retval;
+}
+
+qsword qsibtree_ref_filled (qsmem_t * mem, qsptr_t t)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return 0;
+  return CINT30(ibtree->filled);
+}
+
+qsptr_t qsibtree_ref_idx0 (qsmem_t * mem, qsptr_t t)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return QSNIL;
+  return ibtree->idx0;
+}
+
+qsptr_t qsibtree_ref_ones (qsmem_t * mem, qsptr_t t)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return QSNIL;
+  return ibtree->ones;
+}
+
+qsptr_t qsibtree_setq_filled (qsmem_t * mem, qsptr_t t, qsword count)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return t;
+  ibtree->filled = QSINT(count);
+  return t;
+}
+
+qsptr_t qsibtree_setq_idx0 (qsmem_t * mem, qsptr_t t, qsptr_t val)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return t;
+  ibtree->idx0 = val;
+  return t;
+}
+
+qsptr_t qsibtree_setq_ones (qsmem_t * mem, qsptr_t t, qsptr_t val)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return t;
+  ibtree->ones = val;
+  return t;
+}
+
+qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t t, qsword path)
+{
+  qsptr_t curr = t;
+  qsword remainder = path;
+  while ((remainder > 1) && !ISNIL(curr))
+    {
+      if (remainder & 0x01)
+	{
+	  /* go right. */
+	  curr = qstree_ref_right(mem, curr);
+	}
+      else
+	{
+	  /* go left. */
+	  curr = qstree_ref_left(mem, curr);
+	}
+      remainder >>= 1;
+    }
+  return curr;
+}
+
+qsptr_t qsibnode_pave (qsmem_t * mem, qsptr_t t, qsword path)
+{
+  qsptr_t curr = t;
+  qsword remainder = path;
+  while (remainder > 1)
+    {
+      if (remainder & 0x01)
+	{
+	  /* rightwards. */
+	  if (!ISNIL(qstree_ref_right(mem, curr)))
+	    {
+	      /* go right. */
+	      curr = qstree_ref_right(mem, curr);
+	    }
+	  else
+	    {
+	      /* make right. */
+	      qsptr_t next = qstree_make(mem, QSNIL, QSNIL, QSNIL);
+	      qstree_setq_right(mem, curr, next);
+	      curr = next;
+	    }
+	}
+      else
+	{
+	  /* leftwards. */
+	  if (!ISNIL(qstree_ref_left(mem, curr)))
+	    {
+	      /* go left. */
+	      curr = qstree_ref_left(mem, curr);
+	    }
+	  else
+	    {
+	      /* make left. */
+	      qsptr_t next = qstree_make(mem, QSNIL, QSNIL, QSNIL);
+	      qstree_setq_left(mem, curr, next);
+	      curr = next;
+	    }
+	}
+      remainder >>= 1;
+    }
+  return curr;
+}
+
+qsptr_t qsibtree_ref (qsmem_t * mem, qsptr_t t, qsword path)
+{
+  if (path == 0)
+    {
+      return qsibtree_ref_idx0(mem, t);
+    }
+  qsptr_t ones = qsibtree_ref_ones(mem, t);
+  qsptr_t target = qsibnode_find(mem, ones, path);
+  if (ISNIL(target)) return QSNIL;
+  return qstree_ref_data(mem, target);
+}
+
+qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t t, qsword path, qsptr_t entry)
+{
+  if (path == 0)
+    {
+      qsibtree_setq_idx0(mem, t, entry);
+    }
+  else if (path == 1)
+    {
+      qsptr_t ones = qsibtree_ref_ones(mem, t);
+      if (ISNIL(ones))
+	{
+	  ones = qstree_make(mem, QSNIL, entry, QSNIL);
+	  qsibtree_setq_ones(mem, t, ones);
+	}
+      else
+	{
+	  qstree_setq_data(mem, ones, entry);
+	}
+    }
+  else
+    {
+      qsptr_t target = qsibnode_pave(mem, qsibtree_ref_ones(mem, t), path);
+      qstree_setq_data(mem, target, entry);
+    }
+
+  return t;
+}
+
+
+
+
 /* Pair is a degenerate tree where left==QSNIL */
 qspair_t * qspair (qsmem_t * mem, qsptr_t p)
 {
