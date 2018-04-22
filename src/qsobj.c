@@ -2653,6 +2653,119 @@ int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
 
 
 
+/* Symbols. */
+/* qssym - interned symbols. */
+qsptr_t qssym (qsmem_t * mem, qsptr_t y)
+{
+  if (ISSYM26(y)) return y;
+  else return QSNIL;
+}
+
+qsword qssym_get (qsmem_t * mem, qsptr_t y)
+{
+  if (ISNIL(qssym(mem, y))) return 0;
+  return CSYM26(y);
+}
+
+qsptr_t qssym_make (qsmem_t * mem, qsptr_t symbol_id)
+{
+  return QSSYM(symbol_id);
+}
+
+int qssym_crepr (qsmem_t * mem, qsptr_t y, char * buf, int buflen)
+{
+  int n = 0;
+  return n;
+}
+
+
+
+/* qssymbol - tie name and id. */
+qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy)
+{
+  qsmemaddr_t out_addr = 0;
+  qsobj_t * obj = qsobj(mem, yy, &out_addr);
+  if (!obj) return NULL;
+  qssymbol_t * symbol = (qssymbol_t*)obj;
+  if (symbol->indicator != yy) return NULL;
+  if (!qsstr(mem, symbol->name)) return NULL;
+  if (!qssym(mem, symbol->id)) return NULL;
+  return symbol;
+}
+
+qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t yy)
+{
+  qssymbol_t * symbol = qssymbol(mem, yy);
+  if (!symbol) return QSNIL;
+  return symbol->name;
+}
+
+qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t yy)
+{
+  qssymbol_t * symbol = qssymbol(mem, yy);
+  if (!symbol) return QSNIL;
+  return symbol->id;
+}
+
+qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name, qsword symid)
+{
+  qsptr_t retval = qstree_make(mem, QSNIL, name, QSSYM(symid));
+  /* left field points back to object. */
+  qstree_setq_left(mem, retval, retval);
+  // TODO: copy name?
+
+  return retval;
+}
+
+
+
+/* symstore - composed of two structures:
+   1. symtable - indexed by integer, resolves symbol_id to symbol_name.
+   2. symtree - indexed by name, resolves symbol_name to symbol_id.
+*/
+
+qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t o)
+{
+  qsobj_t * obj = qsobj(mem, o, NULL);
+  if (!obj) return NULL;
+  qssymstore_t * ystore = (qssymstore_t*)obj;
+  if (ystore->tag != QSSYMSTORE) return NULL;
+  return ystore;
+}
+
+qsptr_t qssymstore_make (qsmem_t * mem)
+{
+  qsptr_t retval = QSNIL;
+  qsmemaddr_t addr = 0;
+  if (!ISOBJ26((retval = qsobj_make(mem, 1, 0, &addr)))) return retval;
+
+  qssymstore_t * symstore = (qssymstore_t*)qsobj(mem, retval, NULL);
+  symstore->tag = QSSYMSTORE;
+  symstore->table = qsibtree_make(mem);
+  symstore->tree = qsrbtree_make(mem, QSNIL, QSNIL);
+  return retval;
+}
+
+qsptr_t qssymstore_intern (qsmem_t * mem, qsptr_t symbol_object)
+{
+}
+
+/* Obtain symbol object by id:int. */
+qsptr_t qssymstore_ref (qsmem_t * mem, qsptr_t ystore, qsword sym_id)
+{
+  return QSNIL;
+}
+
+/* Obtain symbol object by name:str. */
+qsptr_t qssymstore_assoc (qsmem_t * mem, qsptr_t ystore, qsptr_t key)
+{
+  return QSNIL;
+}
+
+
+
+
+
 int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;

@@ -462,6 +462,39 @@ int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
 
 
+/* Symbols */
+/* qssym = wraps index into interned symbol table, for (eq? ...) use. */
+/* qssymbol = object in heap tying together name and id, for name->id lookup. */ 
+qsptr_t qssym (qsmem_t * mem, qsptr_t y);
+qsword qssym_get (qsmem_t * mem, qsptr_t y);
+qsptr_t qssym_make (qsmem_t * mem, qsptr_t symbol_id);
+int qssym_crepr (qsmem_t * mem, qsptr_t y, char * buf, int buflen);
+
+typedef struct qssymbol_s {
+    qsptr_t mgmt;
+    qsptr_t indicator;	  // point to self.
+    qsptr_t name;
+    qsptr_t id;
+} qssymbol_t;
+
+qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy);
+qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t yy);
+qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t yy);
+qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name, qsptr_t symbol_id);
+
+typedef struct qssymstore_s {
+    qsptr_t mgmt;
+    qsptr_t tag;
+    qsptr_t table;
+    qsptr_t tree;
+} qssymstore_t;
+
+qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t ystore);
+qsptr_t qssymstore_make (qsmem_t * mem);
+
+
+
+
 int qsptr_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
 
 #endif // _QSOBJ_H_
