@@ -201,6 +201,7 @@ qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t ibnode, qsword path);
 qsptr_t qsibtree_find (qsmem_t * mem, qsptr_t ibnode, qsword idx);
 
 /* Main entry points: (ibtree-ref IBTREE NTH), (ibtree-set! IBTREE NTH VALUE) */
+qsword qsibtree_length (qsmem_t * mem, qsptr_t ibnode);
 qsptr_t qsibtree_ref (qsmem_t * mem, qsptr_t ibnode, qsword idx);
 qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t ibnode, qsword idx, qsptr_t val);
 

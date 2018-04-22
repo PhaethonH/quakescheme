@@ -1119,6 +1119,11 @@ qsptr_t qsibnode_pave (qsmem_t * mem, qsptr_t t, qsword path)
   return curr;
 }
 
+qsword qsibtree_length (qsmem_t * mem, qsptr_t t)
+{
+  return qsibtree_ref_filled(mem, t);
+}
+
 qsptr_t qsibtree_ref (qsmem_t * mem, qsptr_t t, qsword path)
 {
   if (path == 0)
@@ -1154,6 +1159,11 @@ qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t t, qsword path, qsptr_t entry)
     {
       qsptr_t target = qsibnode_pave(mem, qsibtree_ref_ones(mem, t), path);
       qstree_setq_data(mem, target, entry);
+    }
+
+  if (path > CINT30(qsibtree_ref_filled(mem, t)))
+    {
+      qsibtree_setq_filled(mem, t, path);
     }
 
   return t;
