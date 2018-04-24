@@ -480,7 +480,7 @@ typedef struct qssymbol_s {
 qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy);
 qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t yy);
 qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t yy);
-qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name, qsptr_t symbol_id);
+qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name);
 
 typedef struct qssymstore_s {
     qsptr_t mgmt;
@@ -489,8 +489,15 @@ typedef struct qssymstore_s {
     qsptr_t tree;
 } qssymstore_t;
 
-qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t ystore);
+qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t o);
 qsptr_t qssymstore_make (qsmem_t * mem);
+qsptr_t qssymstore_ref_table (qsmem_t * mem, qsptr_t o);
+qsptr_t qssymstore_ref_tree (qsmem_t * mem, qsptr_t o);
+qsptr_t qssymstore_setq_table (qsmem_t * mem, qsptr_t o, qsptr_t val);
+qsptr_t qssymstore_setq_tree (qsmem_t * mem, qsptr_t o, qsptr_t val);
+qsptr_t qssymstore_intern (qsmem_t * mem, qsptr_t o, qsptr_t y);
+qsptr_t qssymstore_ref (qsmem_t * mem, qsptr_t o, qsptr_t key);
+qsptr_t qssymstore_assoc (qsmem_t * mem, qsptr_t o, qsptr_t key);
 
 
 
