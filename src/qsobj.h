@@ -381,7 +381,7 @@ typedef struct qsbytevec_s {
 
 qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim);
 qsword qsbytevec_length (qsmem_t * mem, qsptr_t bv);
-qsptr_t qsbytevec_ref (qsmem_t * mem, qsptr_t bv, qsword ofs);
+int qsbytevec_ref (qsmem_t * mem, qsptr_t bv, qsword ofs);
 qsptr_t qsbytevec_setq (qsmem_t * mem, qsptr_t bv, qsword ofs, qsword val);
 qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsptr_t fill);
 int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen);
