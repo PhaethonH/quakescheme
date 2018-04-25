@@ -2,6 +2,7 @@
 #define _QSOBJ_H_
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "qsptr.h"
 #include "qsheap.h"
@@ -80,11 +81,123 @@ int qsOBJ_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr,  )
 int qsOBJ_crepr (qsmem_t * mem, qsptr_t * PTR, char * buf, int buflen)
 */
 
+/* Function naming convention:
+
+  object indicators are qsptr_t (usually store + object as qsptr_t)
+    _p (...): predicate
+    _ref... (...): accessor
+    _setq... (...): mutator
+
+  object indicators are native-C types (usually pointer to object).
+    _is_... (...): predicate
+    _get_... (...): accessor
+    _fetch_... (..., *): accessor using out-parameter (returns error code).
+    _set_... (...): mutator
+*/
+
 
 typedef qsheap_t qsmem_t;
 typedef qsheapaddr_t qsmemaddr_t;
 
 
+
+/*
+   Base unit of store is 4-word "bay".
+
+   Prototypes based on pointer/octet content and allocated size.
+*/
+typedef union qsbay_s {
+    struct qsbay_generic_s {
+	qsptr_t mgmt;
+	qsptr_t fields[3];
+    } generic;
+    union qsbay_ptr_u {
+	/* Single bay, pointer content (e.g. pair). */
+	struct qsunibay_ptr_s {
+	    qsptr_t mgmt;
+	    qsptr_t e;
+	    qsptr_t a;
+	    qsptr_t d;
+	} uni;
+	/* Multiple bays, pointer content (e.g. vector). */
+	struct qsmultibay_ptr_s {
+	    qsptr_t mgmt;
+	    qsptr_t len;
+	    qsptr_t gc_backtrack;
+	    qsptr_t gc_iter;
+
+	    qsptr_t _d[];
+	} multi;
+    } ptr;
+    union qsbay_oct_u {
+	/* Single bay, octet content (e.g. widenum, C pointer) */
+	struct qsunibay_oct_s {
+	    qsptr_t mgmt;
+	    qsptr_t variant;
+	    uint8_t _d[8];
+	} uni;
+	/* Multiple bays, octet content (e.g. bytevector, utf-8 string) */
+	struct qsmultibay_oct_s {
+	    qsptr_t mgmt;
+	    qsptr_t len;
+	    qsptr_t refcount;
+	    qsptr_t lock;
+
+	    uint8_t _d[];
+	} multi;
+    } oct;
+} qsbay_t;
+typedef struct qsbay_generic_s qsbay0_t;
+typedef struct qsunibay_ptr_s qsunibay_ptr_t;
+typedef struct qsmultibay_ptr_s qsmultibay_ptr_t;
+typedef struct qsunibay_oct_s qsunibay_oct_t;
+typedef struct qsmultibay_oct_s qsmultibay_oct_t;
+
+
+qsbay_t * qsbay (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr);
+bool qsbay_used_p (qsmem_t * mem, qsptr_t p);
+bool qsbay_marked_p (qsmem_t * mem, qsptr_t p);
+bool qsbay_octetate_p (qsmem_t * mem, qsptr_t p);
+int qsbay_ref_score (qsmem_t * mem, qsptr_t p);
+int qsbay_ref_parent (qsmem_t * mem, qsptr_t p);
+qsword qsbay_ref_allocsize (qsmem_t * mem, qsptr_t p);
+int qsbay_ref_allocscale (qsmem_t * mem, qsptr_t p);
+
+/* Arbitrary field access. */
+/* Returns pointer field at offset 'ofs' in object 'p'.
+     [0] => mgmt word
+   Returns QSERROR_* if access denied.
+
+   For unibay_ptr, 0=mgmt, 1=e, 2=a, 3=d
+   For multibay_ptr, 0=mgmt, 1=len, 2=gc_backgrack, 3=gc_iter, 4=data[0], ...
+   For unibay_oct, only 0 (mgmt) and 1 (variant) are valid.
+   For multibay_oct, 0=mgmt, 1=track, 2=refcount, 3=mutex.
+*/
+qsword qsbay_ref_ptr (qsmem_t * mem, qsptr_t p, qsword ofs);
+/* Returns -1 if octet access denied. */
+int qsbay_ref_oct (qsmem_t * mem, qsptr_t p, qsword ofs);
+/* Returns pointer to start of arbitrary data space, the address of ->d[0]
+   Primarily intended for writing to/from widenum payloads.
+ */
+void * qsbay_ref_data (qsmem_t * mem, qsptr_t p, qsword * len);
+/* Returns object, or QSERROR_* if mutating failed. */
+qsptr_t qsbay_setq_ptr (qsmem_t * mem, qsptr_t p, qsword ofs, qsptr_t val);
+/* Returns object, or QSERROR_* if mutating failed. */
+qsptr_t qsbay_setq_oct (qsmem_t * mem, qsptr_t p, qsword ofs, int val);
+
+qsptr_t qsbay_setq_score (qsmem_t * mem, qsptr_t p, int val);
+qsptr_t qsbay_setq_parent (qsmem_t * mem, qsptr_t p, int val);
+
+/* Mainly for is-a checks. */
+qsunibay_ptr_t * qsunibay_ptr (qsmem_t * mem, qsptr_t p);
+qsmultibay_ptr_t * qsmultibay_ptr (qsmem_t * mem, qsptr_t p);
+qsunibay_oct_t * qsunibay_oct (qsmem_t * mem, qsptr_t p);
+qsmultibay_oct_t * qsmultibay_oct (qsmem_t * mem, qsptr_t p);
+
+
+
+
+/* deprecated in favor of qsbay */
 typedef struct qsobj_s {
     qsptr_t mgmt;
     qsptr_t _0;
@@ -102,6 +215,34 @@ int qsobj_ref_allocscale (qsmem_t * mem, qsptr_t p);
 qsptr_t qsobj_setq_marked (qsmem_t * mem, qsptr_t p, qsword val);
 qsptr_t qsobj_setq_parent (qsmem_t * mem, qsptr_t p, qsword val);
 qsptr_t qsobj_setq_score (qsmem_t * mem, qsptr_t p, qsword val);
+
+/* Fetch arbitrary pointer field from start of object.
+
+   single-bay pointer: 0=mgmt, 1=e, 2=a, 3=d
+   multi-bay pointer: 0=mgmt, 1=len, 2=gc_backtrack, 3=gc_iter, 4=data[0],...
+   single-bay octet: 0=mgmt, 1=variant
+   multi-bay octet: 0=mgmt, 1=len, 2=refcount, 3=mutex
+
+   Returns QSERROR if access denied (typically out-of-bounds).
+*/
+qsptr_t qsobj_ref_ptr (qsmem_t * mem, qsptr_t p, qsword ofs);
+/* Fetch arbitrary octet (byte) from start of octet array.
+   single-bay octet: 0..7
+   multi-bay octet: 0...
+
+   Return -1 if access denied (out-of-bounds).
+*/
+int qsobj_ref_oct (qsmem_t * mem, qsptr_t p, qsword ofs);
+/* Returns object on success, QSERROR_* on error. */
+qsptr_t qsobj_setq_ptr (qsmem_t *, qsptr_t p, qsword ofs, qsptr_t val);
+/* Returns object on success, QSERROR_* on error. */
+qsptr_t qsobj_setq_oct (qsmem_t *, qsptr_t p, qsword ofs, int val);
+/* Returns pointer to start of arbitrary data (->_d[0]).
+   NULL if no such field available.
+   Writes out total valid size (bytes) to '*size', ignored if NULL.
+*/
+void * qsobj_ref_data (qsmem_t *, qsptr_t p, size_t * size);
+
 qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_addr);
 qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p);
 int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
@@ -132,14 +273,14 @@ qsptr_t qstree_assoc (qsmem_t * mem, qsptr_t t, qsptr_t key);
 /* Manage linked collection of tree nodes as a Red-Black tree. */
 typedef struct qsrbtree_s {
     qsptr_t mgmt;   /* ptr, allocscale=1 */
-    qsptr_t variant;
+    qsptr_t variant;  /* tag QSRBTREE */
+    qsptr_t gc_backtrack;
+    qsptr_t gc_iter;
+
     qsptr_t top;    /* Top-most node of tree (i.e. root node). */
     qsptr_t cmp;    /* Comparator function.  Default (nil) => string-cmp */
-
-    qsptr_t reserved4;	/* (set to nil) */
-    qsptr_t mutex;	/* Lock for modifying. */
-    qsptr_t up;		/* Parent node of a split point. */
-    qsptr_t down;	/* Top of subtree that has been split. */
+    qsptr_t up;	    /* Parent node of a split point. */
+    qsptr_t down;   /* Top of subtree that has been split. */
 } qsrbtree_t;
 
 /* Perform rotation on arbitrary node (presumably in a red-black tree) */
@@ -270,6 +411,57 @@ qsptr_t qsimmlist_iter (qsmem_t * mem, qsptr_t a, qsword ofs);
 qsptr_t qsimmlist_make (qsmem_t * mem, qsword k, qsptr_t fill);
 int qsimmlist_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen);
 
+
+typedef struct qslambda_s {
+    qsptr_t mgmt;
+    qsptr_t variant;
+    qsptr_t param;
+    qsptr_t body;
+} qslambda_t;
+
+typedef struct qsclosure_s {
+    qsptr_t mgmt;
+    qsptr_t variant;
+    qsptr_t env;
+    qsptr_t lambda;
+} qsclosure_t;
+
+typedef union qskont_u {
+    struct qskont_halt_s {
+	qsptr_t mgmt;
+	qsptr_t variant;
+	qsptr_t gc_backtrack;
+	qsptr_t gc_iter;
+
+	qsptr_t _0;
+	qsptr_t _1;
+	qsptr_t _2;
+	qsptr_t _3;
+    } halt;
+    /* First-class continuation. */
+    struct qskont_cont_s {
+	qsptr_t mgmt;
+	qsptr_t variant;
+	qsptr_t gc_backtrack;
+	qsptr_t gc_iter;
+
+	qsptr_t e;
+	qsptr_t k;
+	qsptr_t c;
+	qsptr_t _3;
+    } cont;
+    struct qskont_letk_s {
+	qsptr_t mgmt;
+	qsptr_t variant;
+	qsptr_t gc_backtrack;
+	qsptr_t gc_iter;
+
+	qsptr_t e;
+	qsptr_t k;
+	qsptr_t body;
+	qsptr_t v;
+    } letk;
+} qskont_t;
 
 
 

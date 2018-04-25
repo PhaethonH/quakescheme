@@ -123,15 +123,26 @@ typedef struct qsheap_s {
 
 qsheap_t * qsheap_init (qsheap_t *, uint32_t ncells);
 qsheap_t * qsheap_destroy (qsheap_t *);
+/* length in number of bays. */
 uint32_t qsheap_length (qsheap_t *);
 qserror_t qsheap_allocscale (qsheap_t *, qsword allocscale, qsheapaddr_t * out_addr);
 qserror_t qsheap_alloc_ncells (qsheap_t *, qsword ncells, qsheapaddr_t * out_addr);
 qserror_t qsheap_alloc_with_nbytes (qsheap_t *, qsword nbytes, qsheapaddr_t * out_addr);
 qsheapaddr_t qsheap_free (qsheap_t *, qsheapaddr_t addr);
-qserror_t qsheap_set_marked (qsheap_t *, qsheapaddr_t addr, int val);
+
+int qsheap_is_synced (qsheap_t *, qsheapaddr_t addr);
+int qsheap_get_allocscale (qsheap_t *, qsheapaddr_t addr);
+int qsheap_is_octetate (qsheap_t *, qsheapaddr_t addr);
+qserror_t qsheap_set_octetate (qsheap_t *, qsheapaddr_t addr, int val);
+int qsheap_is_used (qsheap_t *, qsheapaddr_t addr);
 qserror_t qsheap_set_used (qsheap_t *, qsheapaddr_t addr, int val);
 int qsheap_is_marked (qsheap_t *, qsheapaddr_t addr);
-int qsheap_is_used (qsheap_t *, qsheapaddr_t addr);
+qserror_t qsheap_set_marked (qsheap_t *, qsheapaddr_t addr, int val);
+int qsheap_get_score (qsheap_t *, qsheapaddr_t addr);
+qserror_t qsheap_set_score (qsheap_t *, qsheapaddr_t addr, int val);
+int qsheap_get_parent (qsheap_t *, qsheapaddr_t addr);
+qserror_t qsheap_set_parent (qsheap_t *, qsheapaddr_t addr, int val);
+
 qserror_t qsheap_sweep (qsheap_t *);
 //qsobj_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr);
 qsheapcell_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr);
