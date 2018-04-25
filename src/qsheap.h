@@ -233,6 +233,7 @@ qserror_t qsheap_alloc_with_nptrs (qsheap_t *, qsword nptrs, qsheapaddr_t * out_
 qserror_t qsheap_alloc_with_nbytes (qsheap_t *, qsword nbytes, qsheapaddr_t * out_addr);
 qsheapaddr_t qsheap_free (qsheap_t *, qsheapaddr_t addr);
 
+int qsheap_is_valid (qsheap_t *, qsheapaddr_t addr);
 int qsheap_is_synced (qsheap_t *, qsheapaddr_t addr);
 int qsheap_get_allocscale (qsheap_t *, qsheapaddr_t addr);
 int qsheap_is_octetate (qsheap_t *, qsheapaddr_t addr);

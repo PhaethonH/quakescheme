@@ -478,6 +478,13 @@ qserror_t qsheap_alloc_with_nbytes (qsheap_t * heap, qsword nbytes, qsheapaddr_t
   return retval;
 }
 
+int qsheap_is_valid (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  if (cell_addr < 0) return 0;
+  if (cell_addr >= heap->cap) return 0;
+  return 1;
+}
+
 int qsheap_is_synced (qsheap_t * heap, qsheapaddr_t cell_addr)
 {
   qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);

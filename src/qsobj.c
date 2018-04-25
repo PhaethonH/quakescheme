@@ -55,17 +55,24 @@ const char * __p (qsptr_t p)
 
 
 /* Attempt to cast to object (else freelist or data) */
+qsobj_t * qsobj_at (qsmem_t * mem, qsmemaddr_t addr)
+{
+  if (! qsheap_is_valid(mem, addr)) return NULL;
+  qsobj_t * obj = (qsobj_t*)qsheap_ref(mem, addr);
+  if (! qsheap_is_synced(mem, addr)) return NULL;
+  if (! qsheap_is_used(mem, addr)) return NULL;
+  return obj;
+}
+
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   if (!ISHEAP26(p)) return NULL;
   qsmemaddr_t addr = COBJ26(p);
-  qsobj_t * retval = (qsobj_t*)qsheap_ref(mem, addr);
-  if (!retval) return NULL;
-  if (! qsheap_is_synced(mem, addr)) return NULL;
-  if (! qsheap_is_used(mem, addr)) return NULL;
+  qsobj_t * obj = qsobj_at(mem, addr);
+  if (!obj) return NULL;
   if (out_addr)
     *out_addr = addr;
-  return retval;
+  return obj;
 }
 
 int qsobj_used_p (qsmem_t * mem, qsptr_t p)
@@ -153,47 +160,43 @@ qsptr_t qsobj_setq_parent (qsmem_t * mem, qsptr_t p, qsword val)
   return p;
 }
 
-/* Object as single-celled pointer contents. */
-qsobj_t * qsobj_unicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+/* Object as single-bay pointer contents. */
+qsobj_t * qsobj_unibayptr (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
-  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  if (qsheapcell_is_octet(heapcell)) return NULL;
-  if (qsheapcell_get_allocscale(heapcell) > 0) return NULL;
+  if (qsobj_octetate_p(mem, p)) return NULL;
+  if (qsobj_ref_nbays(mem, p) != 1) return NULL;
   return obj;
 }
 
-/* Object as multi-celled pointer contents. */
-qsobj_t * qsobj_multicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+/* Object as multi-bay pointer contents. */
+qsobj_t * qsobj_multibayptr (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
-  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  if (qsheapcell_is_octet(heapcell)) return NULL;
-  if (qsheapcell_get_allocscale(heapcell) == 0) return NULL;
+  if (qsobj_octetate_p(mem, p)) return NULL;
+  if (qsobj_ref_nbays(mem, p) <= 1) return NULL;
   return obj;
 }
 
-/* Object is single-celled octet contents (uni- octet -ate). */
-qsobj_t * qsobj_unioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+/* Object is single-bay octet contents. */
+qsobj_t * qsobj_unibayoct (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
-  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  if (! qsheapcell_is_octet(heapcell)) return NULL;
-  if (qsheapcell_get_allocscale(heapcell) > 0) return NULL;
+  if (! qsobj_octetate_p(mem, p)) return NULL;
+  if (qsobj_ref_nbays(mem, p) > 1) return NULL;
   return obj;
 }
 
-/* Object is multi-celled octet contents (multi- octet -ate). */
-qsobj_t * qsobj_multioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+/* Object is multi-bay octet contents. */
+qsobj_t * qsobj_multibayoct (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
-  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  if (! qsheapcell_is_octet(heapcell)) return NULL;
-  if (qsheapcell_get_allocscale(heapcell) == 0) return NULL;
+  if (! qsobj_octetate_p(mem, p)) return NULL;
+  if (qsobj_ref_nbays(mem, p) <= 1) return NULL;
   return obj;
 }
 
@@ -342,7 +345,7 @@ qserror_t qsobj_setq_octet (qsmem_t * mem, qsptr_t p, qsword field_idx, int val)
 /*
    Conglomerated allocation logic:
 
-   [in]k - number of cells (non-octetate) or number of bytes (octetate).
+   [in]k - number of bays (non-octetate) or number of bytes (octetate).
    [in]octetate - contents are bytes, else contents are pointers.
    [out]out_addr - linear address in heap space.
 
@@ -359,7 +362,7 @@ qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_add
     }
   else
     {
-      retval = qsheap_alloc_ncells(mem, (k>1)?k:1, &addr);
+      retval = qsheap_alloc_nbays(mem, (k>1)?k:1, &addr);
     }
 
   if (retval == QSERROR_OK)
@@ -561,7 +564,7 @@ qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
 
 qstree_t * qstree (qsmem_t * mem, qsptr_t t)
 {
-  qsobj_t * obj = qsobj_unicellular(mem, t, NULL);
+  qsobj_t * obj = qsobj_unibayptr(mem, t, NULL);
   if (!obj) return NULL;
   return (qstree_t *)obj;
 }
@@ -727,7 +730,7 @@ qsptr_t qsrbnode_paint_black (qsmem_t * mem, qsptr_t node)
 
 qsrbtree_t * qsrbtree (qsmem_t * mem, qsptr_t t)
 {
-  qsobj_t * obj = qsobj_multicellular(mem, t, NULL);
+  qsobj_t * obj = qsobj_multibayptr(mem, t, NULL);
   if (!obj) return NULL;
   if (qsobj_ref_allocsize(mem, t) != 2) return NULL;
   qsrbtree_t * tree = (qsrbtree_t*)obj;
@@ -1564,7 +1567,7 @@ qsptr_t qslist_ref (qsmem_t * mem, qsptr_t p, qsword k)
 
 qsvector_t * qsvector (qsmem_t * mem, qsptr_t v, qsword * out_lim)
 {
-  qsobj_t * obj = qsobj_multicellular(mem, v, NULL);
+  qsobj_t * obj = qsobj_multibayptr(mem, v, NULL);
   if (!obj) return NULL;
   qsptr_t len = qsobj_ref_ptr(mem, v, 1);
   if (! ISINT30(len)) return NULL;
@@ -1624,21 +1627,32 @@ qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
   static const int hdr_adjust = 4;
   qsptr_t retval = QSNIL;
   qsmemaddr_t addr = 0;
-  qsword ncells = 1 + (k / 4)+1;  // always terminate with QSEOL.
-  if (!ISOBJ26((retval = qsobj_make(mem, ncells, 0, &addr)))) return retval;
+  qsword nbays = 1 + (k / 4)+1;  // always terminate with QSEOL.
+  if (!ISOBJ26((retval = qsobj_make(mem, nbays, 0, &addr)))) return retval;
 
-  qsvector_t * vector = (qsvector_t*)qsheap_ref(mem, addr);
+  /*
+  qsvector_t * vector = (qsvector_t*)qsobj_at(mem, addr);
   vector->len = QSINT(k);
   vector->gc_backtrack = QSNIL;
   vector->gc_iter = QSNIL;
+  */
+  qsobj_setq_ptr(mem, retval, 1, QSINT(k)); /* len = QSINT(k) */
+  qsobj_setq_ptr(mem, retval, 2, QSNIL);    /* gc_backtrack = QSNIL */
+  qsobj_setq_ptr(mem, retval, 3, QSNIL);    /* gc_iter = QSNIL */
   qsword i;
+  qsptr_t * raw_data = (qsptr_t*)qsobj_ref_data(mem, retval, NULL);
   for (i = 0; i < k; i++)
     {
-      vector->_d[i] = fill;
+      raw_data[i] = fill;
+      //vector->_d[i] = fill;
       //qsobj_setq_ptr(mem, retval, i + hdr_adjust, fill);
     }
   retval = QSOBJ(addr);
+  /*
   vector->_d[k] = QSEOL; // terminate with QSEOL for qsiter implementation.
+  */
+  /* Terminate with QSEOL for sake of qsiter. */
+  qsobj_setq_ptr(mem, retval, k + hdr_adjust, QSEOL);
   return retval;
 }
 
@@ -1693,7 +1707,7 @@ qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t v, qsword * out_len)
 
 qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim)
 {
-  qsobj_t * obj = qsobj_multioctetate(mem, bv, NULL);
+  qsobj_t * obj = qsobj_multibayoct(mem, bv, NULL);
   if (!obj) return NULL;
   qsptr_t len = qsobj_ref_ptr(mem, bv, 1);
   if (! ISINT30(len)) return NULL;
@@ -1757,7 +1771,7 @@ qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsword fill)
   qsmemaddr_t addr = 0;
   if (!ISOBJ26((retval = qsobj_make(mem, k, 1, &addr)))) return retval;
 
-  qsbytevec_t * bytevec = (qsbytevec_t*)qsheap_ref(mem, addr);
+  qsbytevec_t * bytevec = (qsbytevec_t*)qsobj_at(mem, addr);
   bytevec->len = QSINT(k);
   qsword i;
   for (i = 0; i < k; i++)
@@ -1808,7 +1822,7 @@ qsptr_t qsbytevec_inject (qsmem_t * mem, qsword nbytes, uint8_t * carray)
 qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t n, qsnumtype_t * out_numtype)
 {
   if (!ISHEAP26(n)) return NULL;
-  qsobj_t * obj = qsobj_unioctetate(mem, n, NULL);
+  qsobj_t * obj = qsobj_unibayoct(mem, n, NULL);
   qsptr_t discriminator = obj->_0;
   switch (discriminator)
     {
@@ -2048,7 +2062,7 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
   qsptr_t pairptr = QSNIL;
   if (qsiter_on_pair(mem, it, &pairptr))
     {
-      /* iter is pointing to pair cell. */
+      /* iter is pointing to pair bay. */
       return qspair_ref_a(mem, pairptr);
     }
   else if (ISITER28(it))
@@ -2075,7 +2089,7 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
   qsptr_t pairptr = QSNIL;
   if (qsiter_on_pair(mem, it, &pairptr))
     {
-      /* iter is pointing to pair cell. */
+      /* iter is pointing to pair bay. */
       qsptr_t next = qspair_ref_d(mem, pairptr);
       if (ISNIL(next))
 	return QSNIL;
@@ -2395,13 +2409,13 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 /*******************************/
 
 /* List:
-   1. linked pair cells
+   1. linked pair objects
    2. vector with BOL termination
  */
 // expanded qsiter_*() to accommodate this object.
 
 /* String:
-   1. conschar24: pair cells of char24
+   1. conschar24: pair objects of char24
    2. vecchar24: vector of char24 with BOL termination
    3. cstr8: bytevector (UTF-8)
  */
@@ -2413,7 +2427,7 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 */
 qsutf8_t * qsutf8 (qsmem_t * mem, qsptr_t s)
 {
-  qsobj_t * obj = qsobj_multioctetate(mem, s, NULL);
+  qsobj_t * obj = qsobj_multibayoct(mem, s, NULL);
   if (!obj) return NULL;
   qsptr_t len = qsobj_ref_ptr(mem, s, 1);
   if (! ISNIL(len)) return NULL;
@@ -2423,8 +2437,9 @@ qsutf8_t * qsutf8 (qsmem_t * mem, qsptr_t s)
 static
 qsword _qsutf8_hardlimit (qsmem_t * mem, qsptr_t s)
 {
-  qsword ncells = qsobj_ref_allocsize(mem, s);
-  qsword retval = (ncells - 1) * (sizeof(qsheapcell_t) / sizeof(qsptr_t));
+  static const int nbyte_per_bay = sizeof(qsbay0_t);
+  qsword nbays = qsobj_ref_nbays(mem, s);
+  qsword retval = nbays * nbyte_per_bay;
   return retval;
 }
 
@@ -2470,7 +2485,7 @@ qsptr_t qsutf8_make (qsmem_t * mem, qsword slen)
   qsword k = slen + 1;
   if (!ISOBJ26((retval = qsobj_make(mem, k, 1, &addr)))) return retval;
 
-  qsutf8_t * utf8str = (qsutf8_t*)qsheap_ref(mem, addr);
+  qsutf8_t * utf8str = (qsutf8_t*)qsobj_at(mem, addr);
   utf8str->variant = QSNIL;
   qsword i;
   for (i = 0; i < k; i++)
