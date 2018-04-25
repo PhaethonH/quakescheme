@@ -417,9 +417,9 @@ qserror_t qsheap_allocscale (qsheap_t * heap, qsword allocscale, qsheapaddr_t * 
   return QSERROR_NOMEM;
 }
 
-qserror_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells, qsheapaddr_t * out_addr)
+qserror_t qsheap_alloc_nbays (qsheap_t * heap, qsword ncells, qsheapaddr_t * out_addr)
 {
-/* Take log2 of number of cells (2*n to accomodate cells)
+/* Take log2 of number of bays (2**n to accomodate bays)
  0 => 0
  1 => 0
  2 => 1
@@ -440,17 +440,41 @@ qserror_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells, qsheapaddr_t * ou
   return qsheap_allocscale(heap, nbits, out_addr);
 }
 
+qserror_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells, qsheapaddr_t * out_addr)
+{
+  return qsheap_alloc_nbays(heap, ncells, out_addr);
+}
+
+qserror_t qsheap_alloc_with_nptrs (qsheap_t * heap, qsword nptrs, qsheapaddr_t * out_addr)
+{
+  static const int nptr_per_bay = sizeof(qsbay0_t) / sizeof(qsptr_t);
+  qsheapaddr_t addr = 0;
+  qserror_t retval = QSERROR_OK;
+  qsword nbays = 0;
+  if (nptrs == 0)
+    nbays = 1;
+  else
+    nbays = 1 + ((nptrs-1) / nptr_per_bay)+1;
+  retval = qsheap_alloc_nbays(heap, nbays, &addr);
+  if (out_addr)
+    *out_addr = addr;
+  return retval;
+}
+
 qserror_t qsheap_alloc_with_nbytes (qsheap_t * heap, qsword nbytes, qsheapaddr_t * out_addr)
 {
+  static const int nbyte_per_bay = sizeof(qsbay0_t);
+  qsheapaddr_t addr = 0;
   qserror_t retval = QSERROR_OK;
-  qsword ncells = 0;
+  qsword nbays = 0;
   if (nbytes == 0)
-    ncells = 1;
+    nbays = 1;
   else
-    ncells = 1 + ((nbytes-1) / sizeof(qsheapcell_t))+1;
-  retval = qsheap_alloc_ncells(heap, ncells, out_addr);
-  qsheapcell_t * heapcell = qsheap_ref(heap, *out_addr);
-  MGMT_SET_OCTET(heapcell->mgmt);
+    nbays = 1 + ((nbytes-1) / nbyte_per_bay)+1;
+  retval = qsheap_alloc_nbays(heap, nbays, &addr);
+  qsheap_set_octetate(heap, addr, 1);
+  if (out_addr)
+    *out_addr = addr;
   return retval;
 }
 
