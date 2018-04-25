@@ -268,7 +268,7 @@ void * qsobj_ref_data (qsmem_t * mem, qsptr_t p, size_t * len)
       else
 	{
 	  all_bytes -= 8;
-	  retval = (void*)&(obj->_2);
+	  retval = (void*)&(obj->_1);
 	}
     }
   else
@@ -1612,8 +1612,7 @@ qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t v, qsword ofs, qsptr_t val)
       // TODO: exception.
       return QSNIL;
     }
-  qsobj_setq_ptr(mem, v, ofs + hdr_adjust, val);
-  //vec->_d[ofs] = val;
+  qsobj_setq_ptr(mem, v, ofs + hdr_adjust, val);  /* _d[ofs] = val */
   return v;
 }
 
@@ -1630,12 +1629,6 @@ qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
   qsword nbays = 1 + (k / 4)+1;  // always terminate with QSEOL.
   if (!ISOBJ26((retval = qsobj_make(mem, nbays, 0, &addr)))) return retval;
 
-  /*
-  qsvector_t * vector = (qsvector_t*)qsobj_at(mem, addr);
-  vector->len = QSINT(k);
-  vector->gc_backtrack = QSNIL;
-  vector->gc_iter = QSNIL;
-  */
   qsobj_setq_ptr(mem, retval, 1, QSINT(k)); /* len = QSINT(k) */
   qsobj_setq_ptr(mem, retval, 2, QSNIL);    /* gc_backtrack = QSNIL */
   qsobj_setq_ptr(mem, retval, 3, QSNIL);    /* gc_iter = QSNIL */
@@ -1648,9 +1641,6 @@ qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
       //qsobj_setq_ptr(mem, retval, i + hdr_adjust, fill);
     }
   retval = QSOBJ(addr);
-  /*
-  vector->_d[k] = QSEOL; // terminate with QSEOL for qsiter implementation.
-  */
   /* Terminate with QSEOL for sake of qsiter. */
   qsobj_setq_ptr(mem, retval, k + hdr_adjust, QSEOL);
   return retval;
@@ -1851,9 +1841,20 @@ qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t n)
   return variant;
 }
 
-qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * out_ptr)
+void * qswidenum_ref_payload (qsmem_t * mem, qsptr_t n, qsnumtype_t * numtype)
 {
-  qswidenum_t * retval = NULL;
+  qswidenum_t * wn = qswidenum(mem, n, numtype);
+  if (!wn) return NULL;
+  return qsobj_ref_data(mem, n, NULL);
+}
+
+/*
+   Returns object ready to take wide number.
+
+   Writes out pointer to payload region into '*payload' (to be cast to native pointer type).
+*/
+qsptr_t qswidenum_make (qsmem_t * mem, qsnumtype_t variant, void ** payload)
+{
   qsptr_t p = QSNIL;
   qsmemaddr_t addr = 0;
   qserror_t err = QSERROR_OK;
@@ -1865,17 +1866,17 @@ qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * o
     case QSNUMTYPE_FLOAT2:
     case QSNUMTYPE_FLOAT4:
     case QSNUMTYPE_FLOAT16CM:
-      if (!ISOBJ26((p = qsobj_make(mem, 0, 1, &addr)))) return NULL;
-      retval = (qswidenum_t*)qsobj(mem, p, NULL);
-      retval->variant = variant;
+      if (!ISOBJ26((p = qsobj_make(mem, 0, 1, &addr))))
+       	return QSERROR_NOMEM;
+      qsobj_setq_ptr(mem, p, 1, variant);
+      if (payload)
+	*payload = (void*)qsobj_ref_data(mem, p, NULL);
       break;
     default:
-      retval->variant = QSNUMTYPE_NAN;
+      qsobj_setq_ptr(mem, p, 1, QSNUMTYPE_NAN);
       break;
     }
-  if (out_ptr)
-    *out_ptr = QSOBJ(addr);
-  return retval;
+  return p;
 }
 
 
@@ -1892,10 +1893,12 @@ qswidenum_t * qslong (qsmem_t * mem, qsptr_t l)
 
 qserror_t qslong_fetch (qsmem_t * mem, qsptr_t l, long * out_long)
 {
-  qswidenum_t * wn = qslong(mem, l);
-  if (!wn) return QSERROR_INVALID;
-  if (out_long)
-    *out_long = wn->payload.l;
+  qsnumtype_t variant = QSNUMTYPE_NAN;
+  void * payload = qswidenum_ref_payload(mem, l, &variant);
+  if (variant != QSNUMTYPE_LONG)
+    return QSERROR_INVALID;
+  if (out_long && (variant == QSNUMTYPE_LONG))
+    *out_long = *((long*)payload);
   return QSERROR_OK;
 }
 
@@ -1910,15 +1913,14 @@ long qslong_get (qsmem_t * mem, qsptr_t l)
 
 qsptr_t qslong_make (qsmem_t * mem, long val)
 {
-  qswidenum_t * wn = NULL;
   qsptr_t retval = QSNIL;
-  wn = qswidenum_premake(mem, QSNUMTYPE_LONG, &retval);
-  if (wn)
+  void * payload = NULL;
+  retval = qswidenum_make(mem, QSNUMTYPE_LONG, &payload);
+  if (payload)
     {
-      wn->payload.l = val;
-      return retval;
+      *((long*)payload) = val;
     }
-  return QSERROR_NOMEM;
+  return retval;
 }
 
 qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low)
@@ -1946,10 +1948,12 @@ qswidenum_t * qsdouble (qsmem_t * mem, qsptr_t d)
 
 qserror_t qsdouble_fetch (qsmem_t * mem, qsptr_t d, double * out_double)
 {
-  qswidenum_t * wn = qsdouble(mem, d);
-  if (!wn) return QSERROR_INVALID;
+  qsnumtype_t variant = QSNUMTYPE_NAN;
+  void * payload = qswidenum_ref_payload(mem, d, &variant);
+  if (variant != QSNUMTYPE_DOUBLE)
+    return QSERROR_INVALID;
   if (out_double)
-    *out_double = wn->payload.d;
+    *out_double = *((double*)payload);
   return QSERROR_OK;
 }
 
@@ -1966,13 +1970,13 @@ qsptr_t qsdouble_make (qsmem_t * mem, double val)
 {
   qswidenum_t * wn = NULL;
   qsptr_t retval = QSNIL;
-  wn = qswidenum_premake(mem, QSNUMTYPE_LONG, &retval);
-  if (wn)
+  void * payload = NULL;
+  retval = qswidenum_make(mem, QSNUMTYPE_DOUBLE, &payload);
+  if (payload)
     {
-      wn->payload.d = val;
-      return retval;
+      *((double*)payload) = val;
     }
-  return QSERROR_NOMEM;
+  return retval;
 }
 
 int qsdouble_crepr (qsmem_t * mem, qsptr_t d, char * buf, int buflen)
