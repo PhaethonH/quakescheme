@@ -13,7 +13,7 @@
                                 011 sync29
                                0111 iter28 - traverse vector as if list.
                              ..1111 (ptr26)
-                             001111  -
+                             001111 sym26
                              011111 heap26
                              101111  -
                              111111 (extend26)
@@ -82,6 +82,7 @@ typedef union qsbits_u qsbits_t;
 #define SHIFT_INT30 SHIFT_PTR30
 #define SHIFT_SYNC29 SHIFT_PTR29
 #define SHIFT_ITER28 SHIFT_PTR28
+#define SHIFT_SYM26 SHIFT_PTR26
 #define SHIFT_HEAP26 SHIFT_PTR26
 #define SHIFT_CHAR24 SHIFT_PTR24
 #define SHIFT_ERROR16 SHIFT_PTR16
@@ -92,6 +93,7 @@ typedef union qsbits_u qsbits_t;
 #define TAGMASK_ITER28 ((1 << SHIFT_PTR28) - 1)
 #define TAGMASK_SYNC29 ((1 << SHIFT_PTR29) - 1)
 #define TAGMASK_HEAP26 ((1 << SHIFT_PTR26) - 1)
+#define TAGMASK_SYM26 ((1 << SHIFT_PTR26) - 1)
 #define TAGMASK_CHAR24 ((1 << SHIFT_PTR24) - 1)
 #define TAGMASK_ERROR16 ((1 << SHIFT_PTR16) - 1)
 #define TAGMASK_CONST16 ((1 << SHIFT_PTR16) - 1)
@@ -101,6 +103,7 @@ typedef union qsbits_u qsbits_t;
 #define TAG_SYNC29  0x0003
 #define TAG_ITER28  0x0007
 #define TAG_HEAP26  0x001f
+#define TAG_SYM26   0x000f
 #define TAG_CHAR24  0x003f
 #define TAG_ERROR16 0x7eff
 #define TAG_CONST16 0xffff
@@ -110,6 +113,7 @@ typedef union qsbits_u qsbits_t;
 #define QSINT(x) (((x) << SHIFT_INT30) | TAG_INT30)
 #define QSITER(x) (((x) << SHIFT_ITER28) | TAG_ITER28)
 #define QSOBJ(x) (((x) << SHIFT_HEAP26) | TAG_HEAP26)
+#define QSSYM(x) (((x) << SHIFT_SYM26) | TAG_SYM26)
 #define QSCHAR(x) (((x) << SHIFT_CHAR24) | TAG_CHAR24)
 #define QSERROR(x) (((x) << SHIFT_ERROR16) | TAG_ERROR16)
 #define QSCONST(x) (((x) << SHIFT_CONST16) | TAG_CONST16)
@@ -121,6 +125,7 @@ typedef union qsbits_u qsbits_t;
 #define ISITER28(x) ((((qsbits_t)(x)).u & TAGMASK_ITER28) == TAG_ITER28)
 #define ISHEAP26(x) ((((qsbits_t)(x)).u & TAGMASK_HEAP26) == TAG_HEAP26)
 #define ISOBJ26(x) ((((qsbits_t)(x)).u & TAGMASK_HEAP26) == TAG_HEAP26)
+#define ISSYM26(x) ((((qsbits_t)(x)).u & TAGMASK_SYM26) == TAG_SYM26)
 #define ISCHAR24(x) ((((qsbits_t)(x)).u & TAGMASK_CHAR24) == TAG_CHAR24)
 #define ISERROR16(x) ((((qsbits_t)(x)).u & TAGMASK_ERROR16) == TAG_ERROR16)
 #define ISCONST16(x) ((((qsbits_t)(x)).u & TAGMASK_CONST16) == TAG_CONST16)
@@ -130,6 +135,7 @@ typedef union qsbits_u qsbits_t;
 #define CHEAP26(p) ((((qsbits_t)(p)).u & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
 #define CITER28(p) ((((qsbits_t)(p)).u & ~TAGMASK_ITER28) >> SHIFT_ITER28)
 #define COBJ26(p) ((((qsbits_t)(p)).u & ~TAGMASK_HEAP26) >> SHIFT_HEAP26)
+#define CSYM26(p) ((((qsbits_t)(p)).u & ~TAGMASK_SYM26) >> SHIFT_SYM26)
 #define CCHAR24(p) ((((qsbits_t)(p)).u & ~TAGMASK_CHAR24) >> SHIFT_CHAR24)
 #define CERROR16(p) ((((qsbits_t)(p)).u & ~TAGMASK_ERROR16) >> SHIFT_ERROR16)
 #define CCONST16(p) ((((qsbits_t)(p)).u & ~TAGMASK_CONST16) >> SHIFT_CONST16)
@@ -140,7 +146,9 @@ typedef union qsbits_u qsbits_t;
 #define QSBOL QSCONST(3)  // beginning-of-list, nested immlist.
 #define QSEOL QSCONST(4)  // end-of-list, for immlist.
 #define QSBLACKHOLE QSCONST(8)  // 'unassigned' value.
-#define QSRBTREE QSCONST(100)
+#define QSRBTREE QSCONST(0x60)
+#define QSSYMSTORE QSCONST(0x61)
+#define QSSYMBOL QSCONST(0x62)
 // 0x40..0x4f reserved for numeric types.
 /* Numeric tower type enumeration. */
 #define QSNUMTYPE_NAN		QSCONST(0x40)

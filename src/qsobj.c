@@ -748,7 +748,7 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
   if (ISNIL(qsrbtree_ref_top(mem, root)))
     {
       /* empty tree. */
-      root = qsrbtree_setq_top(mem, N, QSNIL);
+      root = qsrbtree_setq_top(mem, root, N);
       return root;
     }
 
@@ -766,9 +766,11 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
     {
       qsptr_t currnode = qsrbtree_ref_down(mem, root);
       d = qstree_ref_data(mem, currnode);
-      if (qspair(mem, d))
+      // TODO: custom comparator
+      if (qstree(mem, d))  // also covers pair (apair).
 	{
-	  qsptr_t currkey = qspair_ref_a(mem, d);
+	  //qsptr_t currkey = qspair_ref_a(mem, d);
+	  qsptr_t currkey = qstree_ref_data(mem, d);
 	  libra = qsstr_cmp(mem, newkey, currkey);
 	}
       else
@@ -950,10 +952,11 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
       d = qstree_ref_data(mem, probe);
       probekey = QSNIL;
       libra = 0;
-      if (qspair(mem, d))
+      // TODO: custom comparator
+      if (qstree(mem, d))
 	{
-	  probekey = qspair_ref_a(mem, d);
-	  // TODO: custom comparator
+	  //probekey = qspair_ref_a(mem, d);
+	  probekey = qstree_ref_data(mem, d);
 	  libra = qsstr_cmp(mem, key, probekey);
 	}
       else
@@ -993,6 +996,180 @@ qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t root, qsptr_t key)
   if (ISNIL(probe)) return QSNIL;
   qsptr_t d = qstree_ref_data(mem, probe);
   return d;
+}
+
+
+
+
+qsibtree_t * qsibtree (qsmem_t * mem, qsptr_t t)
+{
+  qstree_t * tree = qstree(mem, t);
+  return (qsibtree_t*)tree;
+}
+
+qsptr_t qsibtree_make (qsmem_t * mem)
+{
+  qsptr_t retval = qstree_make(mem, QSINT(0), QSNIL, QSNIL);
+  return retval;
+}
+
+qsword qsibtree_ref_filled (qsmem_t * mem, qsptr_t t)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return 0;
+  return CINT30(ibtree->filled);
+}
+
+qsptr_t qsibtree_ref_idx0 (qsmem_t * mem, qsptr_t t)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return QSNIL;
+  return ibtree->idx0;
+}
+
+qsptr_t qsibtree_ref_ones (qsmem_t * mem, qsptr_t t)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return QSNIL;
+  return ibtree->ones;
+}
+
+qsptr_t qsibtree_setq_filled (qsmem_t * mem, qsptr_t t, qsword count)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return t;
+  ibtree->filled = QSINT(count);
+  return t;
+}
+
+qsptr_t qsibtree_setq_idx0 (qsmem_t * mem, qsptr_t t, qsptr_t val)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return t;
+  ibtree->idx0 = val;
+  return t;
+}
+
+qsptr_t qsibtree_setq_ones (qsmem_t * mem, qsptr_t t, qsptr_t val)
+{
+  qsibtree_t * ibtree = qsibtree(mem, t);
+  if (!ibtree) return t;
+  ibtree->ones = val;
+  return t;
+}
+
+qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t t, qsword path)
+{
+  qsptr_t curr = t;
+  qsword remainder = path;
+  while ((remainder > 1) && !ISNIL(curr))
+    {
+      if (remainder & 0x01)
+	{
+	  /* go right. */
+	  curr = qstree_ref_right(mem, curr);
+	}
+      else
+	{
+	  /* go left. */
+	  curr = qstree_ref_left(mem, curr);
+	}
+      remainder >>= 1;
+    }
+  return curr;
+}
+
+qsptr_t qsibnode_pave (qsmem_t * mem, qsptr_t t, qsword path)
+{
+  qsptr_t curr = t;
+  qsword remainder = path;
+  while (remainder > 1)
+    {
+      if (remainder & 0x01)
+	{
+	  /* rightwards. */
+	  if (!ISNIL(qstree_ref_right(mem, curr)))
+	    {
+	      /* go right. */
+	      curr = qstree_ref_right(mem, curr);
+	    }
+	  else
+	    {
+	      /* make right. */
+	      qsptr_t next = qstree_make(mem, QSNIL, QSNIL, QSNIL);
+	      qstree_setq_right(mem, curr, next);
+	      curr = next;
+	    }
+	}
+      else
+	{
+	  /* leftwards. */
+	  if (!ISNIL(qstree_ref_left(mem, curr)))
+	    {
+	      /* go left. */
+	      curr = qstree_ref_left(mem, curr);
+	    }
+	  else
+	    {
+	      /* make left. */
+	      qsptr_t next = qstree_make(mem, QSNIL, QSNIL, QSNIL);
+	      qstree_setq_left(mem, curr, next);
+	      curr = next;
+	    }
+	}
+      remainder >>= 1;
+    }
+  return curr;
+}
+
+qsword qsibtree_length (qsmem_t * mem, qsptr_t t)
+{
+  return qsibtree_ref_filled(mem, t);
+}
+
+qsptr_t qsibtree_ref (qsmem_t * mem, qsptr_t t, qsword path)
+{
+  if (path == 0)
+    {
+      return qsibtree_ref_idx0(mem, t);
+    }
+  qsptr_t ones = qsibtree_ref_ones(mem, t);
+  qsptr_t target = qsibnode_find(mem, ones, path);
+  if (ISNIL(target)) return QSNIL;
+  return qstree_ref_data(mem, target);
+}
+
+qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t t, qsword path, qsptr_t entry)
+{
+  if (path == 0)
+    {
+      qsibtree_setq_idx0(mem, t, entry);
+    }
+  else if (path == 1)
+    {
+      qsptr_t ones = qsibtree_ref_ones(mem, t);
+      if (ISNIL(ones))
+	{
+	  ones = qstree_make(mem, QSNIL, entry, QSNIL);
+	  qsibtree_setq_ones(mem, t, ones);
+	}
+      else
+	{
+	  qstree_setq_data(mem, ones, entry);
+	}
+    }
+  else
+    {
+      qsptr_t target = qsibnode_pave(mem, qsibtree_ref_ones(mem, t), path);
+      qstree_setq_data(mem, target, entry);
+    }
+
+  if (path > CINT30(qsibtree_ref_filled(mem, t)))
+    {
+      qsibtree_setq_filled(mem, t, path);
+    }
+
+  return t;
 }
 
 
@@ -2474,6 +2651,184 @@ int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
   if (lim_a < lim_b) return 1;
   else if (lim_a > lim_b) return -1;
   return 0;
+}
+
+
+
+
+/* Symbols. */
+/* qssym - interned symbols. */
+qsptr_t qssym (qsmem_t * mem, qsptr_t y)
+{
+  if (ISSYM26(y)) return y;
+  else return QSNIL;
+}
+
+qsword qssym_get (qsmem_t * mem, qsptr_t y)
+{
+  if (ISNIL(qssym(mem, y))) return 0;
+  return CSYM26(y);
+}
+
+qsptr_t qssym_make (qsmem_t * mem, qsptr_t symbol_id)
+{
+  return QSSYM(symbol_id);
+}
+
+int qssym_crepr (qsmem_t * mem, qsptr_t y, char * buf, int buflen)
+{
+  int n = 0;
+  return n;
+}
+
+
+
+/* qssymbol - tie name and id. */
+qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy)
+{
+  qsmemaddr_t out_addr = 0;
+  qsobj_t * obj = qsobj(mem, yy, &out_addr);
+  if (!obj) return NULL;
+  qssymbol_t * symbol = (qssymbol_t*)obj;
+//  if (symbol->indicator != yy) return NULL;
+  if (!qsstr(mem, symbol->name)) return NULL;
+  //if (!qssym(mem, symbol->id)) return NULL;
+  if (CINT30(qstree_ref_right(mem, yy)) != COBJ26(yy)) return NULL;
+  /* right field should be a symbol id that points back to object itself. */
+  //if (out_addr != qssym_get(mem, symbol->id)) return NULL;
+  return symbol;
+}
+
+qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t yy)
+{
+  qssymbol_t * symbol = qssymbol(mem, yy);
+  if (!symbol) return QSNIL;
+  return symbol->name;
+}
+
+qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t yy)
+{
+  qssymbol_t * symbol = qssymbol(mem, yy);
+  if (!symbol) return QSNIL;
+  //return symbol->id;
+  return COBJ26(yy);
+}
+
+qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name)
+{
+  // TODO: copy name?
+#if 0
+  qsptr_t retval = qstree_make(mem, QSNIL, name, QSNIL);
+  if (!ISOBJ26(retval)) return retval;
+//  /* left field points back to object. */
+//  qstree_setq_left(mem, retval, retval);
+  /* right field ends up pointing to self. */
+  qsmemaddr_t addr = COBJ26(retval);
+  qsptr_t y = qssym_make(mem, addr);
+  qstree_setq_right(mem, retval, y);
+#else
+  qsptr_t retval = qstree_make(mem, QSSYMBOL, name, QSNIL);
+  if (!ISOBJ26(retval)) return retval;
+  /* right field value to address value. */
+  qstree_setq_right(mem, retval, QSINT(COBJ26(retval)));
+#endif //0
+
+  return retval;
+}
+
+
+
+/* symstore - composed of two structures:
+   1. symtable - indexed by integer, resolves symbol_id to symbol_name.
+   2. symtree - indexed by name, resolves symbol_name to symbol_id.
+*/
+
+qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t o)
+{
+  qsobj_t * obj = qsobj(mem, o, NULL);
+  if (!obj) return NULL;
+  qssymstore_t * ystore = (qssymstore_t*)obj;
+  if (ystore->tag != QSSYMSTORE) return NULL;
+  return ystore;
+}
+
+qsptr_t qssymstore_make (qsmem_t * mem)
+{
+  qsptr_t retval = QSNIL;
+  qsmemaddr_t addr = 0;
+  if (!ISOBJ26((retval = qsobj_make(mem, 1, 0, &addr)))) return retval;
+
+  qssymstore_t * symstore = (qssymstore_t*)qsobj(mem, retval, NULL);
+  symstore->tag = QSSYMSTORE;
+  symstore->table = qsibtree_make(mem);
+  symstore->tree = qsrbtree_make(mem, QSNIL, QSNIL);
+  return retval;
+}
+
+qsptr_t qssymstore_ref_table (qsmem_t * mem, qsptr_t o)
+{
+  qssymstore_t * ystore = qssymstore(mem, o);
+  if (! ystore) return QSNIL;
+  return ystore->table;
+}
+qsptr_t qssymstore_ref_tree (qsmem_t * mem, qsptr_t o)
+{
+  qssymstore_t * ystore = qssymstore(mem, o);
+  if (! ystore) return QSNIL;
+  return ystore->tree;
+}
+
+qsptr_t qssymstore_setq_table (qsmem_t * mem, qsptr_t o, qsptr_t val)
+{
+  qssymstore_t * ystore = qssymstore(mem, o);
+  if (! ystore) return QSNIL;
+  return ystore->table;
+}
+qsptr_t qssymstore_setq_tree (qsmem_t * mem, qsptr_t o, qsptr_t val)
+{
+  qssymstore_t * ystore = qssymstore(mem, o);
+  if (! ystore) return QSNIL;
+  return ystore->tree;
+}
+
+/* symbol objects are not interned by default. */
+qsptr_t qssymstore_intern (qsmem_t * mem, qsptr_t o, qsptr_t symbol_object)
+{
+  /* insert linearly into table. */
+#if 0
+  qsptr_t ibtree = qssymstore_ref_table(mem, o);
+  qsword symid = qsibtree_ref_filled(mem, ibtree);
+  ibtree = qsibtree_setq(mem, ibtree, symid, symbol_object);
+  qssymstore_setq_table(mem, o, ibtree);
+#endif //0
+  /* insert lookup into tree. */
+  qsptr_t rbtree = qssymstore_ref_tree(mem, o);
+  rbtree = qsrbtree_insert(mem, rbtree, symbol_object);
+  qssymstore_setq_tree(mem, o, rbtree);
+  
+  return o;
+}
+
+/* Obtain symbol object by id:int. */
+qsptr_t qssymstore_ref (qsmem_t * mem, qsptr_t o, qsword sym_id)
+{
+  qsptr_t ibtree = qssymstore_ref_table(mem, o);
+  qsptr_t retval = qsibtree_ref(mem, ibtree, sym_id);
+  return retval;
+}
+
+/* Obtain symbol object by name:str. */
+qsptr_t qssymstore_assoc (qsmem_t * mem, qsptr_t o, qsptr_t key)
+{
+  qsptr_t rbtree = qssymstore_ref_tree(mem, o);
+  qsptr_t retval = qsrbtree_assoc(mem, rbtree, key);
+  return retval;
+}
+
+int qssymstore_crepr (qsmem_t * mem, qsptr_t o)
+{
+  int n = 0;
+  return n;
 }
 
 

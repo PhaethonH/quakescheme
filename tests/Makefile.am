@@ -8,7 +8,9 @@ TESTS = test_qsptr \
   test_qsiter \
   test_qsstr \
   test_rbtree \
-  test_gc
+  test_ibtree \
+  test_gc \
+  test_symbols
 
 
 

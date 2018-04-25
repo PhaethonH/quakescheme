@@ -22,8 +22,12 @@ Pointer types (mgmt.o=0):
 type	| allocscale	| _0 (discrim)	| _1		| _2
 cons	| 0		| =QSNIL	| car		| cdr
 tree	| 0		| :ptr   	| :ptr   	| :ptr
-immlist	| >0		| =QSNIL	| gc_backtrac	| gc_iter
+ibtree	| 0             | :int30	| idx0:ptr	| _1:ptr
+symbol	| 0		| self:ptr	| name:ptr	| val:int30
+immlist	| >0		| =QSNIL	| gc_backtrack	| gc_iter
 vector	| >0		| :int30	| gc_backtrack	| gc_iter
+rbtree	| =1		| QSRBTREE	| top_node:ptr	| key_cmp:ptr
+			| mutex:int30	| up:ptr	| down:ptr
 
 Octet types (mgmt.o=1):
 type	| allocscale	| _0 (discrim)	| _1		| _2
@@ -171,6 +175,37 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair);
 qsptr_t qsrbtree_find (qsmem_t * mem, qsptr_t rbtree, qsptr_t key, qsptr_t * nearest_match);
 /* Find data node (assocation pair) based on key in red-black tree. */
 qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t rbtree, qsptr_t key);
+
+
+
+
+/* Indexed-binary tree. */
+typedef struct qsibtree_s {
+    qsptr_t mgmt;
+    qsptr_t filled; /* :int30 */
+    qsptr_t idx0;   /* [0] is special case. */
+    qsptr_t ones;   /* everything else. */
+} qsibtree_t;
+
+qsibtree_t * qsibtree (qsmem_t * mem, qsptr_t t);
+qsptr_t qsibtree_make (qsmem_t * mem);
+qsword qsibtree_ref_filled (qsmem_t * mem, qsptr_t t);
+qsptr_t qsibtree_ref_idx0 (qsmem_t * mem, qsptr_t t);
+qsptr_t qsibtree_ref_ones (qsmem_t * mem, qsptr_t t);
+qsptr_t qsibtree_setq_filled (qsmem_t * mem, qsptr_t t, qsword val);
+qsptr_t qsibtree_setq_idx0 (qsmem_t * mem, qsptr_t t, qsptr_t val);
+qsptr_t qsibtree_setq_ones (qsmem_t * mem, qsptr_t t, qsptr_t val);
+
+qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t ibnode, qsword path);
+
+qsptr_t qsibtree_find (qsmem_t * mem, qsptr_t ibnode, qsword idx);
+
+/* Main entry points: (ibtree-ref IBTREE NTH), (ibtree-set! IBTREE NTH VALUE) */
+qsword qsibtree_length (qsmem_t * mem, qsptr_t ibnode);
+qsptr_t qsibtree_ref (qsmem_t * mem, qsptr_t ibnode, qsword idx);
+qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t ibnode, qsword idx, qsptr_t val);
+
+
 
 
 /* Pair - linked list as degenerate case of tree with no left child */
@@ -423,6 +458,46 @@ qsptr_t qsstr_inject_wchar (qsmem_t * mem, const wchar_t * ws, qsword wslen);
 qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen);
 qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wslen);
 int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
+
+
+
+
+/* Symbols */
+/* qssym = wraps index into interned symbol table, for (eq? ...) use. */
+/* qssymbol = object in heap tying together name and id, for name->id lookup. */ 
+qsptr_t qssym (qsmem_t * mem, qsptr_t y);
+qsword qssym_get (qsmem_t * mem, qsptr_t y);
+qsptr_t qssym_make (qsmem_t * mem, qsptr_t symbol_id);
+int qssym_crepr (qsmem_t * mem, qsptr_t y, char * buf, int buflen);
+
+typedef struct qssymbol_s {
+    qsptr_t mgmt;
+    qsptr_t indicator;	  // point to self.
+    qsptr_t name;
+    qsptr_t id;
+} qssymbol_t;
+
+qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy);
+qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t yy);
+qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t yy);
+qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name);
+
+typedef struct qssymstore_s {
+    qsptr_t mgmt;
+    qsptr_t tag;
+    qsptr_t table;
+    qsptr_t tree;
+} qssymstore_t;
+
+qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t o);
+qsptr_t qssymstore_make (qsmem_t * mem);
+qsptr_t qssymstore_ref_table (qsmem_t * mem, qsptr_t o);
+qsptr_t qssymstore_ref_tree (qsmem_t * mem, qsptr_t o);
+qsptr_t qssymstore_setq_table (qsmem_t * mem, qsptr_t o, qsptr_t val);
+qsptr_t qssymstore_setq_tree (qsmem_t * mem, qsptr_t o, qsptr_t val);
+qsptr_t qssymstore_intern (qsmem_t * mem, qsptr_t o, qsptr_t y);
+qsptr_t qssymstore_ref (qsmem_t * mem, qsptr_t o, qsptr_t key);
+qsptr_t qssymstore_assoc (qsmem_t * mem, qsptr_t o, qsptr_t key);
 
 
 
