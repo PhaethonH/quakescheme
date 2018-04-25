@@ -577,7 +577,7 @@ qsptr_t qstree_ref_left (qsmem_t * mem, qsptr_t t)
       // TODO: exception.
       return QSNIL;
     }
-  return tree->left;
+  return qsobj_ref_ptr(mem, t, 1);  /* .left */
 }
 
 qsptr_t qstree_ref_data (qsmem_t * mem, qsptr_t t)
@@ -588,7 +588,7 @@ qsptr_t qstree_ref_data (qsmem_t * mem, qsptr_t t)
       // TODO: exception.
       return QSNIL;
     }
-  return tree->data;
+  return qsobj_ref_ptr(mem, t, 2);  /* .data */
 }
 
 qsptr_t qstree_ref_right (qsmem_t * mem, qsptr_t t)
@@ -599,7 +599,7 @@ qsptr_t qstree_ref_right (qsmem_t * mem, qsptr_t t)
       // TODO: exception.
       return QSNIL;
     }
-  return tree->right;
+  return qsobj_ref_ptr(mem, t, 3);  /* .right */
 }
 
 qsptr_t qstree_setq_left (qsmem_t * mem, qsptr_t t, qsptr_t val)
@@ -610,7 +610,7 @@ qsptr_t qstree_setq_left (qsmem_t * mem, qsptr_t t, qsptr_t val)
       // TODO: exception.
       return QSNIL;
     }
-  tree->left = val;
+  qsobj_setq_ptr(mem, t, 1, val);  /* .left = val */
   return t;
 }
 
@@ -622,7 +622,7 @@ qsptr_t qstree_setq_data (qsmem_t * mem, qsptr_t t, qsptr_t val)
       // TODO: exception.
       return QSNIL;
     }
-  tree->data = val;
+  qsobj_setq_ptr(mem, t, 2, val);  /* .data = val */
   return t;
 }
 
@@ -634,7 +634,7 @@ qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val)
       // TODO: exception.
       return QSNIL;
     }
-  tree->right = val;
+  qsobj_setq_ptr(mem, t, 3, val);  /* .right = val */
   return t;
 }
 
@@ -644,10 +644,9 @@ qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
   qsmemaddr_t addr = 0;
   if (!ISOBJ26((retval = qsobj_make(mem, 1, 0, &addr)))) return retval;
 
-  qstree_t * tree = (qstree_t*)qsobj(mem, retval, NULL);
-  tree->left = left;
-  tree->data = data;
-  tree->right = right;
+  qsobj_setq_ptr(mem, retval, 1, left);  /* .left = left */
+  qsobj_setq_ptr(mem, retval, 2, data);  /* .data = data */
+  qsobj_setq_ptr(mem, retval, 3, right); /* .right = right */
   return retval;
 }
 
@@ -1433,7 +1432,7 @@ qspair_t * qspair (qsmem_t * mem, qsptr_t p)
 {
   qstree_t * tree = qstree(mem, p);
   if (!tree) return NULL;
-  if (tree->left != QSNIL) return NULL;
+  if (! ISNIL(qsobj_ref_ptr(mem, p, 1))) return NULL;  /* ! ISNIL(.left) */
   return (qspair_t *)tree;
 }
 
