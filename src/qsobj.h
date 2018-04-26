@@ -580,7 +580,6 @@ typedef struct qssymbol_s {
     qsptr_t id;
 } qssymbol_t;
 
-qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy);
 bool qssymbol_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t p);
 qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t p);
@@ -593,7 +592,6 @@ typedef struct qssymstore_s {
     qsptr_t tree;
 } qssymstore_t;
 
-qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t o);
 bool qssymstore_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qssymstore_make (qsmem_t * mem);
 qsptr_t qssymstore_ref_table (qsmem_t * mem, qsptr_t p);

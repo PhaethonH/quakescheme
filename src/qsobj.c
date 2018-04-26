@@ -2945,19 +2945,15 @@ qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy)
   return symbol;
 }
 
-qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t yy)
+PREDICATE(qssymbol)
 {
-  qssymbol_t * symbol = qssymbol(mem, yy);
-  if (!symbol) return QSNIL;
-  return qsobj_ref_ptr(mem, yy, 2);   /* .name */
+  FILTER_ISA(qstree_p)    return 0;
+  FILTER_E_IS(QSSYMBOL)   return 0;
+  return 1;
 }
 
-qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t yy)
-{
-  qssymbol_t * symbol = qssymbol(mem, yy);
-  if (!symbol) return QSNIL;
-  return COBJ26(yy);
-}
+FIELD_RO(qsptr_t, qssymbol, name, 2, QSID)
+FIELD_RO(qsptr_t, qssymbol, id, 3, QSID)
 
 qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name)
 {
@@ -2988,58 +2984,29 @@ qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name)
    2. symtree - indexed by name, resolves symbol_name to symbol_id.
 */
 
-qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t o)
+PREDICATE(qssymstore)
 {
-  qsobj_t * obj = qsobj(mem, o, NULL);
-  if (!obj) return NULL;
-  qssymstore_t * ystore = (qssymstore_t*)obj;
-  qsptr_t tag = qsobj_ref_ptr(mem, o, 1);  /* .tag */
-  if (tag != QSSYMSTORE) return NULL;
-  return ystore;
+  FILTER_ISA(qstree_p)      return 0;
+  FILTER_E_IS(QSSYMSTORE)   return 0;
+  return 1;
 }
+
+FIELD_RW(qsptr_t, qssymstore, table, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qssymstore, tree, 3, QSID,QSID)
 
 qsptr_t qssymstore_make (qsmem_t * mem)
 {
-  qsptr_t retval = QSNIL;
-  qsmemaddr_t addr = 0;
-  if (!ISOBJ26((retval = qsobj_make(mem, 1, 0, &addr)))) return retval;
+  OBJ_MAKE_BAYS(1, 0);
 
   qsptr_t tag = QSSYMSTORE;
   qsptr_t table = qsibtree_make(mem);
   qsptr_t tree = qsrbtree_make(mem, QSNIL, QSNIL);
 
-  qsobj_setq_ptr(mem, retval, 1, tag);	  /* .tag = tag */
-  qsobj_setq_ptr(mem, retval, 2, table);  /* .table = table */
-  qsobj_setq_ptr(mem, retval, 3, tree);	  /* .tree = tree */
-  return retval;
-}
+  MUTATE_PTR(1, tag);     /* .tag = tag */
+  MUTATE_PTR(2, table);   /* .table = table */
+  MUTATE_PTR(3, tree);    /* .tree = tree */
 
-qsptr_t qssymstore_ref_table (qsmem_t * mem, qsptr_t o)
-{
-  qssymstore_t * ystore = qssymstore(mem, o);
-  if (! ystore) return QSNIL;
-  return qsobj_ref_ptr(mem, o, 2);
-}
-qsptr_t qssymstore_ref_tree (qsmem_t * mem, qsptr_t o)
-{
-  qssymstore_t * ystore = qssymstore(mem, o);
-  if (! ystore) return QSNIL;
-  return qsobj_ref_ptr(mem, o, 3);
-}
-
-qsptr_t qssymstore_setq_table (qsmem_t * mem, qsptr_t o, qsptr_t val)
-{
-  qssymstore_t * ystore = qssymstore(mem, o);
-  if (! ystore) return QSNIL;
-  qsobj_setq_ptr(mem, o, 2, val);
-  return o;
-}
-qsptr_t qssymstore_setq_tree (qsmem_t * mem, qsptr_t o, qsptr_t val)
-{
-  qssymstore_t * ystore = qssymstore(mem, o);
-  if (! ystore) return QSNIL;
-  qsobj_setq_ptr(mem, o, 3, val);
-  return o;
+  return p;
 }
 
 /* symbol objects are not interned by default. */

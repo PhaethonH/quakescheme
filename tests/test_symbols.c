@@ -42,7 +42,7 @@ START_TEST(test_build1)
   // create symbol table.
   qsptr_t y1 = qssymbol_make(heap1, strs[0]);
   ck_assert_int_ne(y1, QSNIL);
-  ck_assert(qssymbol(heap1, y1));
+  ck_assert(qssymbol_p(heap1, y1));
 
   // intern symbol "foobar".
   qsptr_t ystore = qssymstore_make(heap1);
