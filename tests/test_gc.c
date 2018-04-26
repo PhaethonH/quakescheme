@@ -51,12 +51,12 @@ START_TEST(test_mark1)
 
   ck_assert_int_eq(qsvector_ref(heap1, v, 0), cells[0]);
 
-  ck_assert(qspair(heap1, cells[0]));
-  ck_assert(qspair(heap1, cells[1]));
-  ck_assert(qspair(heap1, cells[2]));
-  ck_assert(qspair(heap1, cells[3]));
-  ck_assert(qspair(heap1, cells[4]));
-  ck_assert(qsvector(heap1, v, NULL));
+  ck_assert(qspair_p(heap1, cells[0]));
+  ck_assert(qspair_p(heap1, cells[1]));
+  ck_assert(qspair_p(heap1, cells[2]));
+  ck_assert(qspair_p(heap1, cells[3]));
+  ck_assert(qspair_p(heap1, cells[4]));
+  ck_assert(qsvector_p(heap1, v));
   ck_assert_int_eq(COBJ26(cells[0]), 19999);
   ck_assert_int_eq(COBJ26(cells[1]), 19998);
   ck_assert_int_eq(COBJ26(cells[2]), 19997);

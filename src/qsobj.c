@@ -55,17 +55,24 @@ const char * __p (qsptr_t p)
 
 
 /* Attempt to cast to object (else freelist or data) */
+qsobj_t * qsobj_at (qsmem_t * mem, qsmemaddr_t addr)
+{
+  if (! qsheap_is_valid(mem, addr)) return NULL;
+  qsobj_t * obj = (qsobj_t*)qsheap_ref(mem, addr);
+  if (! qsheap_is_synced(mem, addr)) return NULL;
+  if (! qsheap_is_used(mem, addr)) return NULL;
+  return obj;
+}
+
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   if (!ISHEAP26(p)) return NULL;
   qsmemaddr_t addr = COBJ26(p);
-  qsobj_t * retval = (qsobj_t*)qsheap_ref(mem, addr);
-  if (!retval) return NULL;
-  if (! qsheapcell_is_synced((qsheapcell_t*)retval)) return NULL;
-  if (! qsheapcell_is_used((qsheapcell_t*)retval)) return NULL;
+  qsobj_t * obj = qsobj_at(mem, addr);
+  if (!obj) return NULL;
   if (out_addr)
     *out_addr = addr;
-  return retval;
+  return obj;
 }
 
 int qsobj_used_p (qsmem_t * mem, qsptr_t p)
@@ -73,14 +80,23 @@ int qsobj_used_p (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheapcell_is_used((qsheapcell_t*)obj);
+  return qsheap_is_used(mem, addr);
 }
 
 int qsobj_marked_p (qsmem_t * mem, qsptr_t p)
 {
-  qsobj_t * obj = qsobj(mem, p, NULL);
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheapcell_is_marked((qsheapcell_t*)obj);
+  return qsheap_is_marked(mem, addr);
+}
+
+int qsobj_octetate_p (qsmem_t * mem, qsptr_t p)
+{
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return 0;
+  return qsheap_is_octetate(mem, addr);
 }
 
 int qsobj_ref_parent (qsmem_t * mem, qsptr_t p)
@@ -88,110 +104,248 @@ int qsobj_ref_parent (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheapcell_get_parent((qsheapcell_t*)obj);
+  return qsheap_get_parent(mem, addr);
 }
 
 int qsobj_ref_score (qsmem_t * mem, qsptr_t p)
 {
-  qsobj_t * obj = qsobj(mem, p, NULL);
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheapcell_get_score((qsheapcell_t*)obj);
+  return qsheap_get_score(mem, addr);
+}
+
+qsword qsobj_ref_nbays (qsmem_t * mem, qsptr_t p)
+{
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return 0;
+  int allocscale = qsheap_get_allocscale(mem, addr);
+  return (1 << allocscale);
 }
 
 qsword qsobj_ref_allocsize (qsmem_t * mem, qsptr_t p)
 {
-  qsobj_t * obj = qsobj(mem, p, NULL);
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  int allocscale = qsheapcell_get_allocscale((qsheapcell_t*)obj);
+  int allocscale = qsheap_get_allocscale(mem, addr);
   return (1 << allocscale);
-}
-
-qsptr_t qsobj_get (qsmem_t * mem, qsptr_t p, qsword field_idx)
-{
-  qsobj_t * obj = qsobj(mem, p, NULL);
-  if (!obj) return QSNIL;
-  switch (field_idx)
-    {
-    case 0: return obj->_0; break;
-    case 1: return obj->_1; break;
-    case 2: return obj->_2; break;
-    default: return QSNIL; break;
-    }
-  return QSNIL;
 }
 
 qsptr_t qsobj_setq_marked (qsmem_t * mem, qsptr_t p, qsword val)
 {
-  qsobj_t * obj = qsobj(mem, p, NULL);
-  if (!obj) return 0;
-  qsheapcell_set_marked((qsheapcell_t*)obj, val);
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return QSERROR_INVALID;
+  qsheap_set_marked(mem, addr, val);
   return p;
 }
 
 qsptr_t qsobj_setq_score (qsmem_t * mem, qsptr_t p, qsword val)
 {
-  qsobj_t * obj = qsobj(mem, p, NULL);
-  if (!obj) return 0;
-  qsheapcell_set_score((qsheapcell_t*)obj, val);
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return QSERROR_INVALID;
+  qsheap_set_score(mem, addr, val);
   return p;
 }
 
 qsptr_t qsobj_setq_parent (qsmem_t * mem, qsptr_t p, qsword val)
 {
-  qsobj_t * obj = qsobj(mem, p, NULL);
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  qsheapcell_set_parent((qsheapcell_t*)obj, val);
+  qsheap_set_parent(mem, addr, val);
   return p;
 }
 
-/* Object as single-celled pointer contents. */
-qsobj_t * qsobj_unicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+/* Object as single-bay pointer contents. */
+qsobj_t * qsobj_unibayptr (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
-  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  if (qsheapcell_is_octet(heapcell)) return NULL;
-  if (qsheapcell_get_allocscale(heapcell) > 0) return NULL;
+  if (qsobj_octetate_p(mem, p)) return NULL;
+  if (qsobj_ref_nbays(mem, p) != 1) return NULL;
   return obj;
 }
 
-/* Object as multi-celled pointer contents. */
-qsobj_t * qsobj_multicellular (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+/* Object as multi-bay pointer contents. */
+qsobj_t * qsobj_multibayptr (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
-  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  if (qsheapcell_is_octet(heapcell)) return NULL;
-  if (qsheapcell_get_allocscale(heapcell) == 0) return NULL;
+  if (qsobj_octetate_p(mem, p)) return NULL;
+  if (qsobj_ref_nbays(mem, p) <= 1) return NULL;
   return obj;
 }
 
-/* Object is single-celled octet contents (uni- octet -ate). */
-qsobj_t * qsobj_unioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+/* Object is single-bay octet contents. */
+qsobj_t * qsobj_unibayoct (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
-  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  if (! qsheapcell_is_octet(heapcell)) return NULL;
-  if (qsheapcell_get_allocscale(heapcell) > 0) return NULL;
+  if (! qsobj_octetate_p(mem, p)) return NULL;
+  if (qsobj_ref_nbays(mem, p) > 1) return NULL;
   return obj;
 }
 
-/* Object is multi-celled octet contents (multi- octet -ate). */
-qsobj_t * qsobj_multioctetate (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
+/* Object is multi-bay octet contents. */
+qsobj_t * qsobj_multibayoct (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr)
 {
   qsobj_t * obj = qsobj(mem, p, out_addr);
   if (!obj) return NULL;
-  qsheapcell_t * heapcell = (qsheapcell_t*)obj;
-  if (! qsheapcell_is_octet(heapcell)) return NULL;
-  if (qsheapcell_get_allocscale(heapcell) == 0) return NULL;
+  if (! qsobj_octetate_p(mem, p)) return NULL;
+  if (qsobj_ref_nbays(mem, p) <= 1) return NULL;
   return obj;
 }
+
+
+/* Helper: prepare for access or mutation of a ptr field.
+   Returns pointer to qsptr_t ready for read and write.
+   NULL if inaccessible (typically out-of-bounds).
+ */
+qsptr_t * qsobj_prepare_ptr (qsmem_t * mem, qsptr_t p, qsword field_idx)
+{
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return NULL;
+
+  if (field_idx == 0) return &(obj->mgmt); /* shortcut around other checks. */
+
+  int octetate = qsheap_is_octetate(mem, addr);
+  int multi = (qsheap_get_allocscale(mem, addr) > 0);
+  qsword allocscale = qsheap_get_allocscale(mem, addr);
+  static const int nptr_scale = 4;  /* ptr-per-bay */
+  size_t hardlimit = (1 << allocscale) * nptr_scale;
+  if (octetate)
+    {
+      if (!multi)
+	{
+	  /* unibay_oct: 0,1 */
+	  hardlimit = 2;
+	}
+      else
+	{
+	  /* multibay_oct: 0..3 */
+	  hardlimit = 4;
+	}
+    }
+  if (field_idx >= hardlimit)
+    return NULL;
+  /* Warning: pointer arithmetic */
+  return ((qsptr_t*)(obj)) + field_idx;
+}
+
+/* Get start of arbitrary data elements (address of d[0]).
+   Writes size of memory region to '*len', if not NULL.
+   Returns NULL if no such field available.
+
+   Primarily for accessing as widenum.
+   Also helps with accessing members of vector and bytevector.
+
+   Warning: lots of pointer arithmetic.
+*/
+void * qsobj_ref_data (qsmem_t * mem, qsptr_t p, size_t * len)
+{
+  void * retval = NULL;
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return NULL;
+
+  int octetate = qsheap_is_octetate(mem, addr);
+  int multi = (qsheap_get_allocscale(mem, addr) > 0);
+  static const int noct_scale = 16;
+  qsword allocscale = qsheap_get_allocscale(mem, addr);
+  size_t all_bytes = (1 << allocscale) * noct_scale;
+  if (octetate)
+    {
+      if (multi)
+	{
+	  all_bytes -= 16;
+	  retval = (void*)(obj+1);
+	}
+      else
+	{
+	  all_bytes -= 8;
+	  retval = (void*)&(obj->_1);
+	}
+    }
+  else
+    {
+      if (multi)
+	{
+	  all_bytes -= 16;
+	  retval = (void*)(obj+1);
+	}
+      else
+	{
+	  all_bytes = 0;
+	  retval = NULL;
+	}
+    }
+  if (len)
+    *len = all_bytes;
+  return retval;
+}
+
+/* Helper: prepare for access or mutation of an octet (byte).
+   Returns pointer to uint8_t ready for read and write.
+   NULL if inaccessible (typically out-of-bounds).
+ */
+uint8_t * qsobj_prepare_octet (qsmem_t * mem, qsptr_t p, qsword field_idx)
+{
+  uint8_t * octet_base = NULL;
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return NULL;
+
+  int octetate = qsheap_is_octetate(mem, addr);
+  if (!octetate) return NULL;
+
+  size_t hardlimit = 0;
+  octet_base = (uint8_t*)qsobj_ref_data(mem, p, &hardlimit);
+  if (!octet_base) return NULL;
+  if ((field_idx < 0) || (field_idx >= hardlimit)) return NULL;
+  /* Warning: pointer arithmetic */
+  return octet_base + field_idx;
+}
+
+qsptr_t qsobj_ref_ptr (qsmem_t * mem, qsptr_t p, qsword field_idx)
+{
+  qsptr_t * ptr = qsobj_prepare_ptr(mem, p, field_idx);
+  if (!ptr) return QSERROR_INVALID;
+  return *ptr;
+}
+
+int qsobj_ref_octet (qsmem_t * mem, qsptr_t p, qsword field_idx)
+{
+  uint8_t * octet = qsobj_prepare_octet(mem, p, field_idx);
+  if (!octet) return -1;
+  return *octet;
+}
+
+qserror_t qsobj_setq_ptr (qsmem_t * mem, qsptr_t p, qsword field_idx, qsptr_t val)
+{
+  qsptr_t * ptr = qsobj_prepare_ptr(mem, p, field_idx);
+  if (!ptr) return QSERROR_INVALID;
+  *ptr = val;
+  return QSERROR_OK;
+}
+
+qserror_t qsobj_setq_octet (qsmem_t * mem, qsptr_t p, qsword field_idx, int val)
+{
+  uint8_t * octet = qsobj_prepare_octet(mem, p, field_idx);
+  if (!octet) return QSERROR_INVALID;
+  *octet = val;
+  return QSERROR_OK;
+}
+
 
 /*
    Conglomerated allocation logic:
 
-   [in]k - number of cells (non-octetate) or number of bytes (octetate).
+   [in]k - number of bays (non-octetate) or number of bytes (octetate).
    [in]octetate - contents are bytes, else contents are pointers.
    [out]out_addr - linear address in heap space.
 
@@ -208,7 +362,7 @@ qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_add
     }
   else
     {
-      retval = qsheap_alloc_ncells(mem, (k>1)?k:1, &addr);
+      retval = qsheap_alloc_nbays(mem, (k>1)?k:1, &addr);
     }
 
   if (retval == QSERROR_OK)
@@ -221,187 +375,67 @@ qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_add
   return retval;
 }
 
-qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
-{
-  qsmemaddr_t addr = 0;
-  qsobj_t * obj = qsobj(mem, p, &addr);
-  if (!obj) return QSERROR_OK;
-  qsptr_t currptr = p;
-  qsptr_t backptr = QSNIL;
-  qsptr_t next_visit = QSNIL;
 
-  backptr = QSERROR_INVALID;
-  while (currptr != QSERROR_INVALID)
-    {
-      if (qstree(mem, currptr))
-	{
-	  qstree_kmark(mem, currptr, backptr, &next_visit);
-	  backptr = currptr;
-	}
-      else if (qsvector(mem, currptr, NULL))
-	{
-	  qsvector_kmark(mem, currptr, backptr, &next_visit);
-	  backptr = currptr;
-	}
-      else
-	{
-	  next_visit = backptr;
-	  backptr = currptr;
-	}
-      currptr = next_visit;
-    }
-  return QSERROR_OK;
-}
-
-
-
-
-qstree_t * qstree (qsmem_t * mem, qsptr_t t)
-{
-  qsobj_t * obj = qsobj_unicellular(mem, t, NULL);
-  if (!obj) return NULL;
-  return (qstree_t *)obj;
-}
-
-qsptr_t qstree_ref_left (qsmem_t * mem, qsptr_t t)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  return tree->left;
-}
-
-qsptr_t qstree_ref_data (qsmem_t * mem, qsptr_t t)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  return tree->data;
-}
-
-qsptr_t qstree_ref_right (qsmem_t * mem, qsptr_t t)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  return tree->right;
-}
-
-qsptr_t qstree_setq_left (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  tree->left = val;
-  return t;
-}
-
-qsptr_t qstree_setq_data (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  tree->data = val;
-  return t;
-}
-
-qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  tree->right = val;
-  return t;
-}
-
-qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
-{
-  qsptr_t retval = QSNIL;
-  qsmemaddr_t addr = 0;
-  if (!ISOBJ26((retval = qsobj_make(mem, 1, 0, &addr)))) return retval;
-
-  qstree_t * tree = (qstree_t*)qsobj(mem, retval, NULL);
-  tree->left = left;
-  tree->data = data;
-  tree->right = right;
-  return retval;
-}
-
-qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
+qserror_t qsobj_kmark_unibayptr (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
 {
   *nextptr = QSNIL;
   qsptr_t currptr = p;
   qsptr_t tempptr = QSNIL;
-  qstree_t * tree = qstree(mem, p);  // try to get as tree.
-  qsheapcell_t * heapcell = (qsheapcell_t*)tree;  // manipulate heap mgmt.
-  if (!heapcell || qsheapcell_is_marked(heapcell))
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj || qsobj_marked_p(mem, p))
     {
-      /* invalid tree or already marked; nothing to recurse. */
+      /* invalid object or already marked; nothing to recurse. */
       *nextptr = backptr;
       return QSERROR_OK;
     }
-  int parent = 0;
 
-  parent = qsheapcell_get_parent(heapcell);
+  int parent = 0;
+  parent = qsobj_ref_parent(mem, p);
+  qsptr_t parentptr = QSNIL;
   switch (parent)
     {
     case 0:
       /* chase left. */
       // store parent into "left" while chasing "left".
-      tempptr = heapcell->fields[0];
-      heapcell->fields[0] = backptr;
+      tempptr = qsobj_ref_ptr(mem, p, 1);
+      qsobj_setq_ptr(mem, p, 1, backptr);
       // chase "left".
       currptr = tempptr;
-      qsheapcell_set_parent(heapcell, 1);
+      qsobj_setq_parent(mem, p, 1);
       break;
     case 1:
       /* chase center. */
       // swap "left=parent" with "center" while chasing "center".
-      tempptr = heapcell->fields[1];
-      heapcell->fields[1] = heapcell->fields[0];
-      heapcell->fields[0] = backptr;
+      tempptr = qsobj_ref_ptr(mem, p, 2);
+      parentptr = qsobj_ref_ptr(mem, p, 1);
+      qsobj_setq_ptr(mem, p, 2, parentptr);
+      qsobj_setq_ptr(mem, p, 1, backptr);
       // chase "center".
       currptr = tempptr;
-      qsheapcell_set_parent(heapcell, 2);
+      qsobj_setq_parent(mem, p, 2);
       break;
     case 2:
       /* chase right. */
       // swap "center=parent" with "right" while chasing "right".
-      tempptr = heapcell->fields[2];
-      heapcell->fields[2] = heapcell->fields[1];
-      heapcell->fields[1] = backptr;
+      tempptr = qsobj_ref_ptr(mem, p, 3);
+      parentptr = qsobj_ref_ptr(mem, p, 2);
+      qsobj_setq_ptr(mem, p, 3, parentptr);
+      qsobj_setq_ptr(mem, p, 2, backptr);
       // chase "center".
       currptr = tempptr;
-      qsheapcell_set_parent(heapcell, 3);
+      qsobj_setq_parent(mem, p, 3);
       break;
     case 3:
       /* backtrack to parent. */
       // restore "right=parent" and while chasing "parent".
-      tempptr = heapcell->fields[2];
-      heapcell->fields[2] = backptr;
+      tempptr = qsobj_ref_ptr(mem, p, 3);
+      qsobj_setq_ptr(mem, p, 3, backptr);
       // chase "right=parent".
       currptr = tempptr;
-      qsheapcell_set_parent(heapcell, 0);
+      qsobj_setq_parent(mem, p, 0);
       // children are all chased, set Marked.
-      qsheapcell_set_marked(heapcell, 1);
+      qsobj_setq_marked(mem, p, 1);
       break;
     default:
       break;
@@ -410,6 +444,226 @@ qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nex
   *nextptr = currptr;
 
   return QSERROR_OK;
+}
+
+qserror_t qsobj_kmark_multibayptr (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
+{
+  static const int hdr_adjust = 4;
+  static const int nptr_per_bay = 4;
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  qsword lim = (qsobj_ref_nbays(mem, p) * nptr_per_bay) - hdr_adjust;
+
+  if (!obj || qsobj_marked_p(mem, p))
+    {
+      *nextptr = backptr;
+      return QSERROR_OK;
+    }
+
+  int parent = 0;
+  qsptr_t elt = QSNIL;
+
+  parent = qsobj_ref_parent(mem, p);
+  if (parent == 0)
+    {
+      /* start of marking. */
+      qsobj_setq_parent(mem, p, 1);
+      /* initialize gc fields. */
+      qsobj_setq_ptr(mem, p, 2, backptr);  /* gc_backgrack = backptr */
+      qsobj_setq_ptr(mem, p, 3, QSINT(0)); /* gc_iter = 0 */
+    }
+  else if (parent == 1)
+    {
+      /* mid-marking */
+      qsptr_t gc_iter = qsobj_ref_ptr(mem, p, 3);
+      qsword idx = CINT30(gc_iter);
+      if (idx >= lim)
+	{
+	  /* mark next. */
+	  qsobj_setq_marked(mem, p, 1);
+	  qsobj_setq_parent(mem, p, 0);
+	  backptr = qsobj_ref_ptr(mem, p, 2);
+	  qsobj_setq_ptr(mem, p, 2, QSNIL);  /* gc_backtrack = nil */
+	  qsobj_setq_ptr(mem, p, 3, QSNIL);  /* gc_iter = nil */
+	  *nextptr = backptr;
+	  return QSERROR_OK;
+	}
+      else
+	{
+	  /* end of marking. */
+	  elt = qsobj_ref_ptr(mem, p, idx + hdr_adjust); /* elt = _d[idx] */
+	  qsobj_setq_ptr(mem, p, 3, QSINT(idx+1));  /* gc_iter++ */
+	}
+    }
+  else
+    {
+      return QSERROR_INVALID;
+    }
+
+  *nextptr = elt;
+  return QSERROR_OK;
+}
+
+/* TODO:
+   qsobj_kmark_unibayoct
+   qsobj_kmark_multibayoct
+*/
+
+qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
+{
+  qsmemaddr_t addr = 0;
+  qsobj_t * obj = qsobj(mem, p, &addr);
+  if (!obj) return QSERROR_OK;
+
+  qsptr_t currptr = p;
+  qsptr_t backptr = QSNIL;
+  qsptr_t next_visit = QSNIL;
+  int octetate = 0;
+  int multi = 0;
+
+  backptr = QSERROR_INVALID;
+  while (currptr != QSERROR_INVALID)
+    {
+      qserror_t res = QSERROR_OK;
+      octetate = qsobj_octetate_p(mem, currptr);
+      multi = (qsobj_ref_nbays(mem, currptr) > 1);
+      if (octetate)
+	{
+	  if (multi)
+	    {
+	      /* e.g. qsbytevector */
+	    }
+	  else
+	    {
+	      /* e.g. qswidenum */
+	    }
+	}
+      else
+	{
+	  if (multi)
+	    {
+	      /* e.g. qsvector */
+	      res = qsobj_kmark_multibayptr(mem, currptr, backptr, &next_visit);
+	      backptr = currptr;
+	    }
+	  else
+	    {
+	      /* e.g. qstree */
+	      res = qsobj_kmark_unibayptr(mem, currptr, backptr, &next_visit);
+	      backptr = currptr;
+	    }
+	}
+      /* TODO: check res */
+      currptr = next_visit;
+    }
+  return QSERROR_OK;
+}
+
+int qsobj_p (qsmem_t * mem, qsptr_t p)
+{
+  if (! ISOBJ26(p)) return 0;
+  qsmemaddr_t addr = 0;
+  addr = COBJ26(p);
+  if (! qsheap_is_synced(mem, addr)) return 0;
+  if (! qsheap_is_used(mem, addr)) return 0;
+  return 1;
+}
+
+
+
+/* Define is-a predicate function. */
+#define PREDICATE(OBJTYPE) bool OBJTYPE##_p (qsmem_t * mem, qsptr_t p)
+
+/* Expects primary locator (qsptr_t) to be named 'p' */
+/* Filter macros -- run subsequent if filter yields false. */
+#define FILTER_ISA(pred)    if (! pred(mem,p))
+#define FILTER_IS_OBJ       if (! qsobj_p(mem, p))
+#define FILTER_IS_POINTER   if (qsobj_octetate_p(mem, p))
+#define FILTER_IS_OCTETATE  if (! qsobj_octetate_p(mem, p))
+#define FILTER_IS_UNIBAY    if (qsobj_ref_allocsize(mem, p) > 1)
+#define FILTER_IS_MULTIBAY  if (qsobj_ref_allocsize(mem, p) <= 1)
+#define FILTER_E_IS(match)  if (qsobj_ref_ptr(mem, p, 1) != match)
+#define FILTER_A_IS(match)  if (qsobj_ref_ptr(mem, p, 2) != match)
+#define FILTER_D_IS(match)  if (qsobj_ref_ptr(mem, p, 3) != match)
+#define FILTER_E_ISA(pred)  if (!pred(mem, qsobj_ref_ptr(mem,p,1)))
+#define FILTER_A_ISA(pred)  if (!pred(mem, qsobj_ref_ptr(mem,p,2)))
+#define FILTER_D_ISA(pred)  if (!pred(mem, qsobj_ref_ptr(mem,p,3)))
+#define ACCESS_PTR(nth)         qsobj_ref_ptr(mem, p, nth)
+#define ACCESS_OCTET(nth)       qsobj_ref_octet(mem, p, nth)
+#define MUTATE_PTR(nth, val)    qsobj_setq_ptr(mem, p, nth, val)
+#define MUTATE_OCTET(nth, val)  qsobj_setq_octet(mem, p, nth, val)
+
+/* No-change (identity) codec */
+#define QSID(_) _
+
+/* Define an accessor and mutator (Read-Write) for an object field. */
+#define FIELD_RW(access_type, OBJTYPE, fldname, fldnum, encode, decode) \
+access_type OBJTYPE##_ref_##fldname (qsmem_t * mem, qsptr_t p) \
+{ \
+  FILTER_ISA(OBJTYPE##_p)  return QSERROR_INVALID; \
+  return decode(ACCESS_PTR(fldnum)); \
+} \
+qsptr_t OBJTYPE##_setq_##fldname (qsmem_t * mem, qsptr_t p, access_type val) \
+{ \
+  FILTER_ISA(OBJTYPE##_p)  return QSERROR_INVALID; \
+  MUTATE_PTR(fldnum, encode(val)); \
+  return p; \
+}
+/* Define accessor only (Read-Only) for an object field. */
+#define FIELD_RO(access_type, OBJTYPE, fldname, fldnum, decode) \
+access_type OBJTYPE##_ref_##fldname (qsmem_t * mem, qsptr_t p) \
+{ \
+  FILTER_ISA(OBJTYPE##_p)  return QSERROR_INVALID; \
+  return decode(ACCESS_PTR(fldnum)); \
+}
+
+/* Newly created object is named 'p', also creates 'addr' if address is needed. */
+#define OBJ_MAKE_BAYS(nbays, octetate) \
+  qsptr_t p = QSNIL; \
+  qsmemaddr_t addr = 0; \
+  if (!ISOBJ26((p = qsobj_make(mem, nbays, octetate, &addr)))) return p;
+#define RETURN_OBJ return p;
+
+#define RETURN_TRUE return 1;
+#define RETURN_FALSE return 0;
+
+
+
+
+/* Tree - generic tree node. */
+PREDICATE(qstree)
+{
+  FILTER_ISA(qsobj_p)  return 0;
+  FILTER_IS_UNIBAY     return 0;
+  FILTER_IS_POINTER    return 0;
+  return 1;
+}
+
+FIELD_RW(qsptr_t, qstree, left, 1, QSID,QSID)
+FIELD_RW(qsptr_t, qstree, data, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qstree, right, 3, QSID,QSID)
+
+
+qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
+{
+  OBJ_MAKE_BAYS(1, 0);
+
+  MUTATE_PTR(1, left);
+  MUTATE_PTR(2, data);
+  MUTATE_PTR(3, right);
+
+  RETURN_OBJ;
+}
+
+qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
+{
+  if (!qstree_p(mem, p))
+    {
+      /* not a tree; nothing to recurse. */
+      *nextptr = backptr;
+      return QSERROR_OK;
+    }
+  return qsobj_kmark_unibayptr(mem, p, backptr, nextptr);
 }
 
 int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen)
@@ -477,90 +731,19 @@ qsptr_t qsrbnode_paint_black (qsmem_t * mem, qsptr_t node)
 
 
 
-qsrbtree_t * qsrbtree (qsmem_t * mem, qsptr_t t)
+PREDICATE(qsrbtree)
 {
-  qsobj_t * obj = qsobj_multicellular(mem, t, NULL);
-  if (!obj) return NULL;
-  if (qsobj_ref_allocsize(mem, t) != 2) return NULL;
-  qsrbtree_t * tree = (qsrbtree_t*)obj;
-  if (tree->variant != QSRBTREE) return NULL;
-  return tree;
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_POINTER     return 0;
+  if (qsobj_ref_allocsize(mem, p) != 2)   return 0;
+  FILTER_E_IS(QSRBTREE) return 0;
+  return 1;
 }
 
-qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp)
-{
-  qsptr_t retval = QSNIL;
-  qsmemaddr_t addr = 0;
-  if (!ISOBJ26((retval = qsobj_make(mem, 2, 0, &addr)))) return retval;
-
-  qsrbtree_t * rbtree = (qsrbtree_t*)qsobj(mem, retval, NULL);
-  rbtree->variant = QSRBTREE;
-  rbtree->top = top_node;
-  rbtree->cmp = cmp;
-  rbtree->mutex = QSINT(0);
-  return retval;
-}
-
-qsptr_t qsrbtree_ref_top (qsmem_t * mem, qsptr_t root)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  return rbtree->top;
-}
-
-qsptr_t qsrbtree_ref_cmp (qsmem_t * mem, qsptr_t root)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  return rbtree->cmp;
-}
-
-qsptr_t qsrbtree_ref_up (qsmem_t * mem, qsptr_t root)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  return rbtree->up;
-}
-
-qsptr_t qsrbtree_ref_down (qsmem_t * mem, qsptr_t root)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  return rbtree->down;
-}
-
-qsptr_t qsrbtree_setq_top (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  rbtree->top = val;
-  return root;
-}
-
-qsptr_t qsrbtree_setq_cmp (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  rbtree->cmp = val;
-  return root;
-}
-
-qsptr_t qsrbtree_setq_up (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  rbtree->up = val;
-  return root;
-}
-
-qsptr_t qsrbtree_setq_down (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  rbtree->down = val;
-  return root;
-}
-
+FIELD_RW(qsptr_t, qsrbtree, top, 4, QSID,QSID)
+FIELD_RW(qsptr_t, qsrbtree, cmp, 5, QSID,QSID)
+FIELD_RW(qsptr_t, qsrbtree, up, 6, QSID,QSID)
+FIELD_RW(qsptr_t, qsrbtree, down, 7, QSID,QSID)
 
 /* Lock tree for update, indicates tree may be in inconsistent state. */
 qsptr_t qsrbtree_lock (qsmem_t * mem, qsptr_t root)
@@ -574,36 +757,48 @@ qsptr_t qsrbtree_unlock (qsmem_t * mem, qsptr_t root)
   return QSTRUE;
 }
 
+qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp)
+{
+  OBJ_MAKE_BAYS(2, 0);
+
+  MUTATE_PTR(1, QSRBTREE);    /* .variant = QSRBTREE */
+  MUTATE_PTR(4, top_node);    /* .top = top_node */
+  MUTATE_PTR(5, cmp);         /* .cmp = cmp */
+  MUTATE_PTR(6, QSNIL);       /* .up = nil */
+  MUTATE_PTR(7, QSNIL);       /* .down = nil */
+
+  return p;
+}
+
 /* Split a tree to set up reverse pointers.
    Updates internal "splits" state to track the current split point.
-   Returns pointer to root of newly detached subtree.
+   Returns the rbtree instance, or error if splitting failed.
  */
-qsptr_t qsrbtree_split (qsmem_t * mem, int leftward, qsptr_t rootptr)
+qsptr_t qsrbtree_split (qsmem_t * mem, int leftward, qsptr_t p)
 {
+  FILTER_ISA(qsrbtree_p)  return QSERROR_INVALID;
   qsptr_t next = QSNIL;
   qsptr_t parent = QSNIL;
-  qsrbtree_t * rbtree = qsrbtree(mem, rootptr);
-  assert(rbtree);
-  qsptr_t currptr = qsrbtree_ref_down(mem, rootptr);
+  qsptr_t currptr = qsrbtree_ref_down(mem, p);
   if (leftward)
     {
       next = qstree_ref_left(mem, currptr);
-      qsptr_t parent = qsrbtree_ref_up(mem, rootptr);
-      /* indicate ->left is actually parent. */
+      qsptr_t parent = qsrbtree_ref_up(mem, p);
+      /* indicate .left is actually parent. */
       currptr = qstree_setq_left(mem, currptr, parent);
       currptr = qsobj_setq_parent(mem, currptr, 1); 
     }
   else
     {
       next = qstree_ref_right(mem, currptr);
-      qsptr_t parent = qsrbtree_ref_up(mem, rootptr);
-      /* indicate ->right is actually parent. */
+      qsptr_t parent = qsrbtree_ref_up(mem, p);
+      /* indicate .right is actually parent. */
       currptr = qstree_setq_right(mem, currptr, parent);
       currptr = qsobj_setq_parent(mem, currptr, 2); 
     }
-  qsrbtree_setq_up(mem, rootptr, currptr); // parent of subtree.
-  qsrbtree_setq_down(mem, rootptr, next); // subtree
-  return rootptr;
+  qsrbtree_setq_up(mem, p, currptr); // parent of subtree.
+  qsrbtree_setq_down(mem, p, next); // subtree
+  return p;
 }
 
 qsptr_t qsrbtree_split_left (qsmem_t * mem, qsptr_t rootptr)
@@ -767,7 +962,7 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
       qsptr_t currnode = qsrbtree_ref_down(mem, root);
       d = qstree_ref_data(mem, currnode);
       // TODO: custom comparator
-      if (qstree(mem, d))  // also covers pair (apair).
+      if (qstree_p(mem, d)) // also covers pair (apair).
 	{
 	  //qsptr_t currkey = qspair_ref_a(mem, d);
 	  qsptr_t currkey = qstree_ref_data(mem, d);
@@ -936,7 +1131,7 @@ unwind:
   return root;
 }
 
-/* Return best tree node fulfilling critera 'key'.
+/* Return best tree node fulfilling criterion 'key'.
    nil if not found.
  */
 qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
@@ -946,6 +1141,7 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
   qsptr_t d;
   int libra = 0;
   qsptr_t probekey = QSNIL;
+  /* TODO: resolve having mostly-duplicated code with qsrbtree_insert. */
   while (!ISNIL(probe))
     {
       prev = probe;
@@ -953,7 +1149,7 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
       probekey = QSNIL;
       libra = 0;
       // TODO: custom comparator
-      if (qstree(mem, d))
+      if (qstree_p(mem, d))
 	{
 	  //probekey = qspair_ref_a(mem, d);
 	  probekey = qstree_ref_data(mem, d);
@@ -1001,61 +1197,25 @@ qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t root, qsptr_t key)
 
 
 
-qsibtree_t * qsibtree (qsmem_t * mem, qsptr_t t)
+PREDICATE(qsibtree)
 {
-  qstree_t * tree = qstree(mem, t);
-  return (qsibtree_t*)tree;
+  FILTER_ISA(qstree_p)   return 0;
+  return 1;
 }
+
+FIELD_RW(qsptr_t, qsibtree, filled, 1, QSID,QSID)
+FIELD_RW(qsptr_t, qsibtree, idx0, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qsibtree, ones, 3, QSID,QSID)
 
 qsptr_t qsibtree_make (qsmem_t * mem)
 {
-  qsptr_t retval = qstree_make(mem, QSINT(0), QSNIL, QSNIL);
-  return retval;
-}
+  OBJ_MAKE_BAYS(1, 0);
 
-qsword qsibtree_ref_filled (qsmem_t * mem, qsptr_t t)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return 0;
-  return CINT30(ibtree->filled);
-}
+  MUTATE_PTR(1, QSNIL);
+  MUTATE_PTR(2, QSNIL);
+  MUTATE_PTR(3, QSNIL);
 
-qsptr_t qsibtree_ref_idx0 (qsmem_t * mem, qsptr_t t)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return QSNIL;
-  return ibtree->idx0;
-}
-
-qsptr_t qsibtree_ref_ones (qsmem_t * mem, qsptr_t t)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return QSNIL;
-  return ibtree->ones;
-}
-
-qsptr_t qsibtree_setq_filled (qsmem_t * mem, qsptr_t t, qsword count)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return t;
-  ibtree->filled = QSINT(count);
-  return t;
-}
-
-qsptr_t qsibtree_setq_idx0 (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return t;
-  ibtree->idx0 = val;
-  return t;
-}
-
-qsptr_t qsibtree_setq_ones (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return t;
-  ibtree->ones = val;
-  return t;
+  RETURN_OBJ;
 }
 
 qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t t, qsword path)
@@ -1176,69 +1336,25 @@ qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t t, qsword path, qsptr_t entry)
 
 
 /* Pair is a degenerate tree where left==QSNIL */
-qspair_t * qspair (qsmem_t * mem, qsptr_t p)
+PREDICATE(qspair)
 {
-  qstree_t * tree = qstree(mem, p);
-  if (!tree) return NULL;
-  if (tree->left != QSNIL) return NULL;
-  return (qspair_t *)tree;
+  FILTER_ISA(qstree_p)  return 0;
+  FILTER_E_IS(QSNIL)    return 0;
+  return 1;
 }
 
-qsptr_t qspair_ref_a (qsmem_t * mem, qsptr_t p)
-{
-  qspair_t * pair = qspair(mem, p);
-  if (!pair)
-    {
-      /* TODO: exception. */
-      return QSNIL;
-    }
-  return pair->a;
-}
+FIELD_RW(qsptr_t, qspair, a, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qspair, d, 3, QSID,QSID)
 
-qsptr_t qspair_ref_d (qsmem_t * mem, qsptr_t p)
+qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t d)
 {
-  qspair_t * pair = qspair(mem, p);
-  if (!pair)
-    {
-      /* TODO: exception. */
-      return QSNIL;
-    }
-  return pair->d;
-}
+  OBJ_MAKE_BAYS(1, 0);
 
-qsptr_t qspair_setq_a (qsmem_t * mem, qsptr_t p, qsptr_t val)
-{
-  qspair_t * pair = qspair(mem, p);
-  if (!pair)
-    {
-      /* TODO: exception. */
-      return QSNIL;
-    }
-  pair->a = val;
-  return p;
-}
+  MUTATE_PTR(1, QSNIL);
+  MUTATE_PTR(2, a);
+  MUTATE_PTR(3, d);
 
-qsptr_t qspair_setq_d (qsmem_t * mem, qsptr_t p, qsptr_t val)
-{
-  qspair_t * pair = qspair(mem, p);
-  if (!pair)
-    {
-      /* TODO: exception. */
-      return QSNIL;
-    }
-  pair->d = val;
-  return p;
-}
-
-qserror_t qspair_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr)
-{
-  return QSERROR_NOIMPL;
-}
-
-qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t b)
-{
-  qsptr_t retval;
-  return qstree_make(mem, QSNIL, a, b);
+  RETURN_OBJ;
 }
 
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
@@ -1263,7 +1379,7 @@ qsword qslist_length (qsmem_t * mem, qsptr_t p)
     {
       retval++;
       qsptr_t next = qspair_ref_d(mem, curr);
-      if (qspair(mem, next))
+      if (qspair_p(mem, next))
 	{
 	  curr = next;
 	}
@@ -1283,7 +1399,7 @@ qsptr_t qslist_tail (qsmem_t * mem, qsptr_t p, qsword nth)
     {
       ofs++;
       qsptr_t next = qspair_ref_d(mem, curr);
-      if (qspair(mem, next))
+      if (qspair_p(mem, next))
 	{
 	  curr = next;
 	}
@@ -1312,159 +1428,82 @@ qsptr_t qslist_ref (qsmem_t * mem, qsptr_t p, qsword k)
 
 
 
-qsvector_t * qsvector (qsmem_t * mem, qsptr_t v, qsword * out_lim)
+
+PREDICATE(qsvector)
 {
-  qsobj_t * obj = qsobj_multicellular(mem, v, NULL);
-  if (!obj) return NULL;
-  if (! ISINT30(qsobj_get(mem, v, 0))) return NULL;
-  if (out_lim)
-    {
-      *out_lim = CINT30(qsobj_get(mem, v, 0));
-    }
-  return (qsvector_t*)obj;
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_MULTIBAY	return 0;
+  FILTER_IS_POINTER     return 0;
+  FILTER_E_ISA(qsint_p)	return 0;
+  return 1;
 }
 
-qsword qsvector_length (qsmem_t * mem, qsptr_t v)
+FIELD_RW(qsptr_t, qsvector, len, 1, QSINT,CINT30)
+
+qsword qsvector_length (qsmem_t * mem, qsptr_t p)
 {
-  qsword len = 0;
-  qsvector_t * vec = qsvector(mem, v, &len);
-  if (!vec) return 0;  // TODO: exception
-  return len;
+  return qsvector_ref_len(mem, p);
 }
 
-qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t v, qsword ofs)
+qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t p, qsword ofs)
 {
-  qsword lim = 0;
-  qsvector_t * vec = qsvector(mem, v, &lim);
-  if (!vec) return QSERROR_RANGE;
+  static const int hdr_adjust = 4;
+  FILTER_ISA(qsvector_p)    return 0;
+  qsword lim = qsvector_length(mem, p);
   if ((ofs < 0) || (ofs >= lim))
     {
       // TODO: exception.
       return QSERROR_RANGE;
     }
-  return vec->_d[ofs];
+  return qsobj_ref_ptr(mem, p, ofs + hdr_adjust);  /* ._d[ofs] */
 }
 
-qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t v, qsword ofs, qsptr_t val)
+qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t p, qsword ofs, qsptr_t val)
 {
-  qsword lim = 0;
-  qsvector_t * vec = qsvector(mem, v, &lim);
-  if (!vec) return QSNIL;
+  static const int hdr_adjust = 4;
+  FILTER_ISA(qsvector_p)    return 0;
+  qsword lim = qsvector_length(mem, p);
   if ((ofs < 0) || (ofs >= lim))
     {
       // TODO: exception.
       return QSNIL;
     }
-  vec->_d[ofs] = val;
-  return v;
-}
-
-qserror_t qsvector_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr, qsword cap)
-{
-  return QSERROR_NOIMPL;
+  qsobj_setq_ptr(mem, p, ofs + hdr_adjust, val);  /* ._d[ofs] = val */
+  return p;
 }
 
 qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
 {
+  static const int hdr_adjust = 4;
+  static const int nptr_per_bay = sizeof(qsbay0_t) / sizeof(qsptr_t);
   qsptr_t retval = QSNIL;
   qsmemaddr_t addr = 0;
-  qsword ncells = 1 + (k / 4)+1;  // always terminate with QSEOL.
-  if (!ISOBJ26((retval = qsobj_make(mem, ncells, 0, &addr)))) return retval;
+  qsword nbays = 1 + (k / nptr_per_bay)+1;  // always terminate with QSEOL.
+  if (!ISOBJ26((retval = qsobj_make(mem, nbays, 0, &addr)))) return retval;
 
-  qsvector_t * vector = (qsvector_t*)qsheap_ref(mem, addr);
-  vector->len = QSINT(k);
-  vector->gc_backtrack = QSNIL;
-  vector->gc_iter = QSNIL;
+  qsobj_setq_ptr(mem, retval, 1, QSINT(k)); /* len = QSINT(k) */
+  qsobj_setq_ptr(mem, retval, 2, QSNIL);    /* gc_backtrack = QSNIL */
+  qsobj_setq_ptr(mem, retval, 3, QSNIL);    /* gc_iter = QSNIL */
   qsword i;
+  qsptr_t * raw_data = (qsptr_t*)qsobj_ref_data(mem, retval, NULL);
   for (i = 0; i < k; i++)
     {
-      vector->_d[i] = fill;
+      raw_data[i] = fill;  /* ._d[i] = fill */
     }
   retval = QSOBJ(addr);
-  vector->_d[k] = QSEOL; // terminate with QSEOL for qsiter implementation.
+  /* Terminate with QSEOL for sake of qsiter. */
+  qsobj_setq_ptr(mem, retval, k + hdr_adjust, QSEOL);
   return retval;
-}
-
-qserror_t qsvector_mark (qsmem_t * mem, qsptr_t v)
-{
-  qsword max = 0;
-  qsvector_t * vec = qsvector(mem, v, &max);
-  if (!vec) return QSERROR_INVALID;
-  qsheapcell_t * cell = (qsheapcell_t*)vec;
-
-  while (! qsobj_marked_p(mem, v))
-    {
-      /* main loop */
-      if (qsheapcell_get_parent(cell) == 0)
-	{
-	  vec->gc_iter = QSINT(0);
-	  qsheapcell_set_parent(cell, 1);
-	}
-      else if (qsheapcell_get_parent(cell) == 1)
-	{
-	  qsmemaddr_t idx = CINT30(qsheapcell_get_field(cell, 2));
-	  while (idx < max)
-	    {
-	      qsptr_t elt = qsvector_ref(mem, v, idx);
-	      /* TODO: recurse mark on elt. */
-	      idx += 1;
-	      qsheapcell_set_field(cell, 2, QSINT(idx));
-	    }
-	  qsheapcell_set_field(cell, 2, QSNIL);
-	  qsheapcell_set_parent(cell, 0);
-	  qsheapcell_set_marked(cell, 1);
-	}
-    }
-  return QSERROR_OK;
 }
 
 qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
 {
-  qsword lim = 0;
-  qsvector_t * vec = qsvector(mem, p, &lim);  // try to get as vector.
-  qsheapcell_t * heapcell = (qsheapcell_t*)vec; // heap manipulation.
-  if (!heapcell || qsheapcell_is_marked(heapcell))
+  if (! qsvector_p(mem, p))
     {
       *nextptr = backptr;
-      return 0;
+      return QSERROR_OK;
     }
-
-  int parent = 0;
-  qsptr_t elt = QSNIL;
-
-  parent = qsheapcell_get_parent(heapcell);
-  if (parent == 0)
-    {
-      qsheapcell_set_parent(heapcell, 1);
-      vec->gc_backtrack = backptr;
-      vec->gc_iter = QSINT(0);
-    }
-  else if (parent == 1)
-    {
-      qsword idx = CINT30(vec->gc_iter);
-      if (idx >= lim)
-	{
-	  qsheapcell_set_marked(heapcell, 1);
-	  qsheapcell_set_parent(heapcell, 0);
-	  backptr = vec->gc_backtrack;
-	  vec->gc_backtrack = QSNIL;
-	  vec->gc_iter = QSNIL;
-	  *nextptr = backptr;
-	  return 0;
-	}
-      else
-	{
-	  elt = qsvector_ref(mem, p, idx);
-	  vec->gc_iter = QSINT(idx+1);
-	}
-    }
-  else
-    {
-      return QSERROR_INVALID;
-    }
-
-  *nextptr = elt;
-  return QSERROR_OK;
+  return qsobj_kmark_multibayptr(mem, p, backptr, nextptr);
 }
 
 int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen)
@@ -1487,11 +1526,13 @@ qsptr_t qsvector_inject (qsmem_t * mem, qsword nelts, qsptr_t * carray)
   return v;
 }
 
-qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t v, qsword * out_len)
+qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t p, qsword * out_len)
 {
-  qsvector_t * cvec = qsvector(mem, v, out_len);
-  if (!cvec) return NULL;
-  return cvec->_d;
+  FILTER_ISA(qsvector_p)    return NULL;
+  static const int bytes_per_ptr = sizeof(qsptr_t);
+  if (out_len)
+      *out_len = qsvector_length(mem, p);
+  return (qsptr_t*)qsobj_ref_data(mem, p, NULL);  /* ._d */
 }
 
 
@@ -1505,16 +1546,13 @@ qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t v, qsword * out_len)
 /* Bytevector */
 /**************/
 
-qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim)
+PREDICATE(qsbytevec)
 {
-  qsobj_t * obj = qsobj_multioctetate(mem, bv, NULL);
-  if (!obj) return NULL;
-  if (! ISINT30(qsobj_get(mem, bv, 0))) return NULL;
-  if (out_lim)
-    {
-      *out_lim = CINT30(qsobj_get(mem, bv, 0));
-    }
-  return (qsbytevec_t *)obj;
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_MULTIBAY    return 0;
+  FILTER_IS_OCTETATE    return 0;
+  FILTER_E_ISA(qsint_p) return 0;
+  return 1;
 }
 
 qserror_t qsbytevec_lock (qsmem_t * mem, qsptr_t bv)
@@ -1527,57 +1565,48 @@ qserror_t qsbytevec_unlock (qsmem_t * mem, qsptr_t bv)
   return QSERROR_NOIMPL;
 }
 
-qsword qsbytevec_refcount (qsmem_t * mem, qsptr_t bv)
+FIELD_RO(qsword, qsbytevec, len, 1, CINT30)
+FIELD_RO(qsword, qsbytevec, refcount, 2, CINT30)
+
+qsword qsbytevec_length (qsmem_t * mem, qsptr_t p)
 {
-  qsbytevec_t * bytevec = qsbytevec(mem, bv, NULL);
-  if (!bytevec) return 0;
-  return CINT30(bytevec->refcount);
+  return qsbytevec_ref_len(mem, p);
 }
 
-// TODO: recount_increment and refcount_decrement
-
-qsword qsbytevec_length (qsmem_t * mem, qsptr_t bv)
+int qsbytevec_ref (qsmem_t * mem, qsptr_t p, qsword ofs)
 {
-  qsbytevec_t * bytevec = qsbytevec(mem, bv, NULL);
-  if (!bytevec) return 0;
-  return CINT30(bytevec->len);
+  FILTER_ISA(qsbytevec_p)   return -1;
+  qsword max = qsbytevec_length(mem, p);
+  if ((ofs < 0) || (ofs >= max))
+    return -1;
+  int octet = qsobj_ref_octet(mem, p, ofs);
+  return octet;
 }
 
-qsword qsbytevec_ref (qsmem_t * mem, qsptr_t bv, qsword ofs)
+qsptr_t qsbytevec_setq (qsmem_t * mem, qsptr_t p, qsword ofs, qsword octet)
 {
-  qsbytevec_t * bytevec = qsbytevec(mem, bv, NULL);
-  if (!bytevec) return 0;
-  qsword max = qsbytevec_length(mem, bv);
+  FILTER_ISA(qsbytevec_p)    return QSERROR_INVALID;
+  qsword max = qsbytevec_length(mem, p);
   if ((ofs < 0) || (ofs >= max))
     return 0;
-  return bytevec->_d[ofs];
-}
-
-qsptr_t qsbytevec_setq (qsmem_t * mem, qsptr_t bv, qsword ofs, qsword octet)
-{
-  qsbytevec_t * bytevec = qsbytevec(mem, bv, NULL);
-  if (!bytevec) return 0;
-  qsword max = qsbytevec_length(mem, bv);
-  if ((ofs < 0) || (ofs >= max))
-    return 0;
-  bytevec->_d[ofs] = octet;
-  return bv;
+  qsobj_setq_octet(mem, p, ofs, octet);  /* ._d[ofs] = octet */
+  return p;
 }
 
 qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsword fill)
 {
-  qsptr_t retval = QSNIL;
-  qsmemaddr_t addr = 0;
-  if (!ISOBJ26((retval = qsobj_make(mem, k, 1, &addr)))) return retval;
+  /* TODO: change name of macro; slightly misleading. */
+  OBJ_MAKE_BAYS(k, 1);
 
-  qsbytevec_t * bytevec = (qsbytevec_t*)qsheap_ref(mem, addr);
-  bytevec->len = QSINT(k);
+  MUTATE_PTR(1, QSINT(k));
+  uint8_t * raw_data = qsobj_ref_data(mem, p, NULL);
+  uint8_t raw_fill = (uint8_t)fill;
   qsword i;
   for (i = 0; i < k; i++)
     {
-      bytevec->_d[i] = (uint8_t)fill;
+      raw_data[i] = raw_fill;  /* ._d[i] = raw_fill */
     }
-  return retval;
+  RETURN_OBJ;
 }
 
 int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen)
@@ -1586,11 +1615,12 @@ int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen)
   return n;
 }
 
-uint8_t * qsbytevec_cptr (qsmem_t * mem, qsword bv, qsword * out_len)
+uint8_t * qsbytevec_cptr (qsmem_t * mem, qsword p, qsword * out_len)
 {
-  qsbytevec_t * bytevec = qsbytevec(mem, bv, out_len);
-  if (!bytevec) return NULL;
-  return bytevec->_d;
+  FILTER_ISA(qsbytevec_p)   return NULL;
+  if (out_len)
+    *out_len = qsbytevec_length(mem, p);
+  return (uint8_t*)qsobj_ref_data(mem, p, NULL);  /* ._d */
 }
 
 qsptr_t qsbytevec_inject (qsmem_t * mem, qsword nbytes, uint8_t * carray)
@@ -1618,11 +1648,25 @@ qsptr_t qsbytevec_inject (qsmem_t * mem, qsword nbytes, uint8_t * carray)
 /* Wide numbers */
 /****************/
 
-qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t n, qsnumtype_t * out_numtype)
+#define OBJ_MAKE_WIDENUM(variant) \
+  void * payload = NULL; \
+  qsptr_t p = QSNIL; \
+  p = qswidenum_make(mem, variant, &payload);
+#define WIDENUM_SET_PAYLOAD(native_type) \
+  if (payload)  *((native_type*)payload) = val
+#define WIDENUM_GET_PAYLOAD(native_type, discriminator) \
+  qsnumtype_t variant = QSNUMTYPE_NAN; \
+  void * payload = qswidenum_ref_payload(mem, p, &variant); \
+  if (variant != discriminator)    return QSERROR_INVALID; \
+  if (out_val) { *out_val = *((native_type*)payload); }
+
+
+PREDICATE(qswidenum)
 {
-  if (!ISHEAP26(n)) return NULL;
-  qsobj_t * obj = qsobj_unioctetate(mem, n, NULL);
-  qsptr_t discriminator = obj->_0;
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_OCTETATE    return 0;
+  FILTER_IS_UNIBAY      return 0;
+  qsptr_t discriminator = qsobj_ref_ptr(mem, p, 1);
   switch (discriminator)
     {
     case QSNUMTYPE_NAN:
@@ -1632,27 +1676,34 @@ qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t n, qsnumtype_t * out_numtype)
     case QSNUMTYPE_FLOAT2:
     case QSNUMTYPE_FLOAT4:
     case QSNUMTYPE_FLOAT16CM:
-      if (out_numtype)
-	*out_numtype = discriminator;
-      return (qswidenum_t*)obj;
-      break;
+      return 1;
     default:
-      return NULL;
-      break;
+      return 0;
     }
 }
 
-qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t n)
+qsnumtype_t qswidenum_ref_variant (qsmem_t * mem, qsptr_t p)
 {
-  qsnumtype_t variant = QSNUMTYPE_NAN;
-  qswidenum_t * wn = qswidenum(mem, n, &variant);
-  if (!wn) return QSNUMTYPE_NAN;
+  FILTER_ISA(qswidenum_p)   return QSNUMTYPE_NAN;
+  qsptr_t variant = ACCESS_PTR(1);
   return variant;
 }
 
-qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * out_ptr)
+void * qswidenum_ref_payload (qsmem_t * mem, qsptr_t p, qsnumtype_t * numtype)
 {
-  qswidenum_t * retval = NULL;
+  FILTER_ISA(qswidenum_p)   return NULL;
+  if (numtype)
+    *numtype = ACCESS_PTR(1);
+  return qsobj_ref_data(mem, p, NULL);
+}
+
+/*
+   Returns object ready to take wide number.
+
+   Writes out pointer to payload region into '*payload' (to be cast to native pointer type).
+*/
+qsptr_t qswidenum_make (qsmem_t * mem, qsnumtype_t variant, void ** payload)
+{
   qsptr_t p = QSNIL;
   qsmemaddr_t addr = 0;
   qserror_t err = QSERROR_OK;
@@ -1664,60 +1715,51 @@ qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * o
     case QSNUMTYPE_FLOAT2:
     case QSNUMTYPE_FLOAT4:
     case QSNUMTYPE_FLOAT16CM:
-      if (!ISOBJ26((p = qsobj_make(mem, 0, 1, &addr)))) return NULL;
-      retval = (qswidenum_t*)qsobj(mem, p, NULL);
-      retval->variant = variant;
+      if (!ISOBJ26((p = qsobj_make(mem, 0, 1, &addr))))
+       	return QSERROR_NOMEM;
+      qsobj_setq_ptr(mem, p, 1, variant);
+      if (payload)
+	*payload = (void*)qsobj_ref_data(mem, p, NULL);
       break;
     default:
-      retval->variant = QSNUMTYPE_NAN;
+      qsobj_setq_ptr(mem, p, 1, QSNUMTYPE_NAN);
       break;
     }
-  if (out_ptr)
-    *out_ptr = QSOBJ(addr);
-  return retval;
+  return p;
 }
 
 
 
 
-qswidenum_t * qslong (qsmem_t * mem, qsptr_t l)
+PREDICATE(qslong)
 {
-  qsnumtype_t variant = QSNUMTYPE_NAN;
-  qswidenum_t * wn = qswidenum(mem, l, &variant);
-  if (!wn) return NULL;
-  if (variant != QSNUMTYPE_LONG) return NULL;
-  return wn;
+  FILTER_ISA(qswidenum_p)     return 0;
+  FILTER_E_IS(QSNUMTYPE_LONG) return 0;
+  return 1;
 }
 
-qserror_t qslong_fetch (qsmem_t * mem, qsptr_t l, long * out_long)
+qserror_t qslong_fetch (qsmem_t * mem, qsptr_t p, long * out_val)
 {
-  qswidenum_t * wn = qslong(mem, l);
-  if (!wn) return QSERROR_INVALID;
-  if (out_long)
-    *out_long = wn->payload.l;
+  FILTER_ISA(qslong_p)    return QSERROR_INVALID;
+  WIDENUM_GET_PAYLOAD(long, QSNUMTYPE_LONG);
   return QSERROR_OK;
 }
 
-long qslong_get (qsmem_t * mem, qsptr_t l)
+long qslong_get (qsmem_t * mem, qsptr_t p)
 {
+  FILTER_ISA(qslong_p)    return 0;
+
   long retval = 0;
-  qserror_t err = qslong_fetch(mem, l, &retval);
-  if (err != QSERROR_OK)
-    return 0;
+  qserror_t err = qslong_fetch(mem, p, &retval);
+  if (err != QSERROR_OK)  return 0;
   return retval;
 }
 
 qsptr_t qslong_make (qsmem_t * mem, long val)
 {
-  qswidenum_t * wn = NULL;
-  qsptr_t retval = QSNIL;
-  wn = qswidenum_premake(mem, QSNUMTYPE_LONG, &retval);
-  if (wn)
-    {
-      wn->payload.l = val;
-      return retval;
-    }
-  return QSERROR_NOMEM;
+  OBJ_MAKE_WIDENUM(QSNUMTYPE_LONG);
+  WIDENUM_SET_PAYLOAD(long);
+  return p;
 }
 
 qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low)
@@ -1734,28 +1776,25 @@ int qslong_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen)
 
 
 
-qswidenum_t * qsdouble (qsmem_t * mem, qsptr_t d)
+PREDICATE(qsdouble)
 {
-  qsnumtype_t variant = QSNUMTYPE_NAN;
-  qswidenum_t * wn = qswidenum(mem, d, &variant);
-  if (!wn) return NULL;
-  if (variant != QSNUMTYPE_LONG) return NULL;
-  return wn;
+  FILTER_ISA(qswidenum_p)         return 0;
+  FILTER_E_IS(QSNUMTYPE_DOUBLE)   return 0;
+  return 1;
 }
 
-qserror_t qsdouble_fetch (qsmem_t * mem, qsptr_t d, double * out_double)
+qserror_t qsdouble_fetch (qsmem_t * mem, qsptr_t p, double * out_val)
 {
-  qswidenum_t * wn = qsdouble(mem, d);
-  if (!wn) return QSERROR_INVALID;
-  if (out_double)
-    *out_double = wn->payload.d;
+  FILTER_ISA(qswidenum_p)   return QSERROR_INVALID;
+  WIDENUM_GET_PAYLOAD(double, QSNUMTYPE_DOUBLE);
   return QSERROR_OK;
 }
 
-double qsdouble_get (qsmem_t * mem, qsptr_t d)
+double qsdouble_get (qsmem_t * mem, qsptr_t p)
 {
+  FILTER_ISA(qsdouble_p)  return QSERROR_INVALID;
   double retval = 0;
-  qserror_t err = qsdouble_fetch(mem, d, &retval);
+  qserror_t err = qsdouble_fetch(mem, p, &retval);
   if (err)
     return 0;
   return retval;
@@ -1763,15 +1802,9 @@ double qsdouble_get (qsmem_t * mem, qsptr_t d)
 
 qsptr_t qsdouble_make (qsmem_t * mem, double val)
 {
-  qswidenum_t * wn = NULL;
-  qsptr_t retval = QSNIL;
-  wn = qswidenum_premake(mem, QSNUMTYPE_LONG, &retval);
-  if (wn)
-    {
-      wn->payload.d = val;
-      return retval;
-    }
-  return QSERROR_NOMEM;
+  OBJ_MAKE_WIDENUM(QSNUMTYPE_DOUBLE);
+  WIDENUM_SET_PAYLOAD(double);
+  return p;
 }
 
 int qsdouble_crepr (qsmem_t * mem, qsptr_t d, char * buf, int buflen)
@@ -1786,8 +1819,7 @@ int qsdouble_crepr (qsmem_t * mem, qsptr_t d, char * buf, int buflen)
 int qswidenum_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
-  qsnumtype_t variant = 0;
-  qswidenum_t * wn = qswidenum(mem, n, &variant);
+  qsnumtype_t variant = qswidenum_ref_variant(mem, p);
   switch (variant)
     {
     case QSNUMTYPE_LONG:
@@ -1822,6 +1854,12 @@ qsptr_t qsiter (qsmem_t * mem, qsptr_t it)
   return QSNIL;
 }
 
+PREDICATE(qsiter)
+{
+  if (ISITER28(p)) return 1;
+  return 0;
+}
+
 qsptr_t qsiter_make (qsmem_t * meme, qsmemaddr_t addr)
 {
   // TODO: bounds check.
@@ -1845,8 +1883,7 @@ int qsiter_on_pair (qsmem_t * mem, qsptr_t it, qsptr_t * out_pairptr)
       qsword ofs = qsiter_get(mem, it);
       qsmemaddr_t addr = (ofs >> 2);
       qsptr_t pairptr = QSOBJ(addr);
-      qspair_t * pair = qspair(mem, pairptr);
-      if (pair)
+      if (qspair_p(mem, pairptr))
 	{
 	  if (out_pairptr)
 	    *out_pairptr = pairptr;
@@ -1861,7 +1898,7 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
   qsptr_t pairptr = QSNIL;
   if (qsiter_on_pair(mem, it, &pairptr))
     {
-      /* iter is pointing to pair cell. */
+      /* iter is pointing to pair bay. */
       return qspair_ref_a(mem, pairptr);
     }
   else if (ISITER28(it))
@@ -1888,7 +1925,7 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
   qsptr_t pairptr = QSNIL;
   if (qsiter_on_pair(mem, it, &pairptr))
     {
-      /* iter is pointing to pair cell. */
+      /* iter is pointing to pair bay. */
       qsptr_t next = qspair_ref_d(mem, pairptr);
       if (ISNIL(next))
 	return QSNIL;
@@ -1955,6 +1992,11 @@ qsptr_t qsiter_crepr (qsmem_t * mem, qsptr_t it, char * buf, int buflen)
 
 
 
+PREDICATE(qsint)
+{
+  return ISINT30(p);
+}
+
 qsptr_t qsint (qsmem_t * mem, qsptr_t q)
 {
   if (ISINT30(q)) return q;
@@ -2015,6 +2057,11 @@ qsptr_t qsfloat (qsmem_t * mem, qsptr_t q)
   return QSNIL;
 }
 
+PREDICATE(qsfloat)
+{
+  return ISFLOAT31(p);
+}
+
 float qsfloat_get (qsmem_t * mem, qsptr_t q)
 {
   if (ISFLOAT31(q)) return CFLOAT31(q);
@@ -2042,6 +2089,11 @@ qsptr_t qschar (qsmem_t * mem, qsptr_t q)
 {
   if (ISCHAR24(q)) return q;
   return QSNIL;
+}
+
+bool qschar_p (qsmem_t * mem, qsptr_t p)
+{
+  return ISCHAR24(p);
 }
 
 int qschar_get (qsmem_t * mem, qsptr_t q)
@@ -2113,6 +2165,11 @@ qsptr_t qserr (qsmem_t * mem, qsptr_t e)
   return QSNIL;
 }
 
+bool qserr_p (qsmem_t * me, qsptr_t p)
+{
+  return ISERROR16(p);
+}
+
 int qserr_get (qsmem_t * mem, qsptr_t e)
 {
   if (ISERROR16(e)) return CERROR16(e);
@@ -2163,6 +2220,11 @@ qsptr_t qsconst (qsmem_t * mem, qsptr_t n)
   return QSNIL;
 }
 
+PREDICATE(qsconst)
+{
+  return ISCONST16(p);
+}
+
 int qsconst_get (qsmem_t * mem, qsptr_t n)
 {
   if (ISCONST16(n)) return CCONST16(n);
@@ -2208,13 +2270,13 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 /*******************************/
 
 /* List:
-   1. linked pair cells
+   1. linked pair objects
    2. vector with BOL termination
  */
 // expanded qsiter_*() to accommodate this object.
 
 /* String:
-   1. conschar24: pair cells of char24
+   1. conschar24: pair objects of char24
    2. vecchar24: vector of char24 with BOL termination
    3. cstr8: bytevector (UTF-8)
  */
@@ -2224,84 +2286,85 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
    qsutf8 = using qsbytevector space as C string.
    Canonical string format (due to interchange with string.h functions).
 */
-qsutf8_t * qsutf8 (qsmem_t * mem, qsptr_t s)
-{
-  qsobj_t * obj = qsobj_multioctetate(mem, s, NULL);
-  if (!obj) return NULL;
-  if (! ISNIL(qsobj_get(mem, s, 0))) return NULL;
-  return (qsutf8_t*)obj;
-}
 
 static
 qsword _qsutf8_hardlimit (qsmem_t * mem, qsptr_t s)
 {
-  qsword ncells = qsobj_ref_allocsize(mem, s);
-  qsword retval = (ncells - 1) * (sizeof(qsheapcell_t) / sizeof(qsptr_t));
+  static const int nbyte_per_bay = sizeof(qsbay0_t);
+  qsword nbays = qsobj_ref_nbays(mem, s);
+  qsword retval = nbays * nbyte_per_bay;
   return retval;
 }
 
-qsword qsutf8_length (qsmem_t * mem, qsptr_t s)
+PREDICATE(qsutf8)
 {
-  qsword retval = 0;
-  qsutf8_t * utf8str = qsutf8(mem, s);
-  if (!utf8str) return retval;
-  retval = strlen(utf8str->_d);
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_OCTETATE    return 0;
+  FILTER_IS_MULTIBAY    return 0;
+  FILTER_E_IS(QSNIL)    return 0;
+  return 1;
+}
+
+qsword qsutf8_length (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsobj_p)  return 0;
+  const char * raw_cstr = (const char *)qsobj_ref_data(mem, p, NULL);
+  qsword retval = strlen(raw_cstr);
   return retval;
 }
 
-int qsutf8_ref (qsmem_t * mem, qsptr_t s, qsword k)
+int qsutf8_ref (qsmem_t * mem, qsptr_t p, qsword k)
 {
-  qsword retval = 0;
-  qsutf8_t * utf8str = qsutf8(mem, s);
-  if (!utf8str) return -1;
-  qsword max = _qsutf8_hardlimit(mem, s);
+  FILTER_ISA(qsobj_p)   return -1;
+
+  qsword max = _qsutf8_hardlimit(mem, p);
   if ((k < 0) || (k >= max))
     {
       return 0;
     }
-  return utf8str->_d[k];
+  return qsobj_ref_octet(mem, p, k);  /* ._d[k] */
 }
 
-qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t s, qsword k, qsword val)
+qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t p, qsword k, qsword val)
 {
-  qsutf8_t * utf8str = qsutf8(mem, s);
-  if (!utf8str) return -1;
-  qsword max = _qsutf8_hardlimit(mem, s);
+  FILTER_ISA(qsobj_p)   return QSERROR_INVALID;
+
+  qsword max = _qsutf8_hardlimit(mem, p);
   if ((k < 0) || (k >= max))
     {
-      return 0;
+      return QSERROR_RANGE;
     }
-  utf8str->_d[k] = (uint8_t)(val & 0xff);
-  return s;
+  uint8_t raw_val = val & 0xff;
+  qsobj_setq_octet(mem, p, k, raw_val);  /* ._d[k] = raw_val */
+  return p;
 }
 
 qsptr_t qsutf8_make (qsmem_t * mem, qsword slen)
 {
-  qsptr_t retval = QSNIL;
-  qsmemaddr_t addr = 0;
-  qsword k = slen + 1;
-  if (!ISOBJ26((retval = qsobj_make(mem, k, 1, &addr)))) return retval;
+  qsword k = slen+1;
+  OBJ_MAKE_BAYS(k, 1);
 
-  qsutf8_t * utf8str = (qsutf8_t*)qsheap_ref(mem, addr);
-  utf8str->variant = QSNIL;
+  MUTATE_PTR(1, QSNIL);   /* .variant = nil */
   qsword i;
+  uint8_t * raw_cstr = qsobj_ref_data(mem, p, NULL);
+  uint8_t raw_fill = 0;
   for (i = 0; i < k; i++)
     {
-      utf8str->_d[i] = (uint8_t)0;
+      raw_cstr[i] = raw_fill;  /* ._d[i] = '\0' */
     }
-  return retval;
+  RETURN_OBJ;
 }
 
 int qsutf8_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  return n;
 }
 
-uint8_t * qsutf8_cptr (qsmem_t * mem, qsptr_t s)
+uint8_t * qsutf8_cptr (qsmem_t * mem, qsptr_t p)
 {
-  qsutf8_t * utf8str = qsutf8(mem, s);
-  if (!utf8str) return NULL;
-  return utf8str->_d;
+  FILTER_ISA(qsutf8_p)    return NULL;
+  return qsobj_ref_data(mem, p, NULL);  /* ._d */
 }
 
 qsptr_t qsutf8_inject (qsmem_t * mem, const char * cstr, qsword slen)
@@ -2342,34 +2405,29 @@ int qsutf8_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
 
 
 
-qsptr_t qsstr (qsmem_t * mem, qsptr_t s)
+PREDICATE(qsstr)
 {
-  if (qsutf8(mem,s))
+  if (qsutf8_p(mem, p))  return 1;
+  else if (qspair_p(mem, p))
     {
-      return s;
+      if (ISCHAR24(qspair_ref_a(mem, p))) return 1;
     }
-  else if (qspair(mem,s))
+  else if (qsvector_p(mem, p))
     {
-      // naive check: first element is character.
-      if (! ISCHAR24(qspair_ref_a(mem,s))) return QSNIL;
+      if (ISCHAR24(qsvector_ref(mem, p, 0))) return 1;
     }
-  else if (qsvector(mem,s,NULL))
+  else if (qsbytevec_p(mem, p))
     {
-      // naive check: first element is character.
-      if (! ISCHAR24(qsvector_ref(mem,s,0))) return QSNIL;
+      return 1;
     }
-  else if (qsbytevec(mem,s,NULL))
-    {
-      // always counts as string.
-    }
-  return s;
+  return 0;
 }
 
 static qsword qsstr_length_cons (qsmem_t * mem, qsptr_t s)
 {
   qsword n = 0;
   qsptr_t curr = s;
-  while (qspair(mem,curr))
+  while (qspair_p(mem,curr))
     {
       n++;
       curr = qspair_ref_d(mem,curr);
@@ -2390,22 +2448,22 @@ static qsword qsstr_length_bytevec (qsmem_t * mem, qsptr_t s)
 qsword qsstr_length (qsmem_t * mem, qsptr_t s)
 {
   qsword lim = 0;
-  if (qsutf8(mem,s))
+  if (qsutf8_p(mem,s))
     {
       return qsutf8_length(mem, s);
     }
-  else if (qspair(mem,s))
+  else if (qspair_p(mem,s))
     {
       lim = qsstr_length_cons(mem,s);
       return qsstr_length_cons(mem,s);
     }
-  else if (qsvector(mem, s, &lim))
+  else if (qsvector_p(mem, s))
     {
-      // lim already assigned.
+      lim = qsvector_length(mem, s);
     }
-  else if (qsbytevec(mem, s, &lim))
+  else if (qsbytevec_p(mem, s))
     {
-      // lim already assigned.
+      lim = qsbytevec_length(mem, s);
     }
   return lim;
 }
@@ -2414,11 +2472,11 @@ static qsptr_t qsstr_ref_cons (qsmem_t * mem, qsptr_t s, qsword nth)
 {
   qsword ofs = 0;
   qsptr_t curr = s;
-  while ((ofs < nth) && qspair(mem,curr))
+  while ((ofs < nth) && qspair_p(mem,curr))
     {
       ofs++;
     }
-  if (!qspair(mem,curr))
+  if (!qspair_p(mem,curr))
     {
       return QSERROR_RANGE;
     }
@@ -2427,44 +2485,44 @@ static qsptr_t qsstr_ref_cons (qsmem_t * mem, qsptr_t s, qsword nth)
   else return QSCHAR(0);
 }
 
-static qsptr_t qsstr_ref_vec (qsmem_t * mem, qsptr_t s, qsword nth, qsword hard_limit)
+static qsptr_t qsstr_ref_vec (qsmem_t * mem, qsptr_t p, qsword nth, qsword hard_limit)
 {
-  qsword lim = 0;
-  qsvector_t * vec = qsvector(mem, s, &lim);
+  qsword lim = qsvector_length(mem, p);
   if ((nth >= hard_limit) || (nth < 0) || (nth >= lim))
     return QSERROR_RANGE;
-  qsptr_t elt = qsvector_ref(mem, s, nth);
+  qsptr_t elt = qsvector_ref(mem, p, nth);
   if (ISCHAR24(elt)) return elt;
   else return QSCHAR(0);
 }
 
-static qsptr_t qsstr_ref_bytevec (qsmem_t * mem, qsptr_t s, qsword nth, qsword hard_limit)
+static qsptr_t qsstr_ref_bytevec (qsmem_t * mem, qsptr_t p, qsword nth, qsword hard_limit)
 {
-  qsword lim = 0;
-  qsbytevec_t * bv = qsbytevec(mem, s, &lim);
+  qsword lim = qsbytevec_length(mem, p);
   if ((nth >= hard_limit) || (nth < 0) || (nth >= lim))
     return QSERROR_RANGE;
-  qsword ch = qsbytevec_ref(mem, s, nth);
+  qsword ch = qsbytevec_ref(mem, p, nth);
   return QSCHAR(ch);
 }
 
 qsptr_t qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth)
 {
-  qsword lim;
-  if (qsutf8(mem, s))
+  qsword lim = 0;
+  if (qsutf8_p(mem, s))
     {
       return qsutf8_ref(mem, s, nth);
     }
-  else if (qspair(mem, s))
+  else if (qspair_p(mem, s))
     {
       return qsstr_ref_cons(mem, s, nth);
     }
-  else if (qsvector(mem, s, &lim))
+  else if (qsvector_p(mem, s))
     {
+      lim = qsvector_length(mem, s);
       return qsstr_ref_vec(mem, s, nth, lim);
     }
-  else if (qsbytevec(mem, s, &lim))
+  else if (qsbytevec_p(mem, s))
     {
+      lim = qsbytevec_length(mem, s);
       return qsstr_ref_bytevec(mem, s, nth, lim);
     }
   return QSCHAR(0);
@@ -2473,18 +2531,20 @@ qsptr_t qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth)
 qsptr_t qsstr_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword codepoint)
 {
   qsword lim = 0;
-  if (qsutf8(mem, s))
+  if (qsutf8_p(mem, s))
     {
       return qsutf8_setq(mem, s, nth, codepoint);
     }
-  else if (qsvector(mem, s, &lim))
+  else if (qsvector_p(mem, s))
     {
+      lim = qsvector_length(mem, s);
       if (nth >= lim) return QSERROR_RANGE;
       qsvector_setq(mem, s, nth, QSCHAR(codepoint));
       return s;
     }
-  else if (qsbytevec(mem, s, &lim))
+  else if (qsbytevec_p(mem, s))
     {
+      lim = qsbytevec_length(mem, s);
       int filtered = codepoint & 0xff;
       if (nth >= lim) return QSERROR_RANGE;
       qsbytevec_setq(mem, s, nth, filtered);
@@ -2528,15 +2588,15 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
   qsword retval = 0;
   qsword lim = 0;
   qsword idx = 0;
-  if (qsutf8(mem, s))
+  if (qsutf8_p(mem, s))
     {
       return qsutf8_extract(mem, s, cstr, slen);
     }
-  else if (qspair(mem, s))
+  else if (qspair_p(mem, s))
     {
       qsptr_t curr = s;
       mbstate_t ps = { 0, };
-      while (qspair(mem, curr) && (idx+1 < slen-MB_CUR_MAX))
+      while (qspair_p(mem, curr) && (idx+1 < slen-MB_CUR_MAX))
 	{
 	  qsptr_t elt = qspair_ref_a(mem, curr);
 	  wchar_t ch = ISCHAR24(elt) ? CCHAR24(elt) : 0;
@@ -2555,10 +2615,11 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
       cstr[idx] = 0;
       retval = idx;
     }
-  else if (qsvector(mem, s, &lim))
+  else if (qsvector_p(mem, s))
     {
       qsword i;
       mbstate_t ps = { 0, };
+      lim = qsvector_length(mem, s);
       for (i = 0; (i+1 < slen) && (i < lim); i++)
 	{
 	  qsptr_t elt = qsvector_ref(mem, s, i);
@@ -2576,8 +2637,9 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
       cstr[idx] = 0;
       retval = idx;
     }
-  else if (qsbytevec(mem, s, &lim))
+  else if (qsbytevec_p(mem, s))
     {
+      lim = qsbytevec_length(mem, s);
       const char * bvstr = qsbytevec_cptr(mem, s, &lim);
       qsword i;
       for (i = 0; (i < lim) && (i+1 < slen); i++)
@@ -2596,10 +2658,10 @@ qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wlen)
   qsword retval = 0;
   qsword lim = 0;
   qsword idx = 0;
-  if (qspair(mem, s))
+  if (qspair_p(mem, s))
     {
       qsptr_t curr = s;
-      while (qspair(mem, curr) && (idx+1 < wlen))
+      while (qspair_p(mem, curr) && (idx+1 < wlen))
 	{
 	  qsptr_t elt = qspair_ref_a(mem, curr);
 	  if (! ISCHAR24(elt)) elt = QSCHAR(0);
@@ -2610,9 +2672,10 @@ qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wlen)
       ws[idx] = 0;
       retval = idx;
     }
-  else if (qsvector(mem, s, &lim))
+  else if (qsvector_p(mem, s))
     {
       qsword i;
+      lim = qsvector_length(mem, s);
       for (i = 0; (i+1 < wlen) && (i < lim); i++)
 	{
 	  qsptr_t elt = qsvector_ref(mem, s, i);
@@ -2623,8 +2686,9 @@ qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wlen)
       ws[idx] = 0;
       retval = idx;
     }
-  else if (qsbytevec(mem, s, &lim))
+  else if (qsbytevec_p(mem, s))
     {
+      lim = qsbytevec_length(mem, s);
       const char * cstr = qsbytevec_cptr(mem, s, &lim);
       retval = mbstowcs(ws, cstr, wlen);
     }
@@ -2664,6 +2728,11 @@ qsptr_t qssym (qsmem_t * mem, qsptr_t y)
   else return QSNIL;
 }
 
+bool qssym_p (qsmem_t * mem, qsptr_t p)
+{
+  return ISSYM26(p);
+}
+
 qsword qssym_get (qsmem_t * mem, qsptr_t y)
 {
   if (ISNIL(qssym(mem, y))) return 0;
@@ -2690,29 +2759,24 @@ qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy)
   qsobj_t * obj = qsobj(mem, yy, &out_addr);
   if (!obj) return NULL;
   qssymbol_t * symbol = (qssymbol_t*)obj;
-//  if (symbol->indicator != yy) return NULL;
-  if (!qsstr(mem, symbol->name)) return NULL;
-  //if (!qssym(mem, symbol->id)) return NULL;
-  if (CINT30(qstree_ref_right(mem, yy)) != COBJ26(yy)) return NULL;
+
+  qsptr_t indicator = qsobj_ref_ptr(mem, yy, 1);  /* .indicator */
+  if (indicator != QSSYMBOL) return NULL;
+
   /* right field should be a symbol id that points back to object itself. */
-  //if (out_addr != qssym_get(mem, symbol->id)) return NULL;
+  if (CINT30(qstree_ref_right(mem, yy)) != COBJ26(yy)) return NULL;
   return symbol;
 }
 
-qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t yy)
+PREDICATE(qssymbol)
 {
-  qssymbol_t * symbol = qssymbol(mem, yy);
-  if (!symbol) return QSNIL;
-  return symbol->name;
+  FILTER_ISA(qstree_p)    return 0;
+  FILTER_E_IS(QSSYMBOL)   return 0;
+  return 1;
 }
 
-qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t yy)
-{
-  qssymbol_t * symbol = qssymbol(mem, yy);
-  if (!symbol) return QSNIL;
-  //return symbol->id;
-  return COBJ26(yy);
-}
+FIELD_RO(qsptr_t, qssymbol, name, 2, QSID)
+FIELD_RO(qsptr_t, qssymbol, id, 3, QSID)
 
 qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name)
 {
@@ -2743,52 +2807,29 @@ qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name)
    2. symtree - indexed by name, resolves symbol_name to symbol_id.
 */
 
-qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t o)
+PREDICATE(qssymstore)
 {
-  qsobj_t * obj = qsobj(mem, o, NULL);
-  if (!obj) return NULL;
-  qssymstore_t * ystore = (qssymstore_t*)obj;
-  if (ystore->tag != QSSYMSTORE) return NULL;
-  return ystore;
+  FILTER_ISA(qstree_p)      return 0;
+  FILTER_E_IS(QSSYMSTORE)   return 0;
+  return 1;
 }
+
+FIELD_RW(qsptr_t, qssymstore, table, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qssymstore, tree, 3, QSID,QSID)
 
 qsptr_t qssymstore_make (qsmem_t * mem)
 {
-  qsptr_t retval = QSNIL;
-  qsmemaddr_t addr = 0;
-  if (!ISOBJ26((retval = qsobj_make(mem, 1, 0, &addr)))) return retval;
+  OBJ_MAKE_BAYS(1, 0);
 
-  qssymstore_t * symstore = (qssymstore_t*)qsobj(mem, retval, NULL);
-  symstore->tag = QSSYMSTORE;
-  symstore->table = qsibtree_make(mem);
-  symstore->tree = qsrbtree_make(mem, QSNIL, QSNIL);
-  return retval;
-}
+  qsptr_t tag = QSSYMSTORE;
+  qsptr_t table = qsibtree_make(mem);
+  qsptr_t tree = qsrbtree_make(mem, QSNIL, QSNIL);
 
-qsptr_t qssymstore_ref_table (qsmem_t * mem, qsptr_t o)
-{
-  qssymstore_t * ystore = qssymstore(mem, o);
-  if (! ystore) return QSNIL;
-  return ystore->table;
-}
-qsptr_t qssymstore_ref_tree (qsmem_t * mem, qsptr_t o)
-{
-  qssymstore_t * ystore = qssymstore(mem, o);
-  if (! ystore) return QSNIL;
-  return ystore->tree;
-}
+  MUTATE_PTR(1, tag);     /* .tag = tag */
+  MUTATE_PTR(2, table);   /* .table = table */
+  MUTATE_PTR(3, tree);    /* .tree = tree */
 
-qsptr_t qssymstore_setq_table (qsmem_t * mem, qsptr_t o, qsptr_t val)
-{
-  qssymstore_t * ystore = qssymstore(mem, o);
-  if (! ystore) return QSNIL;
-  return ystore->table;
-}
-qsptr_t qssymstore_setq_tree (qsmem_t * mem, qsptr_t o, qsptr_t val)
-{
-  qssymstore_t * ystore = qssymstore(mem, o);
-  if (! ystore) return QSNIL;
-  return ystore->tree;
+  return p;
 }
 
 /* symbol objects are not interned by default. */
@@ -2837,23 +2878,23 @@ int qssymstore_crepr (qsmem_t * mem, qsptr_t o)
 int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
-  if (qspair(mem, p))
+  if (qspair_p(mem, p))
     {
       n += qspair_crepr(mem, p, buf+n, buflen-n);
     }
-  else if (qstree(mem, p))
+  else if (qstree_p(mem, p))
     {
       n += qstree_crepr(mem, p, buf+n, buflen-n);
     }
-  else if (qsvector(mem, p, NULL))
+  else if (qsvector_p(mem, p))
     {
       n += qsvector_crepr(mem, p, buf+n, buflen-n);
     }
-  else if (qswidenum(mem, p, NULL))
+  else if (qswidenum_p(mem, p))
     {
       n += qswidenum_crepr(mem, p, buf+n, buflen-n);
     }
-  else if (qsbytevec(mem, p, NULL))
+  else if (qsbytevec_p(mem, p))
     {
       n += qsbytevec_crepr(mem, p, buf+n, buflen-n);
     }

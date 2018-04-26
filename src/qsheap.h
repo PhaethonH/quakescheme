@@ -2,6 +2,7 @@
 #define _QSHEAP_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <ctype.h>
 #include <wctype.h>
@@ -105,6 +106,103 @@ qsheapcell_t * qsheapcell_set_field (qsheapcell_t *, int, qsptr_t);
 
 
 /*
+   Base unit of store is 4-word "bay".
+
+   Prototypes based on pointer/octet content and allocated size.
+*/
+struct qsheap_s;
+typedef struct qsheap_s qsheap_t;
+typedef union qsbay_s {
+    struct qsbay_generic_s {
+	qsptr_t mgmt;
+	qsptr_t fields[3];
+    } generic;
+    union qsbay_ptr_u {
+	/* Single bay, pointer content (e.g. pair). */
+	struct qsunibay_ptr_s {
+	    qsptr_t mgmt;
+	    qsptr_t e;
+	    qsptr_t a;
+	    qsptr_t d;
+	} uni;
+	/* Multiple bays, pointer content (e.g. vector). */
+	struct qsmultibay_ptr_s {
+	    qsptr_t mgmt;
+	    qsptr_t len;
+	    qsptr_t gc_backtrack;
+	    qsptr_t gc_iter;
+
+	    qsptr_t _d[];
+	} multi;
+    } ptr;
+    union qsbay_oct_u {
+	/* Single bay, octet content (e.g. widenum, C pointer) */
+	struct qsunibay_oct_s {
+	    qsptr_t mgmt;
+	    qsptr_t variant;
+	    uint8_t _d[8];
+	} uni;
+	/* Multiple bays, octet content (e.g. bytevector, utf-8 string) */
+	struct qsmultibay_oct_s {
+	    qsptr_t mgmt;
+	    qsptr_t len;
+	    qsptr_t refcount;
+	    qsptr_t lock;
+
+	    uint8_t _d[];
+	} multi;
+    } oct;
+} qsbay_t;
+typedef struct qsbay_generic_s qsbay0_t;
+typedef struct qsunibay_ptr_s qsunibay_ptr_t;
+typedef struct qsmultibay_ptr_s qsmultibay_ptr_t;
+typedef struct qsunibay_oct_s qsunibay_oct_t;
+typedef struct qsmultibay_oct_s qsmultibay_oct_t;
+
+qsbay_t * qsbay (qsheap_t * mem, qsptr_t p, qsheapaddr_t * out_addr);
+bool qsbay_used_p (qsheap_t * mem, qsptr_t p);
+bool qsbay_marked_p (qsheap_t * mem, qsptr_t p);
+bool qsbay_octetate_p (qsheap_t * mem, qsptr_t p);
+int qsbay_ref_score (qsheap_t * mem, qsptr_t p);
+int qsbay_ref_parent (qsheap_t * mem, qsptr_t p);
+qsword qsbay_ref_allocsize (qsheap_t * mem, qsptr_t p);
+int qsbay_ref_allocscale (qsheap_t * mem, qsptr_t p);
+
+/* Arbitrary field access. */
+/* Returns pointer field at offset 'ofs' in object 'p'.
+     [0] => mgmt word
+   Returns QSERROR_* if access denied.
+
+   For unibay_ptr, 0=mgmt, 1=e, 2=a, 3=d
+   For multibay_ptr, 0=mgmt, 1=len, 2=gc_backgrack, 3=gc_iter, 4=data[0], ...
+   For unibay_oct, only 0 (mgmt) and 1 (variant) are valid.
+   For multibay_oct, 0=mgmt, 1=track, 2=refcount, 3=mutex.
+*/
+qsword qsbay_ref_ptr (qsheap_t * mem, qsptr_t p, qsword ofs);
+/* Returns -1 if octet access denied. */
+int qsbay_ref_oct (qsheap_t * mem, qsptr_t p, qsword ofs);
+/* Returns pointer to start of arbitrary data space, the address of ->d[0]
+   Primarily intended for writing to/from widenum payloads.
+ */
+void * qsbay_ref_data (qsheap_t * mem, qsptr_t p, qsword * len);
+/* Returns object, or QSERROR_* if mutating failed. */
+qsptr_t qsbay_setq_ptr (qsheap_t * mem, qsptr_t p, qsword ofs, qsptr_t val);
+/* Returns object, or QSERROR_* if mutating failed. */
+qsptr_t qsbay_setq_oct (qsheap_t * mem, qsptr_t p, qsword ofs, int val);
+
+qsptr_t qsbay_setq_score (qsheap_t * mem, qsptr_t p, int val);
+qsptr_t qsbay_setq_parent (qsheap_t * mem, qsptr_t p, int val);
+
+/* Mainly for is-a checks. */
+qsunibay_ptr_t * qsunibay_ptr (qsheap_t * mem, qsptr_t p);
+qsmultibay_ptr_t * qsmultibay_ptr (qsheap_t * mem, qsptr_t p);
+qsunibay_oct_t * qsunibay_oct (qsheap_t * mem, qsptr_t p);
+qsmultibay_oct_t * qsmultibay_oct (qsheap_t * mem, qsptr_t p);
+
+
+
+
+/*
 typedef union qsheapref_u {
     qsfreelist_t freelist;
     qsheapcell_t cell;
@@ -123,15 +221,32 @@ typedef struct qsheap_s {
 
 qsheap_t * qsheap_init (qsheap_t *, uint32_t ncells);
 qsheap_t * qsheap_destroy (qsheap_t *);
+/* length in number of bays. */
 uint32_t qsheap_length (qsheap_t *);
 qserror_t qsheap_allocscale (qsheap_t *, qsword allocscale, qsheapaddr_t * out_addr);
 qserror_t qsheap_alloc_ncells (qsheap_t *, qsword ncells, qsheapaddr_t * out_addr);
+/* Allocate object to occupy 'nbays' total bays. */
+qserror_t qsheap_alloc_nbays (qsheap_t *, qsword nbays, qsheapaddr_t * out_addr);
+/* Allocate object to hold 'nptrs' additional pointers (e.g. vectors). */
+qserror_t qsheap_alloc_with_nptrs (qsheap_t *, qsword nptrs, qsheapaddr_t * out_addr);
+/* Allocate object to hold 'nbytes' additional bytes (0 for unibay octetate). */
 qserror_t qsheap_alloc_with_nbytes (qsheap_t *, qsword nbytes, qsheapaddr_t * out_addr);
 qsheapaddr_t qsheap_free (qsheap_t *, qsheapaddr_t addr);
-qserror_t qsheap_set_marked (qsheap_t *, qsheapaddr_t addr, int val);
+
+int qsheap_is_valid (qsheap_t *, qsheapaddr_t addr);
+int qsheap_is_synced (qsheap_t *, qsheapaddr_t addr);
+int qsheap_get_allocscale (qsheap_t *, qsheapaddr_t addr);
+int qsheap_is_octetate (qsheap_t *, qsheapaddr_t addr);
+qserror_t qsheap_set_octetate (qsheap_t *, qsheapaddr_t addr, int val);
+int qsheap_is_used (qsheap_t *, qsheapaddr_t addr);
 qserror_t qsheap_set_used (qsheap_t *, qsheapaddr_t addr, int val);
 int qsheap_is_marked (qsheap_t *, qsheapaddr_t addr);
-int qsheap_is_used (qsheap_t *, qsheapaddr_t addr);
+qserror_t qsheap_set_marked (qsheap_t *, qsheapaddr_t addr, int val);
+int qsheap_get_score (qsheap_t *, qsheapaddr_t addr);
+qserror_t qsheap_set_score (qsheap_t *, qsheapaddr_t addr, int val);
+int qsheap_get_parent (qsheap_t *, qsheapaddr_t addr);
+qserror_t qsheap_set_parent (qsheap_t *, qsheapaddr_t addr, int val);
+
 qserror_t qsheap_sweep (qsheap_t *);
 //qsobj_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr);
 qsheapcell_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr);

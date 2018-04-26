@@ -36,16 +36,13 @@ START_TEST(test_alloc1)
   qsptr_t v = qsvector_make(heap1, 10, QSNIL);
   ck_assert_int_ne(v, QSNIL);
   ck_assert_int_eq(qsvector_length(heap1, v), 10);
-  qsvector_t * vec = qsvector(heap1, v, NULL);
-  ck_assert_int_eq(MGMT_GET_ALLOCSCALE(vec->mgmt), 2);
+  ck_assert_int_eq(MGMT_GET_ALLOCSCALE(qsobj(heap1, v, NULL)->mgmt), 2);
 
   qsptr_t v2 = qsvector_make(heap1, 2, QSNIL);
-  qsvector_t * vec2 = qsvector(heap1, v2, NULL);
-  ck_assert_int_eq(MGMT_GET_ALLOCSCALE(vec2->mgmt), 1);
+  ck_assert_int_eq(MGMT_GET_ALLOCSCALE(qsobj(heap1, v2, NULL)->mgmt), 1);
 
   qsptr_t v3 = qsvector_make(heap1, 6, QSNIL);
-  qsvector_t * vec3 = qsvector(heap1, v3, NULL);
-  ck_assert_int_eq(MGMT_GET_ALLOCSCALE(vec3->mgmt), 2);
+  ck_assert_int_eq(MGMT_GET_ALLOCSCALE(qsobj(heap1, v3, NULL)->mgmt), 2);
 }
 END_TEST
 
@@ -58,17 +55,18 @@ START_TEST(test_sweep1)
   qsptr_t v3 = qsvector_make(heap1, 2, QSNIL);  // throwaway garbage
   //qsvector_mark(heap1, v);
   qsobj_kmark(heap1, v);
-  ck_assert(MGMT_IS_MARKED(qsvector(heap1,v,NULL)->mgmt));
+  ck_assert(MGMT_IS_MARKED(qsobj(heap1,v,NULL)->mgmt));
+  ck_assert(qsobj_marked_p(heap1,v));
 
   qsheap_sweep(heap1);
-  ck_assert(qsvector(heap1, v, NULL));
-  ck_assert(!qsvector(heap1, v2, NULL));
-  ck_assert(!qsvector(heap1, v3, NULL));
+  ck_assert(qsvector_p(heap1, v));
+  ck_assert(!qsvector_p(heap1, v2));
+  ck_assert(!qsvector_p(heap1, v3));
   ck_assert_int_eq(COBJ26(v2), 19998);
   ck_assert_int_eq(heap1->end_freelist, 19998);
 
   qsheap_sweep(heap1);
-  ck_assert(!qsvector(heap1, v, NULL));
+  ck_assert(!qsvector_p(heap1, v));
   ck_assert_int_eq(heap1->end_freelist, 0);
   ck_assert_int_eq(qsfreelist_get_span(heap1,0), 20000);
 }

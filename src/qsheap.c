@@ -417,9 +417,9 @@ qserror_t qsheap_allocscale (qsheap_t * heap, qsword allocscale, qsheapaddr_t * 
   return QSERROR_NOMEM;
 }
 
-qserror_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells, qsheapaddr_t * out_addr)
+qserror_t qsheap_alloc_nbays (qsheap_t * heap, qsword ncells, qsheapaddr_t * out_addr)
 {
-/* Take log2 of number of cells (2*n to accomodate cells)
+/* Take log2 of number of bays (2**n to accomodate bays)
  0 => 0
  1 => 0
  2 => 1
@@ -440,18 +440,70 @@ qserror_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells, qsheapaddr_t * ou
   return qsheap_allocscale(heap, nbits, out_addr);
 }
 
+qserror_t qsheap_alloc_ncells (qsheap_t * heap, qsword ncells, qsheapaddr_t * out_addr)
+{
+  return qsheap_alloc_nbays(heap, ncells, out_addr);
+}
+
+qserror_t qsheap_alloc_with_nptrs (qsheap_t * heap, qsword nptrs, qsheapaddr_t * out_addr)
+{
+  static const int nptr_per_bay = sizeof(qsbay0_t) / sizeof(qsptr_t);
+  qsheapaddr_t addr = 0;
+  qserror_t retval = QSERROR_OK;
+  qsword nbays = 0;
+  if (nptrs == 0)
+    nbays = 1;
+  else
+    nbays = 1 + ((nptrs-1) / nptr_per_bay)+1;
+  retval = qsheap_alloc_nbays(heap, nbays, &addr);
+  if (out_addr)
+    *out_addr = addr;
+  return retval;
+}
+
 qserror_t qsheap_alloc_with_nbytes (qsheap_t * heap, qsword nbytes, qsheapaddr_t * out_addr)
 {
+  static const int nbyte_per_bay = sizeof(qsbay0_t);
+  qsheapaddr_t addr = 0;
   qserror_t retval = QSERROR_OK;
-  qsword ncells = 0;
+  qsword nbays = 0;
   if (nbytes == 0)
-    ncells = 1;
+    nbays = 1;
   else
-    ncells = 1 + ((nbytes-1) / sizeof(qsheapcell_t))+1;
-  retval = qsheap_alloc_ncells(heap, ncells, out_addr);
-  qsheapcell_t * heapcell = qsheap_ref(heap, *out_addr);
-  MGMT_SET_OCTET(heapcell->mgmt);
+    nbays = 1 + ((nbytes-1) / nbyte_per_bay)+1;
+  retval = qsheap_alloc_nbays(heap, nbays, &addr);
+  qsheap_set_octetate(heap, addr, 1);
+  if (out_addr)
+    *out_addr = addr;
   return retval;
+}
+
+int qsheap_is_valid (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  if (cell_addr < 0) return 0;
+  if (cell_addr >= heap->cap) return 0;
+  return 1;
+}
+
+int qsheap_is_synced (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return 0;
+  return ISSYNC29(heapcell->mgmt);
+}
+
+int qsheap_get_allocscale (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return 0;
+  return qsheapcell_get_allocscale(heapcell);
+}
+
+int qsheap_is_used (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return 0;
+  return qsheapcell_is_used(heapcell);
 }
 
 qserror_t qsheap_set_used (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
@@ -462,6 +514,13 @@ qserror_t qsheap_set_used (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
   return QSERROR_OK;
 }
 
+int qsheap_is_marked (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return 0;
+  return qsheapcell_is_marked(heapcell);
+}
+
 qserror_t qsheap_set_marked (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
 {
   qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
@@ -470,26 +529,52 @@ qserror_t qsheap_set_marked (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
   return QSERROR_OK;
 }
 
-int qsheap_is_sync (qsheap_t * heap, qsheapaddr_t cell_addr)
+int qsheap_is_octetate (qsheap_t * heap, qsheapaddr_t cell_addr)
 {
   qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
   if (!heapcell) return 0;
-  return ISSYNC29(heapcell->mgmt);
+  return qsheapcell_is_octet(heapcell);
 }
 
-int qsheap_is_marked (qsheap_t * heap, qsheapaddr_t cell_addr)
+qserror_t qsheap_set_octetate (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
 {
   qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
-  if (!heapcell) return 0;
-  return qsheapcell_is_marked(heapcell);
+  if (!heapcell) return QSERROR_INVALID;
+  MGMT_SET_OCTET(heapcell->mgmt);
+  return QSERROR_OK;
 }
 
-int qsheap_is_used (qsheap_t * heap, qsheapaddr_t cell_addr)
+int qsheap_get_parent (qsheap_t * heap, qsheapaddr_t cell_addr)
 {
   qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
   if (!heapcell) return 0;
-  return qsheapcell_is_used(heapcell);
+  return qsheapcell_get_parent(heapcell);
 }
+
+qserror_t qsheap_set_parent (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
+{
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return QSERROR_INVALID;
+  qsheapcell_set_parent(heapcell, val);
+  return QSERROR_OK;
+}
+
+int qsheap_get_score (qsheap_t * heap, qsheapaddr_t cell_addr)
+{
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return 0;
+  return qsheapcell_get_score(heapcell);
+}
+
+qserror_t qsheap_set_score (qsheap_t * heap, qsheapaddr_t cell_addr, int val)
+{
+  qsheapcell_t * heapcell = qsheap_ref(heap, cell_addr);
+  if (!heapcell) return QSERROR_INVALID;
+  qsheapcell_set_score(heapcell, val);
+  return QSERROR_OK;
+}
+
+
 
 qsheapcell_t * qsheap_ref (qsheap_t * heap, qsheapaddr_t cell_addr)
 {

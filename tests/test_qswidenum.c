@@ -44,7 +44,7 @@ START_TEST(test_sweep1)
   init();
 
   qsptr_t l1 = qslong_make(heap1, 42);
-  ck_assert(qslong(heap1, l1));
+  ck_assert(qslong_p(heap1, l1));
   ck_assert_int_eq(qsfreelist_get_span(heap1, 0), 19999);
   qsheap_sweep(heap1);
   ck_assert_int_eq(qsfreelist_get_span(heap1, 0), 20000);
