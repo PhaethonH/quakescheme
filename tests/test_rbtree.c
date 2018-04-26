@@ -155,7 +155,7 @@ START_TEST(test_split1)
 
   //qsptr_t rbtree = qsrbtree_make(heap1, cells[2]);
   qsptr_t rbtree = qsrbtree_make(heap1, cells[2], QSNIL);
-  ck_assert(qsrbtree(heap1, rbtree));
+  ck_assert(qsrbtree_p(heap1, rbtree));
 
   qsrbtree_setq_up(heap1, rbtree, QSNIL);
   qsrbtree_setq_down(heap1, rbtree, qsrbtree_ref_top(heap1, rbtree));
@@ -213,7 +213,7 @@ START_TEST(test_build1)
   // insert "alpha" into (empty) tree.
   treeroot = qsrbtree_insert(heap1, treeroot, apairs[0]);
   ck_assert(!ISNIL(treeroot));
-  ck_assert(qsrbtree(heap1, treeroot));
+  ck_assert(qsrbtree_p(heap1, treeroot));
   ck_assert(!ISNIL(qsrbtree_ref_top(heap1, treeroot)));
   // raw tree
   qsptr_t t0 = qsrbtree_ref_top(heap1, treeroot);

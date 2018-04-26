@@ -193,7 +193,6 @@ qsptr_t qsrbnode_rotate_left (qsmem_t * mem, qsptr_t pivot);
 qsptr_t qsrbnode_rotate_right (qsmem_t * mem, qsptr_t pivot);
 
 //qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node);
-qsrbtree_t * qsrbtree (qsmem_t * mem, qsptr_t t);
 bool qsrbtree_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp);
 

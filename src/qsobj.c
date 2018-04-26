@@ -731,92 +731,19 @@ qsptr_t qsrbnode_paint_black (qsmem_t * mem, qsptr_t node)
 
 
 
-qsrbtree_t * qsrbtree (qsmem_t * mem, qsptr_t t)
+PREDICATE(qsrbtree)
 {
-  qsobj_t * obj = qsobj_multibayptr(mem, t, NULL);
-  if (!obj) return NULL;
-  if (qsobj_ref_allocsize(mem, t) != 2) return NULL;
-  qsrbtree_t * tree = (qsrbtree_t*)obj;
-  qsptr_t variant = qsobj_ref_ptr(mem, t, 1);  /* .variant */
-  if (variant != QSRBTREE) return NULL;
-  return tree;
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_POINTER     return 0;
+  if (qsobj_ref_allocsize(mem, p) != 2)   return 0;
+  FILTER_E_IS(QSRBTREE) return 0;
+  return 1;
 }
 
-qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp)
-{
-  qsptr_t retval = QSNIL;
-  qsmemaddr_t addr = 0;
-  if (!ISOBJ26((retval = qsobj_make(mem, 2, 0, &addr)))) return retval;
-
-  qsrbtree_t * rbtree = (qsrbtree_t*)qsobj(mem, retval, NULL);
-  qsobj_setq_ptr(mem, retval, 1, QSRBTREE); /* .variant = QSRBTREE */
-  qsobj_setq_ptr(mem, retval, 4, top_node); /* .top = top_node */
-  qsobj_setq_ptr(mem, retval, 5, cmp);	    /* .cmp = cmp */
-  qsobj_setq_ptr(mem, retval, 6, QSNIL);    /* .up = nil */
-  qsobj_setq_ptr(mem, retval, 7, QSNIL);    /* .down = nil */
-  return retval;
-}
-
-qsptr_t qsrbtree_ref_top (qsmem_t * mem, qsptr_t root)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  return qsobj_ref_ptr(mem, root, 4);	/* .top */
-}
-
-qsptr_t qsrbtree_ref_cmp (qsmem_t * mem, qsptr_t root)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  return qsobj_ref_ptr(mem, root, 5);	/* .cmp */
-}
-
-qsptr_t qsrbtree_ref_up (qsmem_t * mem, qsptr_t root)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  return qsobj_ref_ptr(mem, root, 6);	/* .up */
-}
-
-qsptr_t qsrbtree_ref_down (qsmem_t * mem, qsptr_t root)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  return qsobj_ref_ptr(mem, root, 7);	/* .down */
-}
-
-qsptr_t qsrbtree_setq_top (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  qsobj_setq_ptr(mem, root, 4, val);	/* .top = val */
-  return root;
-}
-
-qsptr_t qsrbtree_setq_cmp (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  qsobj_setq_ptr(mem, root, 5, val);	/* .cmp = val */
-  return root;
-}
-
-qsptr_t qsrbtree_setq_up (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  qsobj_setq_ptr(mem, root, 6, val);	/* .up = val */
-  return root;
-}
-
-qsptr_t qsrbtree_setq_down (qsmem_t * mem, qsptr_t root, qsptr_t val)
-{
-  qsrbtree_t * rbtree = qsrbtree(mem, root);
-  if (!rbtree) return QSNIL;
-  qsobj_setq_ptr(mem, root, 7, val);	/* .down = val */
-  return root;
-}
-
+FIELD_RW(qsptr_t, qsrbtree, top, 4, QSID,QSID)
+FIELD_RW(qsptr_t, qsrbtree, cmp, 5, QSID,QSID)
+FIELD_RW(qsptr_t, qsrbtree, up, 6, QSID,QSID)
+FIELD_RW(qsptr_t, qsrbtree, down, 7, QSID,QSID)
 
 /* Lock tree for update, indicates tree may be in inconsistent state. */
 qsptr_t qsrbtree_lock (qsmem_t * mem, qsptr_t root)
@@ -830,21 +757,33 @@ qsptr_t qsrbtree_unlock (qsmem_t * mem, qsptr_t root)
   return QSTRUE;
 }
 
+qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp)
+{
+  OBJ_MAKE_BAYS(2, 0);
+
+  MUTATE_PTR(1, QSRBTREE);    /* .variant = QSRBTREE */
+  MUTATE_PTR(4, top_node);    /* .top = top_node */
+  MUTATE_PTR(5, cmp);         /* .cmp = cmp */
+  MUTATE_PTR(6, QSNIL);       /* .up = nil */
+  MUTATE_PTR(7, QSNIL);       /* .down = nil */
+
+  return p;
+}
+
 /* Split a tree to set up reverse pointers.
    Updates internal "splits" state to track the current split point.
-   Returns pointer to root of newly detached subtree.
+   Returns the rbtree instance, or error if splitting failed.
  */
-qsptr_t qsrbtree_split (qsmem_t * mem, int leftward, qsptr_t rootptr)
+qsptr_t qsrbtree_split (qsmem_t * mem, int leftward, qsptr_t p)
 {
+  FILTER_ISA(qsrbtree_p)  return QSERROR_INVALID;
   qsptr_t next = QSNIL;
   qsptr_t parent = QSNIL;
-  qsrbtree_t * rbtree = qsrbtree(mem, rootptr);
-  assert(rbtree);
-  qsptr_t currptr = qsrbtree_ref_down(mem, rootptr);
+  qsptr_t currptr = qsrbtree_ref_down(mem, p);
   if (leftward)
     {
       next = qstree_ref_left(mem, currptr);
-      qsptr_t parent = qsrbtree_ref_up(mem, rootptr);
+      qsptr_t parent = qsrbtree_ref_up(mem, p);
       /* indicate .left is actually parent. */
       currptr = qstree_setq_left(mem, currptr, parent);
       currptr = qsobj_setq_parent(mem, currptr, 1); 
@@ -852,14 +791,14 @@ qsptr_t qsrbtree_split (qsmem_t * mem, int leftward, qsptr_t rootptr)
   else
     {
       next = qstree_ref_right(mem, currptr);
-      qsptr_t parent = qsrbtree_ref_up(mem, rootptr);
+      qsptr_t parent = qsrbtree_ref_up(mem, p);
       /* indicate .right is actually parent. */
       currptr = qstree_setq_right(mem, currptr, parent);
       currptr = qsobj_setq_parent(mem, currptr, 2); 
     }
-  qsrbtree_setq_up(mem, rootptr, currptr); // parent of subtree.
-  qsrbtree_setq_down(mem, rootptr, next); // subtree
-  return rootptr;
+  qsrbtree_setq_up(mem, p, currptr); // parent of subtree.
+  qsrbtree_setq_down(mem, p, next); // subtree
+  return p;
 }
 
 qsptr_t qsrbtree_split_left (qsmem_t * mem, qsptr_t rootptr)
@@ -1192,7 +1131,7 @@ unwind:
   return root;
 }
 
-/* Return best tree node fulfilling critera 'key'.
+/* Return best tree node fulfilling criterion 'key'.
    nil if not found.
  */
 qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
@@ -1202,6 +1141,7 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
   qsptr_t d;
   int libra = 0;
   qsptr_t probekey = QSNIL;
+  /* TODO: resolve having mostly-duplicated code with qsrbtree_insert. */
   while (!ISNIL(probe))
     {
       prev = probe;
