@@ -569,6 +569,37 @@ int qsobj_p (qsmem_t * mem, qsptr_t p)
   return 1;
 }
 
+const char * qsobj_typeof (qsmem_t * mem, qsptr_t p)
+{
+  if (qsfloat_p(mem, p)) return "float31";
+  if (qsint_p(mem, p)) return "int30";
+  if (qschar_p(mem, p)) return "char24";
+  if (qserr_p(mem, p)) return "error16";
+  if (qsconst_p(mem, p)) return "const16";
+  if (qsobj_p(mem, p))
+    {
+      if (qsrbtree_p(mem, p)) return "Rbtree";
+      if (qsvector_p(mem, p)) return "Vector";
+      if (qsbytevec_p(mem, p)) return "Bytevec";
+      if (qsutf8_p(mem, p)) return "Utf8";
+      if (qssymbol_p(mem, p)) return "Symbol";
+      if (qssymstore_p(mem, p)) return "Symstore";
+      if (qsenv_p(mem, p)) return "Env";
+      if (qslambda_p(mem, p)) return "Lambda";
+      if (qsclosure_p(mem, p)) return "Closure";
+      if (qskont_p(mem, p)) return "Continuation";
+      if (qswidenum_p(mem, p))
+        {
+          if (qslong_p(mem, p)) return "Long";
+          if (qsdouble_p(mem, p)) return "Double";
+          return "Widenum(...)";
+        }
+      if (qspair_p(mem, p)) return "Pair";
+      if (qstree_p(mem, p)) return "Tree";
+    }
+  return "UNK";
+}
+
 
 
 
@@ -2946,7 +2977,7 @@ PREDICATE(qsenv)
 }
 
 FIELD_RW(qsptr_t, qsenv, dict, 2, QSID,QSID)
-FIELD_RW(qsptr_t, qsenv, next, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qsenv, next, 3, QSID,QSID)
 
 qsptr_t qsenv_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key)
 {
@@ -2962,13 +2993,13 @@ qsptr_t qsenv_ref (qsmem_t * mem, qsptr_t p, qsptr_t key)
   qsptr_t frame = p;
   while (qsenv_p(mem, frame))
     {
-      qsptr_t apair = qsenv_assoc(mem, p, key);
+      qsptr_t apair = qsenv_assoc(mem, frame, key);
       if (qstree_p(mem, apair))
         {
           return qspair_ref_d(mem, apair);
         }
       /* Search next frame. */
-      frame = qspair_ref_d(mem, frame);
+      frame = qsenv_ref_next(mem, frame);
     }
   return QSERROR_INVALID;
 }
@@ -3011,15 +3042,15 @@ int qsenv_crepr (qsmem_t * mem, qsptr_t e, char * buf, int buflen)
 
 
 
-PREDICATE(lambda)
+PREDICATE(qslambda)
 {
   FILTER_ISA(qstree_p)    return 0;
   FILTER_E_IS(QST_LAMBDA) return 0;
   return 1;
 }
 
-FIELD_RW(qsptr_t, lambda, param, 2, QSID,QSID)
-FIELD_RW(qsptr_t, lambda, body, 3, QSID,QSID)
+FIELD_RW(qsptr_t, qslambda, param, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qslambda, body, 3, QSID,QSID)
 
 qsptr_t qslambda_make (qsmem_t * mem, qsptr_t param, qsptr_t body)
 {
@@ -3041,15 +3072,15 @@ int qslambda_crepr (qsmem_t * mem, qsptr_t lam, char * buf, int buflen)
 
 
 
-PREDICATE(closure)
+PREDICATE(qsclosure)
 {
   FILTER_ISA(qstree_p)      return 0;
   FILTER_E_IS(QST_CLOSURE)  return 0;
   return 1;
 }
 
-FIELD_RW(qsptr_t, closure, env, 2, QSID,QSID)
-FIELD_RW(qsptr_t, closure, lambda, 3, QSID,QSID)
+FIELD_RW(qsptr_t, qsclosure, env, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qsclosure, lambda, 3, QSID,QSID)
 
 qsptr_t qsclosure_make (qsmem_t * mem, qsptr_t env, qsptr_t lambda)
 {

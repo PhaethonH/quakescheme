@@ -53,13 +53,47 @@ START_TEST(test_env1)
 
   qsenv_setq(heap1, e0, syms[0], QSINT(10));
 
+  /* Frame 0. */
   qsptr_t q0 = qsenv_ref(heap1, e0, syms[0]);
   ck_assert_int_eq(q0, QSINT(10));
+  /* check newly added binding. */
   q0 = qsenv_ref(heap1, e0, syms[1]);
   ck_assert_int_eq(q0, QSERROR_INVALID);
 
 
-  qsptr_t e1 = qsenv_make(heap1, QSNIL);
+  /* Frame 1: check resolving down frames. */
+  qsptr_t e1 = qsenv_make(heap1, e0);
+  qsenv_setq(heap1, e1, syms[1], QSINT(11));
+  /* check newly added binding. */
+  q0 = qsenv_ref(heap1, e1, syms[1]);
+  ck_assert_int_eq(q0, QSINT(11));
+  /* check resolve down frames. */
+  q0 = qsenv_ref(heap1, e1, syms[0]);
+  ck_assert_int_eq(q0, QSINT(10));
+
+  /* multiple added to most-recent frame. */
+  qsenv_setq(heap1, e1, syms[2], QSINT(12));
+  qsenv_setq(heap1, e1, syms[3], QSINT(13));
+  /* check last insert. */
+  q0 = qsenv_ref(heap1, e1, syms[3]);
+  ck_assert_int_eq(q0, QSINT(13));
+  /* re-check first insert this frame. */
+  q0 = qsenv_ref(heap1, e1, syms[1]);
+  ck_assert_int_eq(q0, QSINT(11));
+  /* re-check resolve down frames. */
+  q0 = qsenv_ref(heap1, e1, syms[0]);
+  ck_assert_int_eq(q0, QSINT(10));
+
+
+  /* Frame 2: overload bindings. */
+  qsptr_t e2 = qsenv_make(heap1, e1);
+  qsenv_setq(heap1, e2, syms[0], QSINT(110));
+  /* check very first symbol. */
+  q0 = qsenv_ref(heap1, e2, syms[0]);
+  ck_assert_int_eq(q0, QSINT(110));
+  /* check very first binding. */
+  q0 = qsenv_ref(heap1, e0, syms[0]);
+  ck_assert_int_eq(q0, QSINT(10));
 
 }
 END_TEST

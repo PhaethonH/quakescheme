@@ -371,8 +371,8 @@ typedef struct qslambda_s {
 bool qslambda_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qslambda_ref_param (qsmem_t * mem, qsptr_t p);
 qsptr_t qslambda_ref_body (qsmem_t * mem, qsptr_t p);
-qsptr_t qslambda_setq_param (qsmem_t * mem, qsptr_t p);
-qsptr_t qslambda_setq_body (qsmem_t * mem, qsptr_t p);
+qsptr_t qslambda_setq_param (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qslambda_setq_body (qsmem_t * mem, qsptr_t p, qsptr_t val);
 qsptr_t qslambda_make (qsmem_t * mem, qsptr_t param, qsptr_t body);
 cmp_t qslambda_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 int qslambda_crepr (qsmem_t * mem, qsptr_t lam, char * buf, int buflen);
@@ -388,8 +388,8 @@ typedef struct qsclosure_s {
 bool qsclosure_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qsclosure_ref_env (qsmem_t * mem, qsptr_t p);
 qsptr_t qsclosure_ref_lambda (qsmem_t * mem, qsptr_t p);
-qsptr_t qsclosure_setq_env (qsmem_t * mem, qsptr_t p);
-qsptr_t qsclosure_setq_lambda (qsmem_t * mem, qsptr_t p);
+qsptr_t qsclosure_setq_env (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qsclosure_setq_lambda (qsmem_t * mem, qsptr_t p, qsptr_t val);
 qsptr_t qsclosure_make (qsmem_t * mem, qsptr_t env, qsptr_t lambda);
 cmp_t qsclosure_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 int qsclosure_crepr (qsmem_t * mem, qsptr_t clo, char * buf, int buflen);
