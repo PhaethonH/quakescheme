@@ -493,6 +493,7 @@ iterated object is freed.
 */
 
 qsptr_t qsiter (qsmem_t * mem, qsptr_t it);
+bool qsiter_p (qsmem_t * mem, qsptr_t p);
 int qsiter_on_pair (qsmem_t * mem, qsptr_t it, qsptr_t * out_pairptr);
 qsword qsiter_get (qsmem_t * mem, qsptr_t it);
 qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it);  // also car
@@ -500,32 +501,36 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it);  // also cdr
 qsptr_t qsiter_make (qsmem_t * meme, qsmemaddr_t addr);
 
 
-bool qsint_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qsint (qsmem_t * mem, qsptr_t i);
+bool qsint_p (qsmem_t * mem, qsptr_t p);
 int32_t qsint_get (qsmem_t * mem, qsptr_t i);
 qsptr_t qsint_make (qsmem_t * mem, int32_t val);
 int qsint_crepr (qsmem_t * mem, qsptr_t i, char * buf, int buflen);
 
 
 qsptr_t qsfloat (qsmem_t * mem, qsptr_t f);
+bool qsfloat_p (qsmem_t * mem, qsptr_t p);
 float qsfloat_get (qsmem_t * mem, qsptr_t f);
 qsptr_t qsfloat_make (qsmem_t * mem, float val);
 int qsfloat_crepr (qsmem_t * mem, qsptr_t f, char * buf, int buflen);
 
 
 qsptr_t qschar (qsmem_t * mem, qsptr_t c);
+bool qschar_p (qsmem_t * mem, qsptr_t c);
 int qschar_get (qsmem_t * mem, qsptr_t c);
 qsptr_t qschar_make (qsmem_t * mem, int val);
 int qschar_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
 
 
 qsptr_t qserr (qsmem_t * mem, qsptr_t e);
+bool qserr_p (qsmem_t * mem, qsptr_t e);
 int qserr_get (qsmem_t * mem, qsptr_t e);
 qsptr_t qserr_make (qsmem_t * mem, int errcode);
 int qserr_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
 
 
 qsptr_t qsconst (qsmem_t * mem, qsptr_t n);
+bool qsconst_p (qsmem_t * mem, qsptr_t n);
 int qsconst_get (qsmem_t * mem, qsptr_t n);
 qsptr_t qsconst_make (qsmem_t * mem, int constcode);
 int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);

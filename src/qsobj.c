@@ -1991,6 +1991,12 @@ qsptr_t qsiter (qsmem_t * mem, qsptr_t it)
   return QSNIL;
 }
 
+PREDICATE(qsiter)
+{
+  if (ISITER28(p)) return 1;
+  return 0;
+}
+
 qsptr_t qsiter_make (qsmem_t * meme, qsmemaddr_t addr)
 {
   // TODO: bounds check.
@@ -2188,6 +2194,11 @@ qsptr_t qsfloat (qsmem_t * mem, qsptr_t q)
   return QSNIL;
 }
 
+PREDICATE(qsfloat)
+{
+  return ISFLOAT31(p);
+}
+
 float qsfloat_get (qsmem_t * mem, qsptr_t q)
 {
   if (ISFLOAT31(q)) return CFLOAT31(q);
@@ -2215,6 +2226,11 @@ qsptr_t qschar (qsmem_t * mem, qsptr_t q)
 {
   if (ISCHAR24(q)) return q;
   return QSNIL;
+}
+
+bool qschar_p (qsmem_t * mem, qsptr_t p)
+{
+  return ISCHAR24(p);
 }
 
 int qschar_get (qsmem_t * mem, qsptr_t q)
@@ -2286,6 +2302,11 @@ qsptr_t qserr (qsmem_t * mem, qsptr_t e)
   return QSNIL;
 }
 
+bool qserr_p (qsmem_t * me, qsptr_t p)
+{
+  return ISERROR16(p);
+}
+
 int qserr_get (qsmem_t * mem, qsptr_t e)
 {
   if (ISERROR16(e)) return CERROR16(e);
@@ -2334,6 +2355,11 @@ qsptr_t qsconst (qsmem_t * mem, qsptr_t n)
 {
   if (ISCONST16(n)) return n;
   return QSNIL;
+}
+
+PREDICATE(qsconst)
+{
+  return ISCONST16(p);
 }
 
 int qsconst_get (qsmem_t * mem, qsptr_t n)
