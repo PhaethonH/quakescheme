@@ -571,6 +571,9 @@ int qsobj_p (qsmem_t * mem, qsptr_t p)
 
 
 
+
+
+
 /* Define is-a predicate function. */
 #define PREDICATE(OBJTYPE) bool OBJTYPE##_p (qsmem_t * mem, qsptr_t p)
 
@@ -621,11 +624,11 @@ access_type OBJTYPE##_ref_##fldname (qsmem_t * mem, qsptr_t p) \
 #define OBJ_MAKE_BAYS(nbays, octetate) \
   qsptr_t p = QSNIL; \
   qsmemaddr_t addr = 0; \
-  if (!ISOBJ26((p = qsobj_make(mem, nbays, octetate, &addr)))) return p;
-#define RETURN_OBJ return p;
+  if (!ISOBJ26((p = qsobj_make(mem, nbays, octetate, &addr)))) return p
+#define RETURN_OBJ return p
 
-#define RETURN_TRUE return 1;
-#define RETURN_FALSE return 0;
+#define RETURN_TRUE return 1
+#define RETURN_FALSE return 0
 
 
 
@@ -736,7 +739,7 @@ PREDICATE(qsrbtree)
   FILTER_ISA(qsobj_p)   return 0;
   FILTER_IS_POINTER     return 0;
   if (qsobj_ref_allocsize(mem, p) != 2)   return 0;
-  FILTER_E_IS(QSRBTREE) return 0;
+  FILTER_E_IS(QST_RBTREE) return 0;
   return 1;
 }
 
@@ -761,7 +764,7 @@ qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp)
 {
   OBJ_MAKE_BAYS(2, 0);
 
-  MUTATE_PTR(1, QSRBTREE);    /* .variant = QSRBTREE */
+  MUTATE_PTR(1, QST_RBTREE);    /* .variant = QST_RBTREE */
   MUTATE_PTR(4, top_node);    /* .top = top_node */
   MUTATE_PTR(5, cmp);         /* .cmp = cmp */
   MUTATE_PTR(6, QSNIL);       /* .up = nil */
@@ -953,7 +956,7 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
 
   qsptr_t d = QSNIL;
   qsptr_t newkey = qspair_ref_a(mem, apair);
-  int libra = 0;
+  cmp_t libra = 0;
   qsword lim = 258;  /* avoid infinite loop; max used depth around  31. */
 
   /* traverse to bottom of tree. */
@@ -966,27 +969,30 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
 	{
 	  //qsptr_t currkey = qspair_ref_a(mem, d);
 	  qsptr_t currkey = qstree_ref_data(mem, d);
-	  libra = qsstr_cmp(mem, newkey, currkey);
+	  libra = qsobj_cmp(mem, newkey, currkey);
 	}
       else
 	{
 	  /* No compare; bias to right (as would a list). */
-	  libra = 1;
+	  libra = CMP_GT;
 	}
-      if (libra == 0)
-	break; /* match. */
-      else if (libra < 0)
-	{
-	  /* go left. */
+      switch (libra)
+        {
+        case CMP_EQ: /* match */
+          lim = 0;
+          break;
+        case CMP_LT:
+          /* go left. */
 	  root = qsrbtree_split_left(mem, root);
 	  assert(!ISNIL(root));
-	}
-      else if (libra > 0)
-	{
+          break;
+        case CMP_NE:  /* not-equal or no-compare, go right. */
+        case CMP_GT:
 	  /* go right. */
 	  root = qsrbtree_split_right(mem, root);
 	  assert(!ISNIL(root));
-	}
+          break;
+        }
     }
 
   /* insertion. */
@@ -1139,7 +1145,7 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
   qsptr_t probe = t;
   qsptr_t prev = QSNIL;
   qsptr_t d;
-  int libra = 0;
+  cmp_t libra = 0;
   qsptr_t probekey = QSNIL;
   /* TODO: resolve having mostly-duplicated code with qsrbtree_insert. */
   while (!ISNIL(probe))
@@ -1147,22 +1153,33 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
       prev = probe;
       d = qstree_ref_data(mem, probe);
       probekey = QSNIL;
-      libra = 0;
+      libra = CMP_NE;
       // TODO: custom comparator
       if (qstree_p(mem, d))
 	{
 	  //probekey = qspair_ref_a(mem, d);
 	  probekey = qstree_ref_data(mem, d);
-	  libra = qsstr_cmp(mem, key, probekey);
+          /* TODO: qsobj_cmp */
+	  libra = qsobj_cmp(mem, key, probekey);
 	}
       else
 	{
 	  /* uncomparable; just go right. */
-	  libra = 1;
+	  libra = CMP_GT;
 	}
-      if (libra == 0) return probe;  // match.
-      else if (libra < 0) probe = qstree_ref_left(mem, probe);
-      else if (libra > 0) probe = qstree_ref_right(mem, probe);
+      switch (libra)
+        {
+        case CMP_EQ: /* match */
+          return probe;
+          break;
+        case CMP_LT:
+          probe = qstree_ref_left(mem, probe);
+          break;
+        case CMP_NE:  /* not-equal or no-compare, go right. */
+        case CMP_GT:
+          probe = qstree_ref_right(mem, probe);
+          break;
+        }
     }
   if (nearest)
     *nearest = prev;  // best match (ready for insert).
@@ -1330,6 +1347,26 @@ qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t t, qsword path, qsptr_t entry)
     }
 
   return t;
+}
+
+cmp_t qsobj_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
+{
+  qsptr_t cast_b = b;
+  if (qsstr_p(mem, a))
+    {
+      if (! qsstr_p(mem, b)) return CMP_NE;
+      return qsstr_cmp(mem, a, b);
+    }
+  else if (qssymbol_p(mem, a))
+    {
+      if (! qssymbol_p(mem, b)) return CMP_NE;
+      return qssymbol_cmp(mem, a, b);
+    }
+  else
+    {
+      // TODO: lots.
+    }
+  return CMP_NE;
 }
 
 
@@ -2695,9 +2732,10 @@ qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wlen)
   return retval;
 }
 
-int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
+cmp_t qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
 {
-  if (a == b) return 0;
+  cmp_t retval = 0;
+  if (a == b) return CMP_EQ;
   qsword k = 0;
   qsword lim_a = qsstr_length(mem, a);
   qsword lim_b = qsstr_length(mem, b);
@@ -2706,15 +2744,15 @@ int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
     {
       int ch_a = k < lim_a ? qsstr_ref(mem, a, k) : 0;
       int ch_b = k < lim_b ? qsstr_ref(mem, b, k) : 0;
-      if (ch_a < ch_b) return -1;
-      if (ch_a > ch_b) return 1;
-      if (ch_a <= 0) return -1;
-      if (ch_b <= 0) return 1;
+      if (ch_a < ch_b) return CMP_LT;
+      if (ch_a > ch_b) return CMP_GT;
+      if (ch_a <= 0) return CMP_LT;
+      if (ch_b <= 0) return CMP_GT;
       // else ch_a == ch_b  =>  continue
     }
-  if (lim_a < lim_b) return 1;
-  else if (lim_a > lim_b) return -1;
-  return 0;
+  if (lim_a < lim_b) return CMP_GT;
+  else if (lim_a > lim_b) return CMP_LT;
+  return CMP_EQ;
 }
 
 
@@ -2761,7 +2799,7 @@ qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy)
   qssymbol_t * symbol = (qssymbol_t*)obj;
 
   qsptr_t indicator = qsobj_ref_ptr(mem, yy, 1);  /* .indicator */
-  if (indicator != QSSYMBOL) return NULL;
+  if (indicator != QST_SYMBOL) return NULL;
 
   /* right field should be a symbol id that points back to object itself. */
   if (CINT30(qstree_ref_right(mem, yy)) != COBJ26(yy)) return NULL;
@@ -2771,7 +2809,7 @@ qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy)
 PREDICATE(qssymbol)
 {
   FILTER_ISA(qstree_p)    return 0;
-  FILTER_E_IS(QSSYMBOL)   return 0;
+  FILTER_E_IS(QST_SYMBOL)   return 0;
   return 1;
 }
 
@@ -2791,13 +2829,32 @@ qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name)
   qsptr_t y = qssym_make(mem, addr);
   qstree_setq_right(mem, retval, y);
 #else
-  qsptr_t retval = qstree_make(mem, QSSYMBOL, name, QSNIL);
+  qsptr_t retval = qstree_make(mem, QST_SYMBOL, name, QSNIL);
   if (!ISOBJ26(retval)) return retval;
   /* right field value to address value. */
   qstree_setq_right(mem, retval, QSINT(COBJ26(retval)));
 #endif //0
 
   return retval;
+}
+
+cmp_t qssymbol_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
+{
+  if (! qssymbol_p(mem, a)) return CMP_NE;
+  if (! qssymbol_p(mem, b)) return CMP_NE;
+  if (a == b) return CMP_EQ;
+
+  /*
+     Symbols spelled the same would have same symbol addresses.
+     At this point, comparison would be for hashing/keying purposes,
+     so compare hashable values.
+
+     For now, compare addresses.
+   */
+  if (COBJ26(a) < COBJ26(b))
+    return CMP_LT;
+  else
+    return CMP_GT;
 }
 
 
@@ -2810,7 +2867,7 @@ qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name)
 PREDICATE(qssymstore)
 {
   FILTER_ISA(qstree_p)      return 0;
-  FILTER_E_IS(QSSYMSTORE)   return 0;
+  FILTER_E_IS(QST_SYMSTORE) return 0;
   return 1;
 }
 
@@ -2821,7 +2878,7 @@ qsptr_t qssymstore_make (qsmem_t * mem)
 {
   OBJ_MAKE_BAYS(1, 0);
 
-  qsptr_t tag = QSSYMSTORE;
+  qsptr_t tag = QST_SYMSTORE;
   qsptr_t table = qsibtree_make(mem);
   qsptr_t tree = qsrbtree_make(mem, QSNIL, QSNIL);
 
@@ -2867,6 +2924,179 @@ qsptr_t qssymstore_assoc (qsmem_t * mem, qsptr_t o, qsptr_t key)
 }
 
 int qssymstore_crepr (qsmem_t * mem, qsptr_t o)
+{
+  int n = 0;
+  return n;
+}
+
+
+
+
+/************************************/
+/* Execution model data structures. */
+/************************************/
+
+/* Environment. */
+
+PREDICATE(qsenv)
+{
+  FILTER_ISA(qstree_p)  return 0;
+  FILTER_E_IS(QST_ENV)  return 0;
+  return 1;
+}
+
+FIELD_RW(qsptr_t, qsenv, dict, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qsenv, next, 2, QSID,QSID)
+
+qsptr_t qsenv_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key)
+{
+  FILTER_ISA(qsenv_p)   return QSNIL;
+  qsptr_t dict = qsenv_ref_dict(mem, p);
+  if (ISNIL(dict))      return QSNIL;
+  qsptr_t apair = qsrbtree_assoc(mem, dict, key);
+  return apair;
+}
+
+qsptr_t qsenv_ref (qsmem_t * mem, qsptr_t p, qsptr_t key)
+{
+  qsptr_t frame = p;
+  while (qsenv_p(mem, frame))
+    {
+      qsptr_t apair = qsenv_assoc(mem, p, key);
+      if (qstree_p(mem, apair))
+        {
+          return qspair_ref_d(mem, apair);
+        }
+      /* Search next frame. */
+      frame = qspair_ref_d(mem, frame);
+    }
+  return QSERROR_INVALID;
+}
+
+qsptr_t qsenv_setq (qsmem_t * mem, qsptr_t p, qsptr_t key, qsptr_t val)
+{
+  FILTER_ISA(qsenv_p)   return p;
+  qsptr_t apair = qsenv_assoc(mem, p, key);
+  if (ISNIL(apair))
+    {
+      apair = qspair_make(mem, key, val);
+      qsptr_t dict = qsenv_ref_dict(mem, p);
+      dict = qsrbtree_insert(mem, dict, apair);
+    }
+  else
+    {
+      qspair_setq_d(mem, apair, val);
+    }
+  return p;
+}
+
+qsptr_t qsenv_make (qsmem_t * mem, qsptr_t next)
+{
+  OBJ_MAKE_BAYS(1, 0);
+
+  qsptr_t dict = qsrbtree_make(mem, QSNIL, QSNIL);
+
+  MUTATE_PTR(1, QST_ENV);
+  MUTATE_PTR(2, dict);
+  MUTATE_PTR(3, next);
+
+  RETURN_OBJ;
+}
+
+int qsenv_crepr (qsmem_t * mem, qsptr_t e, char * buf, int buflen)
+{
+  int n = 0;
+  return n;
+}
+
+
+
+PREDICATE(lambda)
+{
+  FILTER_ISA(qstree_p)    return 0;
+  FILTER_E_IS(QST_LAMBDA) return 0;
+  return 1;
+}
+
+FIELD_RW(qsptr_t, lambda, param, 2, QSID,QSID)
+FIELD_RW(qsptr_t, lambda, body, 3, QSID,QSID)
+
+qsptr_t qslambda_make (qsmem_t * mem, qsptr_t param, qsptr_t body)
+{
+  OBJ_MAKE_BAYS(1, 0);
+
+  MUTATE_PTR(1, QST_LAMBDA);
+  MUTATE_PTR(2, param);
+  MUTATE_PTR(3, body);
+
+  RETURN_OBJ;
+}
+
+int qslambda_crepr (qsmem_t * mem, qsptr_t lam, char * buf, int buflen)
+{
+  int n = 0;
+  return n;
+}
+
+
+
+
+PREDICATE(closure)
+{
+  FILTER_ISA(qstree_p)      return 0;
+  FILTER_E_IS(QST_CLOSURE)  return 0;
+  return 1;
+}
+
+FIELD_RW(qsptr_t, closure, env, 2, QSID,QSID)
+FIELD_RW(qsptr_t, closure, lambda, 3, QSID,QSID)
+
+qsptr_t qsclosure_make (qsmem_t * mem, qsptr_t env, qsptr_t lambda)
+{
+  OBJ_MAKE_BAYS(1, 0);
+
+  MUTATE_PTR(1, QST_CLOSURE);
+  MUTATE_PTR(2, env);
+  MUTATE_PTR(3, lambda);
+
+  RETURN_OBJ;
+}
+
+int qsclosure_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
+{
+  int n = 0;
+  return n;
+}
+
+
+
+
+PREDICATE(qskont)
+{
+  FILTER_ISA(qstree_p)    return 0;
+  FILTER_E_IS(QST_KONT)   return 0;
+  return 1;
+}
+
+FIELD_RW(qsptr_t, qskont, env, 4, QSID,QSID)
+FIELD_RW(qsptr_t, qskont, kont, 5, QSID,QSID)
+FIELD_RW(qsptr_t, qskont, code, 6, QSID,QSID)
+FIELD_RW(qsptr_t, qskont, other, 7, QSID,QSID)
+
+qsptr_t qskont_make (qsmem_t * mem, qsptr_t variant, qsptr_t kont, qsptr_t env, qsptr_t code, qsptr_t other)
+{
+  OBJ_MAKE_BAYS(2, 0);
+
+  MUTATE_PTR(1, QST_KONT);
+  MUTATE_PTR(4, env);
+  MUTATE_PTR(5, kont);
+  MUTATE_PTR(6, code);
+  MUTATE_PTR(7, other);
+
+  RETURN_OBJ;
+}
+
+int qskont_crepr (qsmem_t * mem, qsptr_t kont, char * buf, int buflen)
 {
   int n = 0;
   return n;
