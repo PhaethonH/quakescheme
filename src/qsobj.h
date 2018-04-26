@@ -160,19 +160,19 @@ typedef struct qstree_s {
     qsptr_t right;
 } qstree_t;
 
-qstree_t * qstree (qsmem_t * mem, qsptr_t t);
-qsptr_t qstree_ref_left (qsmem_t * mem, qsptr_t t);
-qsptr_t qstree_ref_data (qsmem_t * mem, qsptr_t t);
-qsptr_t qstree_ref_right (qsmem_t * mem, qsptr_t t);
-qsptr_t qstree_setq_left (qsmem_t * mem, qsptr_t t, qsptr_t val);
-qsptr_t qstree_setq_data (qsmem_t * mem, qsptr_t t, qsptr_t val);
-qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val);
+bool qstree_p (qsmem_t * mem, qsptr_t p);
+qsptr_t qstree_ref_left (qsmem_t * mem, qsptr_t p);
+qsptr_t qstree_ref_data (qsmem_t * mem, qsptr_t p);
+qsptr_t qstree_ref_right (qsmem_t * mem, qsptr_t p);
+qsptr_t qstree_setq_left (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qstree_setq_data (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t p, qsptr_t val);
 qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right);
 qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr);
-int qstree_crepr (qsmem_t * mem, qsptr_t t, char * buf, int buflen);
+int qstree_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
-qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest);
-qsptr_t qstree_assoc (qsmem_t * mem, qsptr_t t, qsptr_t key);
+qsptr_t qstree_find (qsmem_t * mem, qsptr_t p, qsptr_t key, qsptr_t * nearest);
+qsptr_t qstree_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key);
 
 
 /* Manage linked collection of tree nodes as a Red-Black tree. */
@@ -194,33 +194,34 @@ qsptr_t qsrbnode_rotate_right (qsmem_t * mem, qsptr_t pivot);
 
 //qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node);
 qsrbtree_t * qsrbtree (qsmem_t * mem, qsptr_t t);
+bool qsrbtree_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp);
 
-qsptr_t qsrbtree_ref_top (qsmem_t * mem, qsptr_t rbtree);
-qsptr_t qsrbtree_ref_cmp (qsmem_t * mem, qsptr_t rbtree);
-qsptr_t qsrbtree_ref_up (qsmem_t * mem, qsptr_t rbtree);
-qsptr_t qsrbtree_ref_down (qsmem_t * mem, qsptr_t rbtree);
-qsptr_t qsrbtree_setq_top (qsmem_t * mem, qsptr_t rbtree, qsptr_t val);
-qsptr_t qsrbtree_setq_cmp (qsmem_t * mem, qsptr_t rbtree, qsptr_t val);
-qsptr_t qsrbtree_setq_up (qsmem_t * mem, qsptr_t rbtree, qsptr_t val);
-qsptr_t qsrbtree_setq_down (qsmem_t * mem, qsptr_t rbtree, qsptr_t val);
+qsptr_t qsrbtree_ref_top (qsmem_t * mem, qsptr_t p);
+qsptr_t qsrbtree_ref_cmp (qsmem_t * mem, qsptr_t p);
+qsptr_t qsrbtree_ref_up (qsmem_t * mem, qsptr_t p);
+qsptr_t qsrbtree_ref_down (qsmem_t * mem, qsptr_t p);
+qsptr_t qsrbtree_setq_top (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qsrbtree_setq_cmp (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qsrbtree_setq_up (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qsrbtree_setq_down (qsmem_t * mem, qsptr_t p, qsptr_t val);
 
-qsptr_t qsrbtree_ref_uncle (qsmem_t * mem, qsptr_t rbtree);
-qsptr_t qsrbtree_ref_grandparent (qsmem_t * mem, qsptr_t rbtree);
+qsptr_t qsrbtree_ref_uncle (qsmem_t * mem, qsptr_t p);
+qsptr_t qsrbtree_ref_grandparent (qsmem_t * mem, qsptr_t p);
 
 // (mutably) traverse tree, splitting with reversal pointers.
-qsptr_t qsrbtree_split_left (qsmem_t * mem, qsptr_t rbtree);
-qsptr_t qsrbtree_split_right (qsmem_t * mem, qsptr_t rbtree);
+qsptr_t qsrbtree_split_left (qsmem_t * mem, qsptr_t p);
+qsptr_t qsrbtree_split_right (qsmem_t * mem, qsptr_t p);
 // go up one level, splicing back together a split tree (undo split).
-qsptr_t qsrbtree_mend (qsmem_t * mem, qsptr_t rbtree);
+qsptr_t qsrbtree_mend (qsmem_t * mem, qsptr_t p);
 
 /* Insert data node (association pair) into red-black tree. */
-qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair);
+qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t p, qsptr_t apair);
 /* Find tree node in red-black tree; and/or best match (via comparison) where
    tree node can be attached as a child. */
-qsptr_t qsrbtree_find (qsmem_t * mem, qsptr_t rbtree, qsptr_t key, qsptr_t * nearest_match);
+qsptr_t qsrbtree_find (qsmem_t * mem, qsptr_t p, qsptr_t key, qsptr_t * nearest_match);
 /* Find data node (assocation pair) based on key in red-black tree. */
-qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t rbtree, qsptr_t key);
+qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key);
 
 
 
@@ -233,23 +234,23 @@ typedef struct qsibtree_s {
     qsptr_t ones;   /* everything else. */
 } qsibtree_t;
 
-qsibtree_t * qsibtree (qsmem_t * mem, qsptr_t t);
+bool qsibtree_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qsibtree_make (qsmem_t * mem);
-qsword qsibtree_ref_filled (qsmem_t * mem, qsptr_t t);
+qsword qsibtree_ref_filled (qsmem_t * mem, qsptr_t p);
 qsptr_t qsibtree_ref_idx0 (qsmem_t * mem, qsptr_t t);
-qsptr_t qsibtree_ref_ones (qsmem_t * mem, qsptr_t t);
-qsptr_t qsibtree_setq_filled (qsmem_t * mem, qsptr_t t, qsword val);
-qsptr_t qsibtree_setq_idx0 (qsmem_t * mem, qsptr_t t, qsptr_t val);
-qsptr_t qsibtree_setq_ones (qsmem_t * mem, qsptr_t t, qsptr_t val);
+qsptr_t qsibtree_ref_ones (qsmem_t * mem, qsptr_t p);
+qsptr_t qsibtree_setq_filled (qsmem_t * mem, qsptr_t p, qsword val);
+qsptr_t qsibtree_setq_idx0 (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qsibtree_setq_ones (qsmem_t * mem, qsptr_t p, qsptr_t val);
 
-qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t ibnode, qsword path);
+qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t p, qsword path);
 
-qsptr_t qsibtree_find (qsmem_t * mem, qsptr_t ibnode, qsword idx);
+qsptr_t qsibtree_find (qsmem_t * mem, qsptr_t p, qsword idx);
 
 /* Main entry points: (ibtree-ref IBTREE NTH), (ibtree-set! IBTREE NTH VALUE) */
-qsword qsibtree_length (qsmem_t * mem, qsptr_t ibnode);
-qsptr_t qsibtree_ref (qsmem_t * mem, qsptr_t ibnode, qsword idx);
-qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t ibnode, qsword idx, qsptr_t val);
+qsword qsibtree_length (qsmem_t * mem, qsptr_t p);
+qsptr_t qsibtree_ref (qsmem_t * mem, qsptr_t p, qsword idx);
+qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t p, qsword idx, qsptr_t val);
 
 
 
@@ -263,6 +264,7 @@ typedef struct qspair_s {
 } qspair_t;
 
 qspair_t * qspair (qsmem_t * mem, qsptr_t p);
+bool qspair_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qspair_ref_a (qsmem_t * mem, qsptr_t p);
 qsptr_t qspair_ref_d (qsmem_t * mem, qsptr_t p);
 qsptr_t qspair_setq_a (qsmem_t * mem, qsptr_t p, qsptr_t val);
@@ -286,16 +288,17 @@ typedef struct qsvector_s {
     qsptr_t _d[];
 } qsvector_t;
 
-qsvector_t * qsvector (qsmem_t * mem, qsptr_t v, qsword * out_lim);
-qsword qsvector_length (qsmem_t * mem, qsptr_t v);
-qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t v, qsword ofs);
-qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t v, qsword ofs, qsptr_t val);
+qsvector_t * qsvector (qsmem_t * mem, qsptr_t p, qsword * out_lim);
+bool qsvector_p (qsmem_t * mem, qsptr_t p);
+qsword qsvector_length (qsmem_t * mem, qsptr_t p);
+qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t p, qsword ofs);
+qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t p, qsword ofs, qsptr_t val);
 qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill);
 qserror_t qsvector_mark (qsmem_t * mem, qsword k);
 qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * next);
-int qsvector_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen);
+int qsvector_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 qsword qsvector_inject (qsmem_t * mem, qsword nelts, qsptr_t * carray);
-qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t v, qsword * out_len);
+qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t p, qsword * out_len);
 
 
 /* Immutable List; Read-Only List; Array.  Borrows from CDR-coded lists. */
@@ -379,13 +382,14 @@ typedef struct qsbytevec_s {
     uint8_t _d[];
 } qsbytevec_t;
 
-qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim);
-qsword qsbytevec_length (qsmem_t * mem, qsptr_t bv);
-int qsbytevec_ref (qsmem_t * mem, qsptr_t bv, qsword ofs);
-qsptr_t qsbytevec_setq (qsmem_t * mem, qsptr_t bv, qsword ofs, qsword val);
+qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t p, qsword * out_lim);
+bool qsbytevec_p (qsmem_t * mem, qsptr_t p);
+qsword qsbytevec_length (qsmem_t * mem, qsptr_t p);
+int qsbytevec_ref (qsmem_t * mem, qsptr_t p, qsword ofs);
+qsptr_t qsbytevec_setq (qsmem_t * mem, qsptr_t p, qsword ofs, qsword val);
 qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsptr_t fill);
-int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen);
-uint8_t * qsbytevec_cptr (qsmem_t * mem, qsptr_t bv, qsword * out_len);
+int qsbytevec_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
+uint8_t * qsbytevec_cptr (qsmem_t * mem, qsptr_t p, qsword * out_len);
 qsptr_t qsbytevec_inject (qsmem_t * mem, qsword nbytes, uint8_t * carray);
 
 
@@ -432,35 +436,35 @@ typedef struct qswidenum_s {
     } payload;
 } qswidenum_t;
 
-qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t n, qsnumtype_t * out_variant);
-qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t n);
+qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t p, qsnumtype_t * out_variant);
+qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t p);
 qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * out_ptr);
 
-qswidenum_t * qslong (qsmem_t * mem, qsptr_t l);
-qserror_t qslong_fetch (qsmem_t * mem, qsptr_t l, long * out_long);
-long qslong_get (qsmem_t * mem, qsptr_t l);
+qswidenum_t * qslong (qsmem_t * mem, qsptr_t p);
+qserror_t qslong_fetch (qsmem_t * mem, qsptr_t p, long * out_long);
+long qslong_get (qsmem_t * mem, qsptr_t p);
 qsptr_t qslong_make (qsmem_t * mem, long val);
 /* construct from high,low pair of 32b integers. */
 qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low);
-int qslong_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen);
+int qslong_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
-qswidenum_t * qsdouble (qsmem_t * mem, qsptr_t d);
-qserror_t qsdouble_fetch (qsmem_t * mem, qsptr_t d, double * out_double);
-double qsdouble_get (qsmem_t * mem, qsptr_t d);
+qswidenum_t * qsdouble (qsmem_t * mem, qsptr_t p);
+qserror_t qsdouble_fetch (qsmem_t * mem, qsptr_t p, double * out_double);
+double qsdouble_get (qsmem_t * mem, qsptr_t p);
 qsptr_t qsdouble_make (qsmem_t * mem, double val);
 int qsdouble_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen);
 
 // qsipair (rational)
-qswidenum_t * qsipair (qsmem_t * mem, qsptr_t q);
-qserror_t qsipair_fetch (qsmem_t * mem, qsptr_t q, int * out_p, int * out_q);
-qsptr_t qsipair_make (qsmem_t * mem, int32_t p, int32_t q);
-int qsipair_crepr (qsmem_t * mem, qsptr_t q, char * buf, int buflen);
+qswidenum_t * qsipair (qsmem_t * mem, qsptr_t p);
+qserror_t qsipair_fetch (qsmem_t * mem, qsptr_t p, int * out_p, int * out_q);
+qsptr_t psipair_make (qsmem_t * mem, int32_t p, int32_t q);
+int qsipair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
 // qsfpair (complex)
-qswidenum_t * qsfpair (qsmem_t * mem, qsptr_t z);
+qswidenum_t * qsfpair (qsmem_t * mem, qsptr_t p);
 qserror_t qsfpair_fetch (qsmem_t * mem, qsptr_t q, float * out_a, float * out_b);
 qsptr_t qsfpair_make (qsmem_t * mem, float a, float b);
-int qsfpair_crepr (qsmem_t * mem, qsptr_t z, char * buf, int buflen);
+int qsfpair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
 
 
@@ -538,10 +542,11 @@ typedef struct qsutf8_s {
 } qsutf8_t;
 
 qsutf8_t * qsutf8 (qsmem_t * mem, qsptr_t s);
-qsword qsutf8_length (qsmem_t * mem, qsptr_t s);
-int qsutf8_ref (qsmem_t * mem, qsptr_t s, qsword k);
-qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t s, qsword k, qsword u8);
-int qsutf8_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen);
+bool qsutf8_p (qsmem_t * mem, qsptr_t p);
+qsword qsutf8_length (qsmem_t * mem, qsptr_t p);
+int qsutf8_ref (qsmem_t * mem, qsptr_t p, qsword k);
+qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t p, qsword k, qsword u8);
+int qsutf8_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
 
 
@@ -576,8 +581,9 @@ typedef struct qssymbol_s {
 } qssymbol_t;
 
 qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy);
-qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t yy);
-qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t yy);
+bool qssymbol_p (qsmem_t * mem, qsptr_t p);
+qsptr_t qssymbol_ref_name (qsmem_t * mem, qsptr_t p);
+qsptr_t qssymbol_ref_id (qsmem_t * mem, qsptr_t p);
 qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name);
 
 typedef struct qssymstore_s {
@@ -588,14 +594,15 @@ typedef struct qssymstore_s {
 } qssymstore_t;
 
 qssymstore_t * qssymstore (qsmem_t * mem, qsptr_t o);
+bool qssymstore_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qssymstore_make (qsmem_t * mem);
-qsptr_t qssymstore_ref_table (qsmem_t * mem, qsptr_t o);
-qsptr_t qssymstore_ref_tree (qsmem_t * mem, qsptr_t o);
-qsptr_t qssymstore_setq_table (qsmem_t * mem, qsptr_t o, qsptr_t val);
-qsptr_t qssymstore_setq_tree (qsmem_t * mem, qsptr_t o, qsptr_t val);
-qsptr_t qssymstore_intern (qsmem_t * mem, qsptr_t o, qsptr_t y);
-qsptr_t qssymstore_ref (qsmem_t * mem, qsptr_t o, qsptr_t key);
-qsptr_t qssymstore_assoc (qsmem_t * mem, qsptr_t o, qsptr_t key);
+qsptr_t qssymstore_ref_table (qsmem_t * mem, qsptr_t p);
+qsptr_t qssymstore_ref_tree (qsmem_t * mem, qsptr_t p);
+qsptr_t qssymstore_setq_table (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qssymstore_setq_tree (qsmem_t * mem, qsptr_t p, qsptr_t val);
+qsptr_t qssymstore_intern (qsmem_t * mem, qsptr_t p, qsptr_t y);
+qsptr_t qssymstore_ref (qsmem_t * mem, qsptr_t p, qsptr_t key);
+qsptr_t qssymstore_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key);
 
 
 

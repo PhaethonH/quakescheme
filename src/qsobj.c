@@ -80,7 +80,7 @@ int qsobj_used_p (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheap_is_used(mem, p);
+  return qsheap_is_used(mem, addr);
 }
 
 int qsobj_marked_p (qsmem_t * mem, qsptr_t p)
@@ -630,14 +630,6 @@ access_type OBJTYPE##_ref_##fldname (qsmem_t * mem, qsptr_t p) \
 
 
 
-qstree_t * qstree (qsmem_t * mem, qsptr_t t)
-{
-  qsobj_t * obj = qsobj_unibayptr(mem, t, NULL);
-  if (!obj) return NULL;
-  return (qstree_t *)obj;
-}
-
-
 #if 1
 PREDICATE(qstree)
 {
@@ -746,8 +738,7 @@ qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
 
 qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
 {
-  qstree_t * tree = qstree(mem, p);  // try to get as tree.
-  if (!tree)
+  if (!qstree_p(mem, p))
     {
       /* not a tree; nothing to recurse. */
       *nextptr = backptr;
@@ -1113,7 +1104,7 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
       qsptr_t currnode = qsrbtree_ref_down(mem, root);
       d = qstree_ref_data(mem, currnode);
       // TODO: custom comparator
-      if (qstree(mem, d))  // also covers pair (apair).
+      if (qstree_p(mem, d)) // also covers pair (apair).
 	{
 	  //qsptr_t currkey = qspair_ref_a(mem, d);
 	  qsptr_t currkey = qstree_ref_data(mem, d);
@@ -1299,7 +1290,7 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
       probekey = QSNIL;
       libra = 0;
       // TODO: custom comparator
-      if (qstree(mem, d))
+      if (qstree_p(mem, d))
 	{
 	  //probekey = qspair_ref_a(mem, d);
 	  probekey = qstree_ref_data(mem, d);
@@ -1346,12 +1337,6 @@ qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t root, qsptr_t key)
 
 
 
-
-qsibtree_t * qsibtree (qsmem_t * mem, qsptr_t t)
-{
-  qstree_t * tree = qstree(mem, t);
-  return (qsibtree_t*)tree;
-}
 
 #if 1
 PREDICATE(qsibtree)
@@ -1547,14 +1532,6 @@ qsptr_t qsibtree_setq (qsmem_t * mem, qsptr_t t, qsword path, qsptr_t entry)
 
 
 /* Pair is a degenerate tree where left==QSNIL */
-qspair_t * qspair (qsmem_t * mem, qsptr_t p)
-{
-  qstree_t * tree = qstree(mem, p);
-  if (!tree) return NULL;
-  if (! ISNIL(qsobj_ref_ptr(mem, p, 1))) return NULL;  /* ! ISNIL(.left) */
-  return (qspair_t *)tree;
-}
-
 #if 1
 PREDICATE(qspair)
 {
@@ -1578,6 +1555,14 @@ qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t d)
 }
 
 #else
+qspair_t * qspair (qsmem_t * mem, qsptr_t p)
+{
+  qstree_t * tree = qstree(mem, p);
+  if (!tree) return NULL;
+  if (! ISNIL(qsobj_ref_ptr(mem, p, 1))) return NULL;  /* ! ISNIL(.left) */
+  return (qspair_t *)tree;
+}
+
 qsptr_t qspair_ref_a (qsmem_t * mem, qsptr_t p)
 {
   qspair_t * pair = qspair(mem, p);
@@ -1658,7 +1643,7 @@ qsword qslist_length (qsmem_t * mem, qsptr_t p)
     {
       retval++;
       qsptr_t next = qspair_ref_d(mem, curr);
-      if (qspair(mem, next))
+      if (qspair_p(mem, next))
 	{
 	  curr = next;
 	}
@@ -1678,7 +1663,7 @@ qsptr_t qslist_tail (qsmem_t * mem, qsptr_t p, qsword nth)
     {
       ofs++;
       qsptr_t next = qspair_ref_d(mem, curr);
-      if (qspair(mem, next))
+      if (qspair_p(mem, next))
 	{
 	  curr = next;
 	}
@@ -2375,8 +2360,7 @@ int qsiter_on_pair (qsmem_t * mem, qsptr_t it, qsptr_t * out_pairptr)
       qsword ofs = qsiter_get(mem, it);
       qsmemaddr_t addr = (ofs >> 2);
       qsptr_t pairptr = QSOBJ(addr);
-      qspair_t * pair = qspair(mem, pairptr);
-      if (pair)
+      if (qspair_p(mem, pairptr))
 	{
 	  if (out_pairptr)
 	    *out_pairptr = pairptr;
@@ -2950,7 +2934,7 @@ qsptr_t qsstr (qsmem_t * mem, qsptr_t s)
     {
       return s;
     }
-  else if (qspair(mem,s))
+  else if (qspair_p(mem,s))
     {
       // naive check: first element is character.
       if (! ISCHAR24(qspair_ref_a(mem,s))) return QSNIL;
@@ -2971,7 +2955,7 @@ static qsword qsstr_length_cons (qsmem_t * mem, qsptr_t s)
 {
   qsword n = 0;
   qsptr_t curr = s;
-  while (qspair(mem,curr))
+  while (qspair_p(mem,curr))
     {
       n++;
       curr = qspair_ref_d(mem,curr);
@@ -2996,7 +2980,7 @@ qsword qsstr_length (qsmem_t * mem, qsptr_t s)
     {
       return qsutf8_length(mem, s);
     }
-  else if (qspair(mem,s))
+  else if (qspair_p(mem,s))
     {
       lim = qsstr_length_cons(mem,s);
       return qsstr_length_cons(mem,s);
@@ -3016,11 +3000,11 @@ static qsptr_t qsstr_ref_cons (qsmem_t * mem, qsptr_t s, qsword nth)
 {
   qsword ofs = 0;
   qsptr_t curr = s;
-  while ((ofs < nth) && qspair(mem,curr))
+  while ((ofs < nth) && qspair_p(mem,curr))
     {
       ofs++;
     }
-  if (!qspair(mem,curr))
+  if (!qspair_p(mem,curr))
     {
       return QSERROR_RANGE;
     }
@@ -3057,7 +3041,7 @@ qsptr_t qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth)
     {
       return qsutf8_ref(mem, s, nth);
     }
-  else if (qspair(mem, s))
+  else if (qspair_p(mem, s))
     {
       return qsstr_ref_cons(mem, s, nth);
     }
@@ -3134,11 +3118,11 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
     {
       return qsutf8_extract(mem, s, cstr, slen);
     }
-  else if (qspair(mem, s))
+  else if (qspair_p(mem, s))
     {
       qsptr_t curr = s;
       mbstate_t ps = { 0, };
-      while (qspair(mem, curr) && (idx+1 < slen-MB_CUR_MAX))
+      while (qspair_p(mem, curr) && (idx+1 < slen-MB_CUR_MAX))
 	{
 	  qsptr_t elt = qspair_ref_a(mem, curr);
 	  wchar_t ch = ISCHAR24(elt) ? CCHAR24(elt) : 0;
@@ -3198,10 +3182,10 @@ qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wlen)
   qsword retval = 0;
   qsword lim = 0;
   qsword idx = 0;
-  if (qspair(mem, s))
+  if (qspair_p(mem, s))
     {
       qsptr_t curr = s;
-      while (qspair(mem, curr) && (idx+1 < wlen))
+      while (qspair_p(mem, curr) && (idx+1 < wlen))
 	{
 	  qsptr_t elt = qspair_ref_a(mem, curr);
 	  if (! ISCHAR24(elt)) elt = QSCHAR(0);
@@ -3444,11 +3428,11 @@ int qssymstore_crepr (qsmem_t * mem, qsptr_t o)
 int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
-  if (qspair(mem, p))
+  if (qspair_p(mem, p))
     {
       n += qspair_crepr(mem, p, buf+n, buflen-n);
     }
-  else if (qstree(mem, p))
+  else if (qstree_p(mem, p))
     {
       n += qstree_crepr(mem, p, buf+n, buflen-n);
     }

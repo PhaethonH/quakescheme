@@ -68,7 +68,7 @@ START_TEST(test_alloc1)
   int i;
   for (i = 0 ; i < 7; i++)
     {
-      ck_assert(qstree(heap1, cells[i]));
+      ck_assert(qstree_p(heap1, cells[i]));
     }
 }
 END_TEST
@@ -89,7 +89,8 @@ START_TEST(test_sweep1)
   int i;
   for (i = 0; i < 7; i++)
     {
-      ck_assert(MGMT_IS_MARKED(qstree(heap1, cells[i])->mgmt));
+      ck_assert(MGMT_IS_MARKED(qsobj(heap1, cells[i], NULL)->mgmt));
+      ck_assert(qsobj_marked_p(heap1, cells[i]));
     }
 
   qsheap_sweep(heap1);
@@ -97,10 +98,11 @@ START_TEST(test_sweep1)
   // make sure objects still persist.
   for (i = 0; i < 7; i++)
     {
-      ck_assert(MGMT_IS_USED(qstree(heap1, cells[i])->mgmt));
+      ck_assert(MGMT_IS_USED(qsobj(heap1, cells[i], NULL)->mgmt));
+      ck_assert(qsobj_used_p(heap1, cells[i]));
     }
   // make sure this unmarked cell got swept.
-  ck_assert(! qstree(heap1, cells[7]));
+  ck_assert(! qstree_p(heap1, cells[7]));
 }
 END_TEST
 
