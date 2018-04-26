@@ -1257,7 +1257,6 @@ qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t root, qsptr_t key)
 
 
 
-#if 1
 PREDICATE(qsibtree)
 {
   FILTER_ISA(qstree_p)   return 0;
@@ -1278,60 +1277,6 @@ qsptr_t qsibtree_make (qsmem_t * mem)
 
   RETURN_OBJ;
 }
-#else
-qsptr_t qsibtree_make (qsmem_t * mem)
-{
-  qsptr_t retval = qstree_make(mem, QSINT(0), QSNIL, QSNIL);
-  return retval;
-}
-
-qsword qsibtree_ref_filled (qsmem_t * mem, qsptr_t t)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return 0;
-  qsptr_t filled = qsobj_ref_ptr(mem, t, 1);	/* .filled */
-  if (ISNIL(filled)) return 0;
-  return CINT30(filled);
-}
-
-qsptr_t qsibtree_ref_idx0 (qsmem_t * mem, qsptr_t t)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return QSNIL;
-  return qsobj_ref_ptr(mem, t, 2);   /* .idx0 */
-}
-
-qsptr_t qsibtree_ref_ones (qsmem_t * mem, qsptr_t t)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return QSNIL;
-  return qsobj_ref_ptr(mem, t, 3);   /* .ones */
-}
-
-qsptr_t qsibtree_setq_filled (qsmem_t * mem, qsptr_t t, qsword count)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return t;
-  qsobj_setq_ptr(mem, t, 1, QSINT(count));    /* .filled = QSINT(count) */
-  return t;
-}
-
-qsptr_t qsibtree_setq_idx0 (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return t;
-  qsobj_setq_ptr(mem, t, 2, val);   /* .idx0 = val */
-  return t;
-}
-
-qsptr_t qsibtree_setq_ones (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qsibtree_t * ibtree = qsibtree(mem, t);
-  if (!ibtree) return t;
-  qsobj_setq_ptr(mem, t, 3, val);   /* .ones = val */
-  return t;
-}
-#endif //0
 
 qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t t, qsword path)
 {
