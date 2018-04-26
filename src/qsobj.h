@@ -440,7 +440,7 @@ qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t p, qsnumtype_t * out_variant);
 qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t p);
 qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * out_ptr);
 
-qswidenum_t * qslong (qsmem_t * mem, qsptr_t p);
+bool qslong_p (qsmem_t * mem, qsptr_t p);
 qserror_t qslong_fetch (qsmem_t * mem, qsptr_t p, long * out_long);
 long qslong_get (qsmem_t * mem, qsptr_t p);
 qsptr_t qslong_make (qsmem_t * mem, long val);
@@ -448,7 +448,7 @@ qsptr_t qslong_make (qsmem_t * mem, long val);
 qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low);
 int qslong_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
-qswidenum_t * qsdouble (qsmem_t * mem, qsptr_t p);
+bool qsdouble_p (qsmem_t * mem, qsptr_t p);
 qserror_t qsdouble_fetch (qsmem_t * mem, qsptr_t p, double * out_double);
 double qsdouble_get (qsmem_t * mem, qsptr_t p);
 qsptr_t qsdouble_make (qsmem_t * mem, double val);

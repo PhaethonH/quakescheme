@@ -1708,30 +1708,6 @@ qsptr_t qsbytevec_inject (qsmem_t * mem, qsword nbytes, uint8_t * carray)
 /* Wide numbers */
 /****************/
 
-qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t n, qsnumtype_t * out_numtype)
-{
-  if (!ISHEAP26(n)) return NULL;
-  qsobj_t * obj = qsobj_unibayoct(mem, n, NULL);
-  qsptr_t discriminator = qsobj_ref_ptr(mem, n, 1);
-  switch (discriminator)
-    {
-    case QSNUMTYPE_NAN:
-    case QSNUMTYPE_LONG:
-    case QSNUMTYPE_DOUBLE:
-    case QSNUMTYPE_INT2:
-    case QSNUMTYPE_FLOAT2:
-    case QSNUMTYPE_FLOAT4:
-    case QSNUMTYPE_FLOAT16CM:
-      if (out_numtype)
-	*out_numtype = discriminator;
-      return (qswidenum_t*)obj;
-      break;
-    default:
-      return NULL;
-      break;
-    }
-}
-
 PREDICATE(qswidenum)
 {
   FILTER_ISA(qsobj_p)   return 0;
@@ -1753,19 +1729,19 @@ PREDICATE(qswidenum)
     }
 }
 
-qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t n)
+qsnumtype_t qswidenum_ref_variant (qsmem_t * mem, qsptr_t p)
 {
-  qsnumtype_t variant = QSNUMTYPE_NAN;
-  qswidenum_t * wn = qswidenum(mem, n, &variant);
-  if (!wn) return QSNUMTYPE_NAN;
+  FILTER_ISA(qswidenum_p)   return QSNUMTYPE_NAN;
+  qsptr_t variant = ACCESS_PTR(1);
   return variant;
 }
 
-void * qswidenum_ref_payload (qsmem_t * mem, qsptr_t n, qsnumtype_t * numtype)
+void * qswidenum_ref_payload (qsmem_t * mem, qsptr_t p, qsnumtype_t * numtype)
 {
-  qswidenum_t * wn = qswidenum(mem, n, numtype);
-  if (!wn) return NULL;
-  return qsobj_ref_data(mem, n, NULL);
+  FILTER_ISA(qswidenum_p)   return NULL;
+  if (numtype)
+    *numtype = ACCESS_PTR(1);
+  return qsobj_ref_data(mem, p, NULL);
 }
 
 /*
@@ -1814,15 +1790,6 @@ qsptr_t qswidenum_make (qsmem_t * mem, qsnumtype_t variant, void ** payload)
 
 
 
-
-qswidenum_t * qslong (qsmem_t * mem, qsptr_t l)
-{
-  qsnumtype_t variant = QSNUMTYPE_NAN;
-  qswidenum_t * wn = qswidenum(mem, l, &variant);
-  if (!wn) return NULL;
-  if (variant != QSNUMTYPE_LONG) return NULL;
-  return wn;
-}
 
 PREDICATE(qslong)
 {
@@ -1908,15 +1875,6 @@ int qslong_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen)
 
 
 
-qswidenum_t * qsdouble (qsmem_t * mem, qsptr_t d)
-{
-  qsnumtype_t variant = QSNUMTYPE_NAN;
-  qswidenum_t * wn = qswidenum(mem, d, &variant);
-  if (!wn) return NULL;
-  if (variant != QSNUMTYPE_LONG) return NULL;
-  return wn;
-}
-
 #if 1
 
 PREDICATE(qsdouble)
@@ -1998,8 +1956,7 @@ int qsdouble_crepr (qsmem_t * mem, qsptr_t d, char * buf, int buflen)
 int qswidenum_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
-  qsnumtype_t variant = 0;
-  qswidenum_t * wn = qswidenum(mem, n, &variant);
+  qsnumtype_t variant = qswidenum_ref_variant(mem, p);
   switch (variant)
     {
     case QSNUMTYPE_LONG:
@@ -3143,7 +3100,7 @@ int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
     {
       n += qsvector_crepr(mem, p, buf+n, buflen-n);
     }
-  else if (qswidenum(mem, p, NULL))
+  else if (qswidenum_p(mem, p))
     {
       n += qswidenum_crepr(mem, p, buf+n, buflen-n);
     }
