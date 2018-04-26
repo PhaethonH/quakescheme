@@ -2397,14 +2397,6 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
    qsutf8 = using qsbytevector space as C string.
    Canonical string format (due to interchange with string.h functions).
 */
-qsutf8_t * qsutf8 (qsmem_t * mem, qsptr_t s)
-{
-  qsobj_t * obj = qsobj_multibayoct(mem, s, NULL);
-  if (!obj) return NULL;
-  qsptr_t len = qsobj_ref_ptr(mem, s, 1);
-  if (! ISNIL(len)) return NULL;
-  return (qsutf8_t*)obj;
-}
 
 static
 qsword _qsutf8_hardlimit (qsmem_t * mem, qsptr_t s)
@@ -2414,8 +2406,6 @@ qsword _qsutf8_hardlimit (qsmem_t * mem, qsptr_t s)
   qsword retval = nbays * nbyte_per_bay;
   return retval;
 }
-
-#if 1
 
 PREDICATE(qsutf8)
 {
@@ -2475,73 +2465,17 @@ qsptr_t qsutf8_make (qsmem_t * mem, qsword slen)
     }
   RETURN_OBJ;
 }
-#else
-
-qsword qsutf8_length (qsmem_t * mem, qsptr_t s)
-{
-  qsword retval = 0;
-  qsutf8_t * utf8str = qsutf8(mem, s);
-  if (!utf8str) return retval;
-  const char * raw_cstr = (const char *)qsobj_ref_data(mem, s, NULL);
-  retval = strlen(raw_cstr);
-  return retval;
-}
-
-int qsutf8_ref (qsmem_t * mem, qsptr_t s, qsword k)
-{
-  qsword retval = 0;
-  qsutf8_t * utf8str = qsutf8(mem, s);
-  if (!utf8str) return -1;
-  qsword max = _qsutf8_hardlimit(mem, s);
-  if ((k < 0) || (k >= max))
-    {
-      return 0;
-    }
-  return qsobj_ref_octet(mem, s, k);  /* ._d[k] */
-}
-
-qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t s, qsword k, qsword val)
-{
-  qsutf8_t * utf8str = qsutf8(mem, s);
-  if (!utf8str) return -1;
-  qsword max = _qsutf8_hardlimit(mem, s);
-  if ((k < 0) || (k >= max))
-    {
-      return 0;
-    }
-  uint8_t raw_val = val & 0xff;
-  qsobj_setq_octet(mem, s, k, raw_val);  /* ._d[k] = raw_val */
-  return s;
-}
-
-qsptr_t qsutf8_make (qsmem_t * mem, qsword slen)
-{
-  qsptr_t retval = QSNIL;
-  qsmemaddr_t addr = 0;
-  qsword k = slen + 1;
-  if (!ISOBJ26((retval = qsobj_make(mem, k, 1, &addr)))) return retval;
-
-  qsobj_setq_ptr(mem, retval, 1, QSNIL);  /* .variant = nil */
-  qsword i;
-  uint8_t * raw_cstr = qsobj_ref_data(mem, retval, NULL);
-  for (i = 0; i < k; i++)
-    {
-      raw_cstr[i] = (uint8_t)0;  /* ._d[i] = '\0' */
-    }
-  return retval;
-}
-#endif //0
 
 int qsutf8_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  return n;
 }
 
-uint8_t * qsutf8_cptr (qsmem_t * mem, qsptr_t s)
+uint8_t * qsutf8_cptr (qsmem_t * mem, qsptr_t p)
 {
-  qsutf8_t * utf8str = qsutf8(mem, s);
-  if (!utf8str) return NULL;
-  return qsobj_ref_data(mem, s, NULL);  /* ._d */
+  FILTER_ISA(qsutf8_p)    return NULL;
+  return qsobj_ref_data(mem, p, NULL);  /* ._d */
 }
 
 qsptr_t qsutf8_inject (qsmem_t * mem, const char * cstr, qsword slen)
@@ -2582,27 +2516,22 @@ int qsutf8_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
 
 
 
-qsptr_t qsstr (qsmem_t * mem, qsptr_t s)
+PREDICATE(qsstr)
 {
-  if (qsutf8(mem,s))
+  if (qsutf8_p(mem, p))  return 1;
+  else if (qspair_p(mem, p))
     {
-      return s;
+      if (ISCHAR24(qspair_ref_a(mem, p))) return 1;
     }
-  else if (qspair_p(mem,s))
+  else if (qsvector_p(mem, p))
     {
-      // naive check: first element is character.
-      if (! ISCHAR24(qspair_ref_a(mem,s))) return QSNIL;
+      if (ISCHAR24(qsvector_ref(mem, p, 0))) return 1;
     }
-  else if (qsvector_p(mem,s))
+  else if (qsbytevec_p(mem, p))
     {
-      // naive check: first element is character.
-      if (! ISCHAR24(qsvector_ref(mem,s,0))) return QSNIL;
+      return 1;
     }
-  else if (qsbytevec_p(mem,s))
-    {
-      // always counts as string.
-    }
-  return s;
+  return 0;
 }
 
 static qsword qsstr_length_cons (qsmem_t * mem, qsptr_t s)
@@ -2630,7 +2559,7 @@ static qsword qsstr_length_bytevec (qsmem_t * mem, qsptr_t s)
 qsword qsstr_length (qsmem_t * mem, qsptr_t s)
 {
   qsword lim = 0;
-  if (qsutf8(mem,s))
+  if (qsutf8_p(mem,s))
     {
       return qsutf8_length(mem, s);
     }
@@ -2689,7 +2618,7 @@ static qsptr_t qsstr_ref_bytevec (qsmem_t * mem, qsptr_t p, qsword nth, qsword h
 qsptr_t qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth)
 {
   qsword lim = 0;
-  if (qsutf8(mem, s))
+  if (qsutf8_p(mem, s))
     {
       return qsutf8_ref(mem, s, nth);
     }
@@ -2713,7 +2642,7 @@ qsptr_t qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth)
 qsptr_t qsstr_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword codepoint)
 {
   qsword lim = 0;
-  if (qsutf8(mem, s))
+  if (qsutf8_p(mem, s))
     {
       return qsutf8_setq(mem, s, nth, codepoint);
     }
@@ -2770,7 +2699,7 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
   qsword retval = 0;
   qsword lim = 0;
   qsword idx = 0;
-  if (qsutf8(mem, s))
+  if (qsutf8_p(mem, s))
     {
       return qsutf8_extract(mem, s, cstr, slen);
     }

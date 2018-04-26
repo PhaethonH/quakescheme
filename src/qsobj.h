@@ -541,7 +541,6 @@ typedef struct qsutf8_s {
     uint8_t _d[];
 } qsutf8_t;
 
-qsutf8_t * qsutf8 (qsmem_t * mem, qsptr_t s);
 bool qsutf8_p (qsmem_t * mem, qsptr_t p);
 qsword qsutf8_length (qsmem_t * mem, qsptr_t p);
 int qsutf8_ref (qsmem_t * mem, qsptr_t p, qsword k);
@@ -551,15 +550,15 @@ int qsutf8_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
 
 
-qsptr_t qsstr (qsmem_t * mem, qsptr_t s);
-qsword qsstr_length (qsmem_t * mem, qsptr_t s);
-qsword qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth);
-qsword qsstr_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword codepoint);
+bool qsstr_p (qsmem_t * mem, qsptr_t p);
+qsword qsstr_length (qsmem_t * mem, qsptr_t p);
+qsword qsstr_ref (qsmem_t * mem, qsptr_t p, qsword nth);
+qsword qsstr_setq (qsmem_t * mem, qsptr_t p, qsword nth, qsword codepoint);
 qsptr_t qsstr_make (qsmem_t * mem, qsword k, qsword codepoint_fill);
 qsptr_t qsstr_inject (qsmem_t * mem, const char * cstr, qsword slen);
 qsptr_t qsstr_inject_wchar (qsmem_t * mem, const wchar_t * ws, qsword wslen);
-qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen);
-qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wslen);
+qsword qsstr_extract (qsmem_t * mem, qsptr_t p, char * cstr, qsword slen);
+qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t p, wchar_t * ws, qsword wslen);
 int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
 
