@@ -630,7 +630,7 @@ access_type OBJTYPE##_ref_##fldname (qsmem_t * mem, qsptr_t p) \
 
 
 
-#if 1
+/* Tree - generic tree node. */
 PREDICATE(qstree)
 {
   FILTER_ISA(qsobj_p)  return 0;
@@ -643,80 +643,9 @@ FIELD_RW(qsptr_t, qstree, left, 1, QSID,QSID)
 FIELD_RW(qsptr_t, qstree, data, 2, QSID,QSID)
 FIELD_RW(qsptr_t, qstree, right, 3, QSID,QSID)
 
-#else
-qsptr_t qstree_ref_left (qsmem_t * mem, qsptr_t t)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  return qsobj_ref_ptr(mem, t, 1);  /* .left */
-}
-
-qsptr_t qstree_ref_data (qsmem_t * mem, qsptr_t t)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  return qsobj_ref_ptr(mem, t, 2);  /* .data */
-}
-
-qsptr_t qstree_ref_right (qsmem_t * mem, qsptr_t t)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  return qsobj_ref_ptr(mem, t, 3);  /* .right */
-}
-
-qsptr_t qstree_setq_left (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  qsobj_setq_ptr(mem, t, 1, val);  /* .left = val */
-  return t;
-}
-
-qsptr_t qstree_setq_data (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  qsobj_setq_ptr(mem, t, 2, val);  /* .data = val */
-  return t;
-}
-
-qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val)
-{
-  qstree_t * tree = qstree(mem, t);
-  if (!tree)
-    {
-      // TODO: exception.
-      return QSNIL;
-    }
-  qsobj_setq_ptr(mem, t, 3, val);  /* .right = val */
-  return t;
-}
-#endif //0
 
 qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
 {
-#if 1
   OBJ_MAKE_BAYS(1, 0);
 
   MUTATE_PTR(1, left);
@@ -724,16 +653,6 @@ qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
   MUTATE_PTR(3, right);
 
   RETURN_OBJ;
-#else
-  qsptr_t retval = QSNIL;
-  qsmemaddr_t addr = 0;
-  if (!ISOBJ26((retval = qsobj_make(mem, 1, 0, &addr)))) return retval;
-
-  qsobj_setq_ptr(mem, retval, 1, left);  /* .left = left */
-  qsobj_setq_ptr(mem, retval, 2, data);  /* .data = data */
-  qsobj_setq_ptr(mem, retval, 3, right); /* .right = right */
-  return retval;
-#endif // 1
 }
 
 qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
