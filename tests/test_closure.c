@@ -88,26 +88,83 @@ START_TEST(test_env1)
   /* Frame 2: overload bindings. */
   qsptr_t e2 = qsenv_make(heap1, e1);
   qsenv_setq(heap1, e2, syms[0], QSINT(110));
-  /* check very first symbol. */
+  /* check in most recent frame. */
   q0 = qsenv_ref(heap1, e2, syms[0]);
   ck_assert_int_eq(q0, QSINT(110));
-  /* check very first binding. */
+  /* check in oldest frame. */
   q0 = qsenv_ref(heap1, e0, syms[0]);
   ck_assert_int_eq(q0, QSINT(10));
 
 }
 END_TEST
 
-START_TEST(test_test2)
+START_TEST(test_lambda1)
 {
   init();
+
+  qsptr_t sym_x = qssymbol_make(heap1, qsstr_inject(heap1, "x", 0));
+  qsptr_t sym_y = qssymbol_make(heap1, qsstr_inject(heap1, "y", 0));
+  qsptr_t sym_z = qssymbol_make(heap1, qsstr_inject(heap1, "z", 0));
+  ck_assert_int_ne(QSNIL, sym_x);
+  ck_assert_int_ne(QSNIL, sym_y);
+  ck_assert_int_ne(QSNIL, sym_z);
+
+  /* The identity function: (lambda (x) x) */
+  qsptr_t parm0 = qspair_make(heap1, sym_x, QSNIL);
+  ck_assert_int_ne(parm0, QSNIL);
+  qsptr_t body0 = qspair_make(heap1, sym_x, QSNIL);
+  ck_assert_int_ne(body0, QSNIL);
+  qsptr_t lam0 = qslambda_make(heap1, parm0, body0);
+  ck_assert_int_ne(lam0, QSNIL);
+
+  ck_assert_int_eq(qslambda_ref_param(heap1, lam0), parm0);
+  ck_assert_int_eq(qslambda_ref_body(heap1, lam0), body0);
+
+
+  // TODO: longer parameter list
+}
+END_TEST
+
+
+START_TEST(test_closure1)
+{
+  init();
+
+  qsptr_t sym_x = qssymbol_make(heap1, qsstr_inject(heap1, "x", 0));
+  qsptr_t sym_y = qssymbol_make(heap1, qsstr_inject(heap1, "y", 0));
+  qsptr_t sym_z = qssymbol_make(heap1, qsstr_inject(heap1, "z", 0));
+  ck_assert_int_ne(QSNIL, sym_x);
+  ck_assert_int_ne(QSNIL, sym_y);
+  ck_assert_int_ne(QSNIL, sym_z);
+
+  /* The identity function: (lambda (x) x) */
+  qsptr_t parm0 = qspair_make(heap1, sym_x, QSNIL);
+  qsptr_t body0 = qspair_make(heap1, sym_x, QSNIL);
+  qsptr_t lam0 = qslambda_make(heap1, parm0, body0);
+  ck_assert_int_ne(lam0, QSNIL);
+
+  qsptr_t e0 = qsenv_make(heap1, QSNIL);
+  ck_assert_int_ne(e0, QSNIL);
+
+  qsptr_t sym_foo = qssymbol_make(heap1, qsstr_inject(heap1, "foo", 0));
+  qsptr_t sym_bar = qssymbol_make(heap1, qsstr_inject(heap1, "bar", 0));
+  qsenv_setq(heap1, e0, sym_foo, QSINT(1000));
+  qsenv_setq(heap1, e0, sym_bar, QSINT(2000));
+
+  qsptr_t q0 = QSNIL;
+  qsptr_t clo0 = qsclosure_make(heap1, e0, lam0);
+  q0 = qsclosure_ref_env(heap1, clo0);
+  ck_assert_int_eq(q0, e0);
+  q0 = qsclosure_ref_lambda(heap1, clo0);
+  ck_assert_int_eq(q0, lam0);
 }
 END_TEST
 
 
 TESTCASE(closure1,
   TFUNC(test_env1)
-  TFUNC(test_test2)
+  TFUNC(test_lambda1)
+  TFUNC(test_closure1)
   )
 
 TESTSUITE(suite1,

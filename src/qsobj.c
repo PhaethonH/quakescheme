@@ -661,6 +661,15 @@ access_type OBJTYPE##_ref_##fldname (qsmem_t * mem, qsptr_t p) \
 #define RETURN_TRUE return 1
 #define RETURN_FALSE return 0
 
+/* Define comparator. */
+#define CMP_FUNC(OBJTYPE) \
+cmp_t OBJTYPE##_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b) \
+/*  simplistic is-same-object equality test. */
+#define NAIVE_COMPARE_ADDR \
+  return ((a == b) ? CMP_EQ : CMP_NE)
+#define CMP_FUNC_NAIVE(OBJTYPE)  \
+CMP_FUNC(OBJTYPE) { NAIVE_COMPARE_ADDR; }
+
 
 
 
@@ -2869,7 +2878,7 @@ qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name)
   return retval;
 }
 
-cmp_t qssymbol_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
+CMP_FUNC(qssymbol)
 {
   if (! qssymbol_p(mem, a)) return CMP_NE;
   if (! qssymbol_p(mem, b)) return CMP_NE;
@@ -3034,6 +3043,8 @@ qsptr_t qsenv_make (qsmem_t * mem, qsptr_t next)
   RETURN_OBJ;
 }
 
+CMP_FUNC_NAIVE(qsenv);
+
 int qsenv_crepr (qsmem_t * mem, qsptr_t e, char * buf, int buflen)
 {
   int n = 0;
@@ -3062,6 +3073,8 @@ qsptr_t qslambda_make (qsmem_t * mem, qsptr_t param, qsptr_t body)
 
   RETURN_OBJ;
 }
+
+CMP_FUNC_NAIVE(qslambda);
 
 int qslambda_crepr (qsmem_t * mem, qsptr_t lam, char * buf, int buflen)
 {
@@ -3092,6 +3105,8 @@ qsptr_t qsclosure_make (qsmem_t * mem, qsptr_t env, qsptr_t lambda)
 
   RETURN_OBJ;
 }
+
+CMP_FUNC_NAIVE(qsclosure);
 
 int qsclosure_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
@@ -3126,6 +3141,8 @@ qsptr_t qskont_make (qsmem_t * mem, qsptr_t variant, qsptr_t kont, qsptr_t env, 
 
   RETURN_OBJ;
 }
+
+CMP_FUNC_NAIVE(qskont);
 
 int qskont_crepr (qsmem_t * mem, qsptr_t kont, char * buf, int buflen)
 {
