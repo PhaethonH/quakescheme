@@ -2728,6 +2728,11 @@ qsptr_t qssym (qsmem_t * mem, qsptr_t y)
   else return QSNIL;
 }
 
+bool qssym_p (qsmem_t * mem, qsptr_t p)
+{
+  return ISSYM26(p);
+}
+
 qsword qssym_get (qsmem_t * mem, qsptr_t y)
 {
   if (ISNIL(qssym(mem, y))) return 0;

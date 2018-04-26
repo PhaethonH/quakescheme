@@ -262,7 +262,6 @@ typedef struct qspair_s {
     qsptr_t d;
 } qspair_t;
 
-qspair_t * qspair (qsmem_t * mem, qsptr_t p);
 bool qspair_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qspair_ref_a (qsmem_t * mem, qsptr_t p);
 qsptr_t qspair_ref_d (qsmem_t * mem, qsptr_t p);
@@ -287,7 +286,6 @@ typedef struct qsvector_s {
     qsptr_t _d[];
 } qsvector_t;
 
-qsvector_t * qsvector (qsmem_t * mem, qsptr_t p, qsword * out_lim);
 bool qsvector_p (qsmem_t * mem, qsptr_t p);
 qsword qsvector_length (qsmem_t * mem, qsptr_t p);
 qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t p, qsword ofs);
@@ -381,7 +379,6 @@ typedef struct qsbytevec_s {
     uint8_t _d[];
 } qsbytevec_t;
 
-qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t p, qsword * out_lim);
 bool qsbytevec_p (qsmem_t * mem, qsptr_t p);
 qsword qsbytevec_length (qsmem_t * mem, qsptr_t p);
 int qsbytevec_ref (qsmem_t * mem, qsptr_t p, qsword ofs);
@@ -435,7 +432,6 @@ typedef struct qswidenum_s {
     } payload;
 } qswidenum_t;
 
-qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t p, qsnumtype_t * out_variant);
 qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t p);
 qswidenum_t * qswidenum_premake (qsmem_t * mem, qsnumtype_t variant, qsptr_t * out_ptr);
 
@@ -445,25 +441,23 @@ long qslong_get (qsmem_t * mem, qsptr_t p);
 qsptr_t qslong_make (qsmem_t * mem, long val);
 /* construct from high,low pair of 32b integers. */
 qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low);
-int qslong_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
+int qslong_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen);
 
 bool qsdouble_p (qsmem_t * mem, qsptr_t p);
 qserror_t qsdouble_fetch (qsmem_t * mem, qsptr_t p, double * out_double);
 double qsdouble_get (qsmem_t * mem, qsptr_t p);
 qsptr_t qsdouble_make (qsmem_t * mem, double val);
-int qsdouble_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen);
+int qsdouble_crepr (qsmem_t * mem, qsptr_t d, char * buf, int buflen);
 
 // qsipair (rational)
-qswidenum_t * qsipair (qsmem_t * mem, qsptr_t p);
 qserror_t qsipair_fetch (qsmem_t * mem, qsptr_t p, int * out_p, int * out_q);
 qsptr_t psipair_make (qsmem_t * mem, int32_t p, int32_t q);
 int qsipair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
 // qsfpair (complex)
-qswidenum_t * qsfpair (qsmem_t * mem, qsptr_t p);
 qserror_t qsfpair_fetch (qsmem_t * mem, qsptr_t q, float * out_a, float * out_b);
 qsptr_t qsfpair_make (qsmem_t * mem, float a, float b);
-int qsfpair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
+int qsfpair_crepr (qsmem_t * mem, qsptr_t z, char * buf, int buflen);
 
 
 
@@ -572,6 +566,7 @@ int qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 /* qssym = wraps index into interned symbol table, for (eq? ...) use. */
 /* qssymbol = object in heap tying together name and id, for name->id lookup. */ 
 qsptr_t qssym (qsmem_t * mem, qsptr_t y);
+bool qsssym_p (qsmem_t * mem, qsptr_t p);
 qsword qssym_get (qsmem_t * mem, qsptr_t y);
 qsptr_t qssym_make (qsmem_t * mem, qsptr_t symbol_id);
 int qssym_crepr (qsmem_t * mem, qsptr_t y, char * buf, int buflen);
