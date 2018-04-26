@@ -571,43 +571,32 @@ int qsobj_p (qsmem_t * mem, qsptr_t p)
 
 
 
+/* Define is-a predicate function. */
 #define PREDICATE(OBJTYPE) bool OBJTYPE##_p (qsmem_t * mem, qsptr_t p)
 
-#define FILTER_ISA(pred) \
-  if (! pred(mem,p))
-#define FILTER_IS_OBJ \
-  if (! qsobj_p(mem, p))
-#define FILTER_IS_POINTER \
-  if (qsobj_octetate_p(mem, p))
-#define FILER_IS_OCTETATE \
-  if (! qsobj_octetate_p(mem, p))
-#define FILTER_IS_UNIBAY \
-  if (qsobj_ref_allocsize(mem, p) > 1)
-#define FILTER_IS_MULTIBAY \
-  if (qsobj_ref_allocsize(mem, p) <= 1)
-#define FILTER_E_IS(match) \
-  if (qsobj_ref_ptr(mem, p, 1) != match)
-#define FILTER_A_IS(match) \
-  if (qsobj_ref_ptr(mem, p, 2) != match)
-#define FILTER_D_IS(match) \
-  if (qsobj_ref_ptr(mem, p, 3) != match)
-#define FILTER_E_ISA(pred) \
-  if (!pred(mem, qsobj_ref_ptr(mem,p,1)))
-#define FILTER_A_ISA(pred) \
-  if (!pred(mem, qsobj_ref_ptr(mem,p,2)))
-#define FILTER_D_ISA(pred) \
-  if (!pred(mem, qsobj_ref_ptr(mem,p,3)))
-#define ACCESS_PTR(nth) \
-  qsobj_ref_ptr(mem, p, nth)
-#define ACCESS_OCTET(nth) \
-  qsobj_ref_octet(mem, p, nth)
-#define MUTATE_PTR(nth, val) \
-  qsobj_setq_ptr(mem, p, nth, val)
-#define MUTATE_OCTET(nth, val) \
-  qsobj_setq_octet(mem, p, nth, val)
+/* Expects primary locator (qsptr_t) to be named 'p' */
+/* Filter macros -- run subsequent if filter yields false. */
+#define FILTER_ISA(pred)    if (! pred(mem,p))
+#define FILTER_IS_OBJ       if (! qsobj_p(mem, p))
+#define FILTER_IS_POINTER   if (qsobj_octetate_p(mem, p))
+#define FILTER_IS_OCTETATE  if (! qsobj_octetate_p(mem, p))
+#define FILTER_IS_UNIBAY    if (qsobj_ref_allocsize(mem, p) > 1)
+#define FILTER_IS_MULTIBAY  if (qsobj_ref_allocsize(mem, p) <= 1)
+#define FILTER_E_IS(match)  if (qsobj_ref_ptr(mem, p, 1) != match)
+#define FILTER_A_IS(match)  if (qsobj_ref_ptr(mem, p, 2) != match)
+#define FILTER_D_IS(match)  if (qsobj_ref_ptr(mem, p, 3) != match)
+#define FILTER_E_ISA(pred)  if (!pred(mem, qsobj_ref_ptr(mem,p,1)))
+#define FILTER_A_ISA(pred)  if (!pred(mem, qsobj_ref_ptr(mem,p,2)))
+#define FILTER_D_ISA(pred)  if (!pred(mem, qsobj_ref_ptr(mem,p,3)))
+#define ACCESS_PTR(nth)         qsobj_ref_ptr(mem, p, nth)
+#define ACCESS_OCTET(nth)       qsobj_ref_octet(mem, p, nth)
+#define MUTATE_PTR(nth, val)    qsobj_setq_ptr(mem, p, nth, val)
+#define MUTATE_OCTET(nth, val)  qsobj_setq_octet(mem, p, nth, val)
 
-#define ID(_) _
+/* No-change (identity) codec */
+#define QSID(_) _
 
+/* Define an accessor and mutator (Read-Write) for an object field. */
 #define FIELD_RW(access_type, OBJTYPE, fldname, fldnum, encode, decode) \
 access_type OBJTYPE##_ref_##fldname (qsmem_t * mem, qsptr_t p) \
 { \
@@ -620,7 +609,15 @@ qsptr_t OBJTYPE##_setq_##fldname (qsmem_t * mem, qsptr_t p, access_type val) \
   MUTATE_PTR(fldnum, encode(val)); \
   return p; \
 }
+/* Define accessor only (Read-Only) for an object field. */
+#define FIELD_RO(access_type, OBJTYPE, fldname, fldnum, decode) \
+access_type OBJTYPE##_ref_##fldname (qsmem_t * mem, qsptr_t p) \
+{ \
+  FILTER_ISA(OBJTYPE##_p)  return QSERROR_INVALID; \
+  return decode(ACCESS_PTR(fldnum)); \
+}
 
+/* Newly created object is named 'p', also creates 'addr' if address is needed. */
 #define OBJ_MAKE_BAYS(nbays, octetate) \
   qsptr_t p = QSNIL; \
   qsmemaddr_t addr = 0; \
@@ -650,9 +647,9 @@ PREDICATE(qstree)
   return 1;
 }
 
-FIELD_RW(qsptr_t, qstree, left, 1, ID,ID)
-FIELD_RW(qsptr_t, qstree, data, 2, ID,ID)
-FIELD_RW(qsptr_t, qstree, right, 3, ID,ID)
+FIELD_RW(qsptr_t, qstree, left, 1, QSID,QSID)
+FIELD_RW(qsptr_t, qstree, data, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qstree, right, 3, QSID,QSID)
 
 #else
 qsptr_t qstree_ref_left (qsmem_t * mem, qsptr_t t)
@@ -1363,9 +1360,9 @@ PREDICATE(qsibtree)
   return 1;
 }
 
-FIELD_RW(qsptr_t, qsibtree, filled, 1, ID,ID)
-FIELD_RW(qsptr_t, qsibtree, idx0, 2, ID,ID)
-FIELD_RW(qsptr_t, qsibtree, ones, 3, ID,ID)
+FIELD_RW(qsptr_t, qsibtree, filled, 1, QSID,QSID)
+FIELD_RW(qsptr_t, qsibtree, idx0, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qsibtree, ones, 3, QSID,QSID)
 
 qsptr_t qsibtree_make (qsmem_t * mem)
 {
@@ -1566,8 +1563,8 @@ PREDICATE(qspair)
   return 1;
 }
 
-FIELD_RW(qsptr_t, qspair, a, 2, ID,ID)
-FIELD_RW(qsptr_t, qspair, d, 3, ID,ID)
+FIELD_RW(qsptr_t, qspair, a, 2, QSID,QSID)
+FIELD_RW(qsptr_t, qspair, d, 3, QSID,QSID)
 
 qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t d)
 {
@@ -1866,6 +1863,15 @@ qsbytevec_t * qsbytevec (qsmem_t * mem, qsptr_t bv, qsword * out_lim)
   return (qsbytevec_t *)obj;
 }
 
+PREDICATE(qsbytevec)
+{
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_MULTIBAY    return 0;
+  FILTER_IS_OCTETATE    return 0;
+  FILTER_E_ISA(qsint_p) return 0;
+  return 1;
+}
+
 qserror_t qsbytevec_lock (qsmem_t * mem, qsptr_t bv)
 {
   return QSERROR_NOIMPL;
@@ -1875,6 +1881,53 @@ qserror_t qsbytevec_unlock (qsmem_t * mem, qsptr_t bv)
 {
   return QSERROR_NOIMPL;
 }
+#if 1
+
+FIELD_RO(qsword, qsbytevec, len, 1, CINT30)
+FIELD_RO(qsword, qsbytevec, refcount, 2, CINT30)
+
+qsword qsbytevec_length (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsbytevec_p)   return 0;
+  return qsbytevec_ref_len(mem, p);
+}
+
+int qsbytevec_ref (qsmem_t * mem, qsptr_t p, qsword ofs)
+{
+  FILTER_ISA(qsbytevec_p)   return -1;
+  qsword max = qsbytevec_length(mem, p);
+  if ((ofs < 0) || (ofs >= max))
+    return -1;
+  int octet = qsobj_ref_octet(mem, p, ofs);
+  return octet;
+}
+
+qsptr_t qsbytevec_setq (qsmem_t * mem, qsptr_t p, qsword ofs, qsword octet)
+{
+  FILTER_ISA(qsbytevec_p)    return QSERROR_INVALID;
+  qsword max = qsbytevec_length(mem, p);
+  if ((ofs < 0) || (ofs >= max))
+    return 0;
+  qsobj_setq_octet(mem, p, ofs, octet);  /* ._d[ofs] = octet */
+  return p;
+}
+
+qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsword fill)
+{
+  /* TODO: change name of macro; slightly misleading. */
+  OBJ_MAKE_BAYS(k, 1);
+
+  MUTATE_PTR(1, QSINT(k));
+  uint8_t * raw_data = qsobj_ref_data(mem, p, NULL);
+  uint8_t raw_fill = (uint8_t)fill;
+  qsword i;
+  for (i = 0; i < k; i++)
+    {
+      raw_data[i] = raw_fill;  /* ._d[i] = raw_fill */
+    }
+  RETURN_OBJ;
+}
+#else
 
 qsword qsbytevec_refcount (qsmem_t * mem, qsptr_t bv)
 {
@@ -1933,6 +1986,7 @@ qsptr_t qsbytevec_make (qsmem_t * mem, qsword k, qsword fill)
     }
   return retval;
 }
+#endif //0
 
 int qsbytevec_crepr (qsmem_t * mem, qsptr_t bv, char * buf, int buflen)
 {
@@ -1996,6 +2050,27 @@ qswidenum_t * qswidenum (qsmem_t * mem, qsptr_t n, qsnumtype_t * out_numtype)
     }
 }
 
+PREDICATE(qswidenum)
+{
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_OCTETATE    return 0;
+  FILTER_IS_UNIBAY      return 0;
+  qsptr_t discriminator = qsobj_ref_ptr(mem, p, 1);
+  switch (discriminator)
+    {
+    case QSNUMTYPE_NAN:
+    case QSNUMTYPE_LONG:
+    case QSNUMTYPE_DOUBLE:
+    case QSNUMTYPE_INT2:
+    case QSNUMTYPE_FLOAT2:
+    case QSNUMTYPE_FLOAT4:
+    case QSNUMTYPE_FLOAT16CM:
+      return 1;
+    default:
+      return 0;
+    }
+}
+
 qsnumtype_t qswidenum_variant (qsmem_t * mem, qsptr_t n)
 {
   qsnumtype_t variant = QSNUMTYPE_NAN;
@@ -2043,6 +2118,19 @@ qsptr_t qswidenum_make (qsmem_t * mem, qsnumtype_t variant, void ** payload)
 }
 
 
+#define OBJ_MAKE_WIDENUM(variant) \
+  void * payload = NULL; \
+  qsptr_t p = QSNIL; \
+  p = qswidenum_make(mem, variant, &payload);
+#define WIDENUM_SET_PAYLOAD(native_type) \
+  if (payload)  *((native_type*)payload) = val
+#define WIDENUM_GET_PAYLOAD(native_type, discriminator) \
+  qsnumtype_t variant = QSNUMTYPE_NAN; \
+  void * payload = qswidenum_ref_payload(mem, p, &variant); \
+  if (variant != discriminator)    return QSERROR_INVALID; \
+  if (out_val) { *out_val = *((native_type*)payload); }
+
+
 
 
 qswidenum_t * qslong (qsmem_t * mem, qsptr_t l)
@@ -2054,6 +2142,43 @@ qswidenum_t * qslong (qsmem_t * mem, qsptr_t l)
   return wn;
 }
 
+PREDICATE(qslong)
+{
+  FILTER_ISA(qswidenum_p)     return 0;
+  FILTER_E_IS(QSNUMTYPE_LONG) return 0;
+  return 1;
+}
+
+#if 1
+qserror_t qslong_fetch (qsmem_t * mem, qsptr_t p, long * out_val)
+{
+  FILTER_ISA(qslong_p)    return QSERROR_INVALID;
+  WIDENUM_GET_PAYLOAD(long, QSNUMTYPE_LONG);
+  return QSERROR_OK;
+}
+
+long qslong_get (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qslong_p)    return 0;
+
+  long retval = 0;
+  qserror_t err = qslong_fetch(mem, p, &retval);
+  if (err != QSERROR_OK)  return 0;
+  return retval;
+}
+
+qsptr_t qslong_make (qsmem_t * mem, long val)
+{
+  OBJ_MAKE_WIDENUM(QSNUMTYPE_LONG);
+  WIDENUM_SET_PAYLOAD(long);
+  return p;
+}
+
+qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low)
+{
+  return QSERROR_NOIMPL;
+}
+#else
 qserror_t qslong_fetch (qsmem_t * mem, qsptr_t l, long * out_long)
 {
   qsnumtype_t variant = QSNUMTYPE_NAN;
@@ -2090,6 +2215,7 @@ qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low)
 {
   return QSERROR_NOIMPL;
 }
+#endif //0
 
 int qslong_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen)
 {
@@ -2109,6 +2235,40 @@ qswidenum_t * qsdouble (qsmem_t * mem, qsptr_t d)
   return wn;
 }
 
+#if 1
+
+PREDICATE(qsdouble)
+{
+  FILTER_ISA(qswidenum_p)         return 0;
+  FILTER_E_IS(QSNUMTYPE_DOUBLE)   return 0;
+  return 1;
+}
+
+qserror_t qsdouble_fetch (qsmem_t * mem, qsptr_t p, double * out_val)
+{
+  FILTER_ISA(qswidenum_p)   return QSERROR_INVALID;
+  WIDENUM_GET_PAYLOAD(double, QSNUMTYPE_DOUBLE);
+  return QSERROR_OK;
+}
+
+double qsdouble_get (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsdouble_p)  return QSERROR_INVALID;
+  double retval = 0;
+  qserror_t err = qsdouble_fetch(mem, p, &retval);
+  if (err)
+    return 0;
+  return retval;
+}
+
+qsptr_t qsdouble_make (qsmem_t * mem, double val)
+{
+  OBJ_MAKE_WIDENUM(QSNUMTYPE_DOUBLE);
+  WIDENUM_SET_PAYLOAD(double);
+  return p;
+}
+
+#else
 qserror_t qsdouble_fetch (qsmem_t * mem, qsptr_t d, double * out_double)
 {
   qsnumtype_t variant = QSNUMTYPE_NAN;
@@ -2141,6 +2301,8 @@ qsptr_t qsdouble_make (qsmem_t * mem, double val)
     }
   return retval;
 }
+
+#endif // 0
 
 int qsdouble_crepr (qsmem_t * mem, qsptr_t d, char * buf, int buflen)
 {
@@ -2615,6 +2777,68 @@ qsword _qsutf8_hardlimit (qsmem_t * mem, qsptr_t s)
   return retval;
 }
 
+#if 1
+
+PREDICATE(qsutf8)
+{
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_OCTETATE    return 0;
+  FILTER_IS_MULTIBAY    return 0;
+  FILTER_E_IS(QSNIL)    return 0;
+  return 1;
+}
+
+qsword qsutf8_length (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsobj_p)  return 0;
+  const char * raw_cstr = (const char *)qsobj_ref_data(mem, p, NULL);
+  qsword retval = strlen(raw_cstr);
+  return retval;
+}
+
+int qsutf8_ref (qsmem_t * mem, qsptr_t p, qsword k)
+{
+  FILTER_ISA(qsobj_p)   return -1;
+
+  qsword max = _qsutf8_hardlimit(mem, p);
+  if ((k < 0) || (k >= max))
+    {
+      return 0;
+    }
+  return qsobj_ref_octet(mem, p, k);  /* ._d[k] */
+}
+
+qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t p, qsword k, qsword val)
+{
+  FILTER_ISA(qsobj_p)   return QSERROR_INVALID;
+
+  qsword max = _qsutf8_hardlimit(mem, p);
+  if ((k < 0) || (k >= max))
+    {
+      return QSERROR_RANGE;
+    }
+  uint8_t raw_val = val & 0xff;
+  qsobj_setq_octet(mem, p, k, raw_val);  /* ._d[k] = raw_val */
+  return p;
+}
+
+qsptr_t qsutf8_make (qsmem_t * mem, qsword slen)
+{
+  qsword k = slen+1;
+  OBJ_MAKE_BAYS(k, 1);
+
+  MUTATE_PTR(1, QSNIL);   /* .variant = nil */
+  qsword i;
+  uint8_t * raw_cstr = qsobj_ref_data(mem, p, NULL);
+  uint8_t raw_fill = 0;
+  for (i = 0; i < k; i++)
+    {
+      raw_cstr[i] = raw_fill;  /* ._d[i] = '\0' */
+    }
+  RETURN_OBJ;
+}
+#else
+
 qsword qsutf8_length (qsmem_t * mem, qsptr_t s)
 {
   qsword retval = 0;
@@ -2668,6 +2892,7 @@ qsptr_t qsutf8_make (qsmem_t * mem, qsword slen)
     }
   return retval;
 }
+#endif //0
 
 int qsutf8_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen)
 {
