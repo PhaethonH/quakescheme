@@ -559,6 +559,77 @@ qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
   return QSERROR_OK;
 }
 
+int qsobj_p (qsmem_t * mem, qsptr_t p)
+{
+  if (! ISOBJ26(p)) return 0;
+  qsmemaddr_t addr = 0;
+  addr = COBJ26(p);
+  if (! qsheap_is_synced(mem, addr)) return 0;
+  if (! qsheap_is_used(mem, addr)) return 0;
+  return 1;
+}
+
+
+
+#define PREDICATE(OBJTYPE) bool OBJTYPE##_p (qsmem_t * mem, qsptr_t p)
+
+#define FILTER_ISA(pred) \
+  if (! pred(mem,p))
+#define FILTER_IS_OBJ \
+  if (! qsobj_p(mem, p))
+#define FILTER_IS_POINTER \
+  if (qsobj_octetate_p(mem, p))
+#define FILER_IS_OCTETATE \
+  if (! qsobj_octetate_p(mem, p))
+#define FILTER_IS_UNIBAY \
+  if (qsobj_ref_allocsize(mem, p) > 1)
+#define FILTER_IS_MULTIBAY \
+  if (qsobj_ref_allocsize(mem, p) <= 1)
+#define FILTER_E_IS(match) \
+  if (qsobj_ref_ptr(mem, p, 1) != match)
+#define FILTER_A_IS(match) \
+  if (qsobj_ref_ptr(mem, p, 2) != match)
+#define FILTER_D_IS(match) \
+  if (qsobj_ref_ptr(mem, p, 3) != match)
+#define FILTER_E_ISA(pred) \
+  if (!pred(mem, qsobj_ref_ptr(mem,p,1)))
+#define FILTER_A_ISA(pred) \
+  if (!pred(mem, qsobj_ref_ptr(mem,p,2)))
+#define FILTER_D_ISA(pred) \
+  if (!pred(mem, qsobj_ref_ptr(mem,p,3)))
+#define ACCESS_PTR(nth) \
+  qsobj_ref_ptr(mem, p, nth)
+#define ACCESS_OCTET(nth) \
+  qsobj_ref_octet(mem, p, nth)
+#define MUTATE_PTR(nth, val) \
+  qsobj_setq_ptr(mem, p, nth, val)
+#define MUTATE_OCTET(nth, val) \
+  qsobj_setq_octet(mem, p, nth, val)
+
+#define ID(_) _
+
+#define FIELD_RW(access_type, OBJTYPE, fldname, fldnum, encode, decode) \
+access_type OBJTYPE##_ref_##fldname (qsmem_t * mem, qsptr_t p) \
+{ \
+  FILTER_ISA(OBJTYPE##_p)  return QSERROR_INVALID; \
+  return decode(ACCESS_PTR(fldnum)); \
+} \
+qsptr_t OBJTYPE##_setq_##fldname (qsmem_t * mem, qsptr_t p, access_type val) \
+{ \
+  FILTER_ISA(OBJTYPE##_p)  return QSERROR_INVALID; \
+  MUTATE_PTR(fldnum, encode(val)); \
+  return p; \
+}
+
+#define OBJ_MAKE_BAYS(nbays, octetate) \
+  qsptr_t p = QSNIL; \
+  qsmemaddr_t addr = 0; \
+  if (!ISOBJ26((p = qsobj_make(mem, nbays, octetate, &addr)))) return p;
+#define RETURN_OBJ return p;
+
+#define RETURN_TRUE return 1;
+#define RETURN_FALSE return 0;
+
 
 
 
@@ -569,6 +640,21 @@ qstree_t * qstree (qsmem_t * mem, qsptr_t t)
   return (qstree_t *)obj;
 }
 
+
+#if 1
+PREDICATE(qstree)
+{
+  FILTER_ISA(qsobj_p)  return 0;
+  FILTER_IS_UNIBAY     return 0;
+  FILTER_IS_POINTER    return 0;
+  return 1;
+}
+
+FIELD_RW(qsptr_t, qstree, left, 1, ID,ID)
+FIELD_RW(qsptr_t, qstree, data, 2, ID,ID)
+FIELD_RW(qsptr_t, qstree, right, 3, ID,ID)
+
+#else
 qsptr_t qstree_ref_left (qsmem_t * mem, qsptr_t t)
 {
   qstree_t * tree = qstree(mem, t);
@@ -637,9 +723,19 @@ qsptr_t qstree_setq_right (qsmem_t * mem, qsptr_t t, qsptr_t val)
   qsobj_setq_ptr(mem, t, 3, val);  /* .right = val */
   return t;
 }
+#endif //0
 
 qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
 {
+#if 1
+  OBJ_MAKE_BAYS(1, 0);
+
+  MUTATE_PTR(1, left);
+  MUTATE_PTR(2, data);
+  MUTATE_PTR(3, right);
+
+  RETURN_OBJ;
+#else
   qsptr_t retval = QSNIL;
   qsmemaddr_t addr = 0;
   if (!ISOBJ26((retval = qsobj_make(mem, 1, 0, &addr)))) return retval;
@@ -648,6 +744,7 @@ qsptr_t qstree_make (qsmem_t * mem, qsptr_t left, qsptr_t data, qsptr_t right)
   qsobj_setq_ptr(mem, retval, 2, data);  /* .data = data */
   qsobj_setq_ptr(mem, retval, 3, right); /* .right = right */
   return retval;
+#endif // 1
 }
 
 qserror_t qstree_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
@@ -1259,6 +1356,28 @@ qsibtree_t * qsibtree (qsmem_t * mem, qsptr_t t)
   return (qsibtree_t*)tree;
 }
 
+#if 1
+PREDICATE(qsibtree)
+{
+  FILTER_ISA(qstree_p)   return 0;
+  return 1;
+}
+
+FIELD_RW(qsptr_t, qsibtree, filled, 1, ID,ID)
+FIELD_RW(qsptr_t, qsibtree, idx0, 2, ID,ID)
+FIELD_RW(qsptr_t, qsibtree, ones, 3, ID,ID)
+
+qsptr_t qsibtree_make (qsmem_t * mem)
+{
+  OBJ_MAKE_BAYS(1, 0);
+
+  MUTATE_PTR(1, QSNIL);
+  MUTATE_PTR(2, QSNIL);
+  MUTATE_PTR(3, QSNIL);
+
+  RETURN_OBJ;
+}
+#else
 qsptr_t qsibtree_make (qsmem_t * mem)
 {
   qsptr_t retval = qstree_make(mem, QSINT(0), QSNIL, QSNIL);
@@ -1311,6 +1430,7 @@ qsptr_t qsibtree_setq_ones (qsmem_t * mem, qsptr_t t, qsptr_t val)
   qsobj_setq_ptr(mem, t, 3, val);   /* .ones = val */
   return t;
 }
+#endif //0
 
 qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t t, qsword path)
 {
@@ -1438,6 +1558,29 @@ qspair_t * qspair (qsmem_t * mem, qsptr_t p)
   return (qspair_t *)tree;
 }
 
+#if 1
+PREDICATE(qspair)
+{
+  FILTER_ISA(qstree_p)  return 0;
+  FILTER_E_IS(QSNIL)    return 0;
+  return 1;
+}
+
+FIELD_RW(qsptr_t, qspair, a, 2, ID,ID)
+FIELD_RW(qsptr_t, qspair, d, 3, ID,ID)
+
+qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t d)
+{
+  OBJ_MAKE_BAYS(1, 0);
+
+  MUTATE_PTR(1, QSNIL);
+  MUTATE_PTR(2, a);
+  MUTATE_PTR(3, d);
+
+  RETURN_OBJ;
+}
+
+#else
 qsptr_t qspair_ref_a (qsmem_t * mem, qsptr_t p)
 {
   qspair_t * pair = qspair(mem, p);
@@ -1494,6 +1637,7 @@ qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t b)
   qsptr_t retval;
   return qstree_make(mem, QSNIL, a, b);
 }
+#endif //0
 
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
@@ -1578,6 +1722,22 @@ qsvector_t * qsvector (qsmem_t * mem, qsptr_t v, qsword * out_lim)
     }
   return (qsvector_t*)obj;
 }
+
+#if 1
+
+PREDICATE(qsvector)
+{
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_MULTIBAY	return 0;
+  FILTER_IS_POINTER     return 0;
+  FILTER_E_ISA(qsint_p)	return 0;
+  return 1;
+}
+
+FIELD_RW(qsptr_t, qsvector, len, 1, QSINT,CINT30)
+
+#else
+#endif //0
 
 qsword qsvector_length (qsmem_t * mem, qsptr_t v)
 {
@@ -2162,6 +2322,11 @@ qsptr_t qsiter_crepr (qsmem_t * mem, qsptr_t it, char * buf, int buflen)
 
 
 
+
+PREDICATE(qsint)
+{
+  return ISINT30(p);
+}
 
 qsptr_t qsint (qsmem_t * mem, qsptr_t q)
 {

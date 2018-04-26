@@ -496,6 +496,7 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it);  // also cdr
 qsptr_t qsiter_make (qsmem_t * meme, qsmemaddr_t addr);
 
 
+bool qsint_p (qsmem_t * mem, qsptr_t p);
 qsptr_t qsint (qsmem_t * mem, qsptr_t i);
 int32_t qsint_get (qsmem_t * mem, qsptr_t i);
 qsptr_t qsint_make (qsmem_t * mem, int32_t val);
