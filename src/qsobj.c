@@ -2902,10 +2902,10 @@ qssymbol_t * qssymbol (qsmem_t * mem, qsptr_t yy)
   qsobj_t * obj = qsobj(mem, yy, &out_addr);
   if (!obj) return NULL;
   qssymbol_t * symbol = (qssymbol_t*)obj;
+
   qsptr_t indicator = qsobj_ref_ptr(mem, yy, 1);  /* .indicator */
   if (indicator != QSSYMBOL) return NULL;
-  qsptr_t symname = qsobj_ref_ptr(mem, yy, 2);  /* .name */
-  if (!qsstr(mem, symname)) return NULL;
+
   /* right field should be a symbol id that points back to object itself. */
   if (CINT30(qstree_ref_right(mem, yy)) != COBJ26(yy)) return NULL;
   return symbol;
