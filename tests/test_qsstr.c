@@ -69,16 +69,16 @@ START_TEST(test_cmp1)
   ck_assert_int_eq(qsstr_length(heap1, s3), 3);
 
   int cmp = qsstr_cmp(heap1, s1, s2);
-  ck_assert_int_eq(cmp, -1);
+  ck_assert_int_eq(cmp, CMP_LT);
 
   cmp = qsstr_cmp(heap1, s1, s1);
-  ck_assert_int_eq(cmp, 0);
+  ck_assert_int_eq(cmp, CMP_EQ);
 
   cmp = qsstr_cmp(heap1, s1, s3);
-  ck_assert_int_eq(cmp, 0);
+  ck_assert_int_eq(cmp, CMP_EQ);
 
   cmp = qsstr_cmp(heap1, s1, s4);
-  ck_assert_int_eq(cmp, 1);
+  ck_assert_int_eq(cmp, CMP_GT);
 }
 END_TEST
 
