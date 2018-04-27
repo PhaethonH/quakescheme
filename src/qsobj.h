@@ -441,6 +441,7 @@ qsptr_t qskont_setq_env (qsmem_t * mem, qsptr_t p, qsptr_t val);
 qsptr_t qskont_setq_kont (qsmem_t * mem, qsptr_t p, qsptr_t val);
 qsptr_t qskont_setq_code (qsmem_t * mem, qsptr_t p, qsptr_t val);
 qsptr_t qskont_setq_other (qsmem_t * mem, qsptr_t p, qsptr_t val);
+/* arguments listed in order of likeliness of being nil. */
 qsptr_t qskont_make (qsmem_t * mem, qsptr_t variant, qsptr_t k, qsptr_t e, qsptr_t c, qsptr_t o);
 qsptr_t qskont_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 int qskont_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);

@@ -141,10 +141,11 @@ typedef union qsbits_u qsbits_t;
 #define CCONST16(p) ((((qsbits_t)(p)).u & ~TAGMASK_CONST16) >> SHIFT_CONST16)
 
 
-#define QSNIL QSCONST(0)
-#define QSTRUE QSCONST(1)
-#define QSBOL QSCONST(3)  // beginning-of-list, nested immlist.
-#define QSEOL QSCONST(4)  // end-of-list, for immlist.
+/* Constants. These values can be considered system-level symbols. */
+#define QSNIL	QSCONST(0)
+#define QSTRUE	QSCONST(1)
+#define QSBOL	QSCONST(3)  // beginning-of-list, nested immlist.
+#define QSEOL	QSCONST(4)  // end-of-list, for immlist.
 #define QSBLACKHOLE QSCONST(8)  // 'unassigned' value.
 /* cons-tagging constants. */
 #define QST_RBTREE    QSCONST(0x60)
@@ -153,7 +154,11 @@ typedef union qsbits_u qsbits_t;
 #define QST_ENV	      QSCONST(0x63)
 #define QST_LAMBDA    QSCONST(0x64)
 #define QST_CLOSURE   QSCONST(0x65)
-#define QST_KONT      QSCONST(0x66)
+#define QST_KONT      QSCONST(0x70)
+#define QSKONT_HALT    QSCONST(0x71)
+#define QSKONT_LETK    QSCONST(0x72)
+#define QSKONT_RETURN  QSCONST(0x73)
+#define QSKONT_BRANCH  QSCONST(0x74)
 // 0x40..0x4f reserved for numeric types.
 /* Numeric tower type enumeration. */
 #define QSNUMTYPE_NAN		QSCONST(0x40)

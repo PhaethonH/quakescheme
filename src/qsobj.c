@@ -3119,9 +3119,24 @@ int qsclosure_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 
 PREDICATE(qskont)
 {
-  FILTER_ISA(qstree_p)    return 0;
-  FILTER_E_IS(QST_KONT)   return 0;
-  return 1;
+  FILTER_ISA(qsobj_p)     return 0;
+  FILTER_IS_POINTER       return 0;
+  if (qsobj_ref_allocsize(mem,p) != 2) return 0;
+
+  qsptr_t variant = qsobj_ref_ptr(mem, p, 1);
+  switch (variant)
+    {
+    case QST_KONT:
+    case QSKONT_HALT:
+    case QSKONT_RETURN:
+    case QSKONT_BRANCH:
+    case QSKONT_LETK:
+      return 1;
+      break;
+    default:
+      return 0;
+      break;
+    }
 }
 
 FIELD_RW(qsptr_t, qskont, env, 4, QSID,QSID)
@@ -3141,6 +3156,9 @@ qsptr_t qskont_make (qsmem_t * mem, qsptr_t variant, qsptr_t kont, qsptr_t env, 
 
   RETURN_OBJ;
 }
+
+
+
 
 CMP_FUNC_NAIVE(qskont);
 
@@ -3182,7 +3200,7 @@ int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 int qsunknown_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
-  n += snprintf(buf+n, buflen-n, "#<UNKNWON:%08x>", p);
+  n += snprintf(buf+n, buflen-n, "#<UNKNOWN:%08x>", p);
   return n;
 }
 
