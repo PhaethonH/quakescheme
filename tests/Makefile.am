@@ -11,6 +11,7 @@ TESTS = test_qsptr \
   test_ibtree \
   test_gc \
   test_closure \
+  test_qsstdio \
   test_symbols
 
 

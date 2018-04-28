@@ -635,6 +635,7 @@ bool qsutf8_p (qsmem_t * mem, qsptr_t p);
 qsword qsutf8_length (qsmem_t * mem, qsptr_t p);
 int qsutf8_ref (qsmem_t * mem, qsptr_t p, qsword k);
 qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t p, qsword k, qsword u8);
+qsptr_t qsutf8_make (qsmem_t * mem, qsword slen);
 int qsutf8_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 cmp_t qsutf8_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
@@ -698,6 +699,19 @@ qsptr_t qssymstore_ref (qsmem_t * mem, qsptr_t p, qsptr_t key);
 qsptr_t qssymstore_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key);
 cmp_t qssymstore_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
+
+
+/* Ports */
+/*  Scheme standard (default) input/output, distinct from C stdin/stdout. */
+bool qsSTDIO_p (qsmem_t * mem, qsptr_t p);
+qsptr_t qsSTDIO_make (qsmem_t * mem, qsptr_t stdioe);
+qsptr_t qsSTDIO_peek_u8 (qsmem_t * mem, qsptr_t p);
+qsptr_t qsSTDIO_read_u8 (qsmem_t * mem, qsptr_t p);
+qsptr_t qsSTDIO_write_u8 (qsmem_t * mem, qsptr_t p, int octet);
+/*
+qsptr_t qsSTDIO_read_bytevector (qsmem_t * mem, qsptr_t p);
+qsptr_t qsSTDIO_write_bytevector (qsmem_t * mem, qsptr_t p);
+*/
 
 
 

@@ -3157,15 +3157,97 @@ qsptr_t qskont_make (qsmem_t * mem, qsptr_t variant, qsptr_t kont, qsptr_t env, 
   RETURN_OBJ;
 }
 
-
-
-
 CMP_FUNC_NAIVE(qskont);
 
 int qskont_crepr (qsmem_t * mem, qsptr_t kont, char * buf, int buflen)
 {
   int n = 0;
   return n;
+}
+
+
+
+/* Built-in ports. */
+PREDICATE(qsSTDIO)
+{
+  switch (p)
+    {
+    case QSIO_IN:
+    case QSIO_OUT:
+    case QSIO_ERR:
+      return 1;
+    default:
+      return 0;
+      break;
+    }
+}
+
+qsptr_t qsSTDIO_make (qsmem_t * mem, qsptr_t stdioe)
+{
+  qsptr_t retval = QSERROR_INVALID;
+  switch (stdioe)
+    {
+    case QSIO_IN:
+    case QSIO_OUT:
+    case QSIO_ERR:
+      retval = stdioe;
+      break;
+    default:
+      retval = QSERROR_INVALID;
+      break;
+    }
+  return retval;
+}
+
+static
+FILE * CFILE (qsptr_t stdioe)
+{
+  switch (stdioe)
+    {
+    case QSIO_IN: return stdin; break;
+    case QSIO_OUT: return stdout; break;
+    case QSIO_ERR: return stderr; break;
+    default: abort(); break;
+    }
+}
+
+qsptr_t qsSTDIO_read_u8 (qsmem_t * mem, qsptr_t p)
+{
+  qsptr_t retval = QSNIL;
+  int nextch = 0;
+  switch (p)
+    {
+    case QSIO_IN:
+      nextch = fgetc(CFILE(p));
+      if (nextch < 0)
+	retval = QSEOF;
+      else
+	retval = QSINT(nextch);
+      break;
+    case QSIO_OUT:
+    case QSIO_ERR:
+    default:
+      retval = QSERROR_INVALID;
+      break;
+    }
+  return retval;
+}
+
+qsptr_t qsSTDIO_write_u8 (qsmem_t * mem, qsptr_t p, int octet)
+{
+  switch (p)
+    {
+    case QSIO_OUT:
+    case QSIO_ERR:
+      if (octet >= 0)
+	fputc(octet, CFILE(p));
+      break;
+    case QSIO_IN:
+    default:
+      return QSERROR_INVALID;
+      break;
+    }
+  return p;
 }
 
 

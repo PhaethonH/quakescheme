@@ -173,6 +173,12 @@ typedef union qsbits_u qsbits_t;
 #define QSNUMTYPE_INF		QSCONST(0x4f)
 typedef qsptr_t qsnumtype_t;
 
+/* Standard (built-in) I/O ports. */
+#define QSIO_IN		QSCONST(0x80)
+#define QSIO_OUT	QSCONST(0x81)
+#define QSIO_ERR	QSCONST(0x82)
+#define QSEOF		QSCONST(0x8f)
+
 
 /* low-level error codes. */
 typedef qsptr_t qserror_t;

@@ -82,10 +82,53 @@ START_TEST(test_cmp1)
 }
 END_TEST
 
+START_TEST(test_extract1)
+{
+  init();
+
+  char temp[100];
+
+  memset(temp, 100, 0);
+  qsptr_t s1 = qsutf8_make(heap1, 5);
+  qsutf8_setq(heap1, s1, 0, 'u');
+  qsutf8_setq(heap1, s1, 1, 'f');
+  qsutf8_setq(heap1, s1, 2, 'o');
+  qsutf8_setq(heap1, s1, 3, 'o');
+  qsutf8_setq(heap1, s1, 4, 0);
+  qsstr_extract(heap1, s1, temp, sizeof(temp));
+  ck_assert_str_eq(temp, "ufoo");
+
+  memset(temp, 100, 0);
+  qsptr_t v1 = qsvector_make(heap1, 4, 0);
+  qsvector_setq(heap1, v1, 0, QSCHAR('v'));
+  qsvector_setq(heap1, v1, 1, QSCHAR('f'));
+  qsvector_setq(heap1, v1, 2, QSCHAR('o'));
+  qsvector_setq(heap1, v1, 3, QSCHAR('o'));
+  qsstr_extract(heap1, v1, temp, sizeof(temp));
+  ck_assert_str_eq(temp, "vfoo");
+
+  memset(temp, 100, 0);
+  qsptr_t l1_3 = qspair_make(heap1, QSCHAR('o'), QSNIL);
+  qsptr_t l1_2 = qspair_make(heap1, QSCHAR('o'), l1_3);
+  qsptr_t l1_1 = qspair_make(heap1, QSCHAR('f'), l1_2);
+  qsptr_t l1_0 = qspair_make(heap1, QSCHAR('l'), l1_1);
+  qsptr_t l1 = l1_0;
+  qsstr_extract(heap1, l1, temp, sizeof(temp));
+  ck_assert_str_eq(temp, "lfoo");
+}
+END_TEST
+
 
 TESTCASE(str1,
   TFUNC(test_inject1)
+  )
+
+TESTCASE(str2,
   TFUNC(test_cmp1)
+  )
+
+TESTCASE(str3,
+  TFUNC(test_extract1)
   )
 
 TESTSUITE(suite1,
