@@ -127,6 +127,7 @@ typedef struct qsobj_s {
 } qsobj_t;
 
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr);
+int qsobj_p (qsmem_t * mem, qsptr_t p);
 int qsobj_used_p (qsmem_t * mem, qsptr_t p);
 int qsobj_marked_p (qsmem_t * mem, qsptr_t p);
 int qsobj_ref_score (qsmem_t * mem, qsptr_t p);
@@ -153,11 +154,11 @@ qsptr_t qsobj_ref_ptr (qsmem_t * mem, qsptr_t p, qsword ofs);
 
    Return -1 if access denied (out-of-bounds).
 */
-int qsobj_ref_oct (qsmem_t * mem, qsptr_t p, qsword ofs);
+int qsobj_ref_octet (qsmem_t * mem, qsptr_t p, qsword ofs);
 /* Returns object on success, QSERROR_* on error. */
 qsptr_t qsobj_setq_ptr (qsmem_t *, qsptr_t p, qsword ofs, qsptr_t val);
 /* Returns object on success, QSERROR_* on error. */
-qsptr_t qsobj_setq_oct (qsmem_t *, qsptr_t p, qsword ofs, int val);
+qsptr_t qsobj_setq_octet (qsmem_t *, qsptr_t p, qsword ofs, int val);
 /* Returns pointer to start of arbitrary data (->_d[0]).
    NULL if no such field available.
    Writes out total valid size (bytes) to '*size', ignored if NULL.

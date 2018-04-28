@@ -33,5 +33,7 @@ qs_t * qs_inject_exp (qs_t * machine, qsptr_t exp);
 /* Component 4: Transition, determine next machine state (evaluate state) */
 qs_t * qs_step (qs_t * machine);
 
+qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp);
+
 
 #endif // QSMACH_H_

@@ -174,6 +174,9 @@ typedef union qsbits_u qsbits_t;
 #define QSNUMTYPE_INF		QSCONST(0x4f)
 typedef qsptr_t qsnumtype_t;
 
+#define QSBOOL(x)	(x ? QSTRUE : QSFALSE)
+#define CBOOL(x)	(x != QSFALSE)
+
 
 /* low-level error codes. */
 typedef qsptr_t qserror_t;
