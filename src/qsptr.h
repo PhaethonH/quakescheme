@@ -144,6 +144,7 @@ typedef union qsbits_u qsbits_t;
 /* Constants. These values can be considered system-level symbols. */
 #define QSNIL	QSCONST(0)
 #define QSTRUE	QSCONST(1)
+#define QSFALSE	QSCONST(2)
 #define QSBOL	QSCONST(3)  // beginning-of-list, nested immlist.
 #define QSEOL	QSCONST(4)  // end-of-list, for immlist.
 #define QSBLACKHOLE QSCONST(8)  // 'unassigned' value.

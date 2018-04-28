@@ -2324,6 +2324,9 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
     case QSTRUE:
       n += snprintf(buf+n, buflen-n, "#t");
       break;
+    case QSFALSE:
+      n += snprintf(buf+n, buflen-n, "#f");
+      break;
     case QSBOL:
       n += snprintf(buf+n, buflen-n, "#bol");
       break;
