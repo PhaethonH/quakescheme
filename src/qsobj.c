@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdarg.h>
 
 #include <math.h>
 #include <wchar.h>
@@ -238,7 +239,7 @@ qsptr_t * qsobj_prepare_ptr (qsmem_t * mem, qsptr_t p, qsword field_idx)
 }
 
 /* Get start of arbitrary data elements (address of d[0]).
-   Writes size of memory region to '*len', if not NULL.
+   Writes size of memory region (in bytes) to '*len', if not NULL.
    Returns NULL if no such field available.
 
    Primarily for accessing as widenum.
@@ -448,8 +449,8 @@ qserror_t qsobj_kmark_unibayptr (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qspt
 
 qserror_t qsobj_kmark_multibayptr (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * nextptr)
 {
-  static const int hdr_adjust = 4;
-  static const int nptr_per_bay = 4;
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
+  static const int nptr_per_bay = sizeof(qsbay0_t) / sizeof(qsptr_t);
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   qsword lim = (qsobj_ref_nbays(mem, p) * nptr_per_bay) - hdr_adjust;
@@ -579,6 +580,7 @@ const char * qsobj_typeof (qsmem_t * mem, qsptr_t p)
   if (qsobj_p(mem, p))
     {
       if (qsrbtree_p(mem, p)) return "Rbtree";
+      if (qsimmlist_p(mem, p)) return "Immlist";
       if (qsvector_p(mem, p)) return "Vector";
       if (qsbytevec_p(mem, p)) return "Bytevec";
       if (qsutf8_p(mem, p)) return "Utf8";
@@ -1434,6 +1436,12 @@ qsptr_t qspair_make (qsmem_t * mem, qsptr_t a, qsptr_t d)
   RETURN_OBJ;
 }
 
+qsptr_t qspair_iter (qsmem_t * mem, qsptr_t p)
+{
+  qsmemaddr_t addr = (COBJ26(p) << 2);
+  return QSITER(addr);
+}
+
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
@@ -1443,13 +1451,27 @@ int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 
 
 
-/* Construct list from QSBOL terminated arguments. */
-qsptr_t qslist_make (qsmem_t * mem, ...)
+/* List semantics. */
+qsptr_t qslist (qsmem_t * mem, qsptr_t p)
 {
+  if (qsiter_p(mem, p)) return p;
+  if (qspair_p(mem, p)) return qspair_iter(mem, p);
+  if (qsimmlist_p(mem, p)) return qsimmlist_iter(mem, p, 0);
+  if (qsvector_p(mem, p)) return qsvector_iter(mem, p, 0);
+  return QSNIL;
+}
+
+bool qslist_p (qsmem_t * mem, qsptr_t p)
+{
+  if (qsiter_p(mem, p)) return 1;
+  if (qspair_p(mem, p)) return 1;
+  if (qsimmlist_p(mem, p)) return 1;
+  return 0;
 }
 
 qsword qslist_length (qsmem_t * mem, qsptr_t p)
 {
+#if 0
   qsword retval = 0;
   qsptr_t curr = p;
   while (curr != QSNIL)
@@ -1466,10 +1488,25 @@ qsword qslist_length (qsmem_t * mem, qsptr_t p)
 	}
     }
   return retval;
+#else
+  qsptr_t it = qslist(mem, p);
+  if (ISNIL(it)) return 0;
+
+  qsword len = 1;
+  /* Count how many times next() can be called until iterator terminates. */
+  /* TODO: bounds for circular list. */
+  while (qsiter_p(mem, it))
+    {
+      it = qsiter_next(mem, it);
+      len++;
+    }
+  return len-1;
+#endif //0
 }
 
 qsptr_t qslist_tail (qsmem_t * mem, qsptr_t p, qsword nth)
 {
+#if 0
   qsptr_t curr = p;
   qsword ofs = 0;
   while ((ofs < nth) && (curr != QSNIL))
@@ -1490,16 +1527,33 @@ qsptr_t qslist_tail (qsmem_t * mem, qsptr_t p, qsword nth)
       return curr;
     }
   return QSNIL;
+#else
+  qsptr_t it = qslist(mem, p);
+  if (ISNIL(it)) return QSNIL;
+
+  while (nth > 0)
+    {
+      it = qsiter_next(mem, it);
+      nth--;
+    }
+  return it;
+#endif //0
 }
 
 qsptr_t qslist_ref (qsmem_t * mem, qsptr_t p, qsword k)
 {
+#if 0
   qsptr_t curr = qslist_tail(mem, p, k);
   if (curr != QSNIL)
     {
       return qspair_ref_a(mem, p);
     }
   return QSERROR_INVALID;
+#else
+  qsptr_t it = qslist_tail(mem, p, k);
+  if (ISNIL(it)) return QSNIL;
+  return qsiter_item(mem, it);
+#endif //0
 }
 
 
@@ -1524,7 +1578,7 @@ qsword qsvector_length (qsmem_t * mem, qsptr_t p)
 
 qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t p, qsword ofs)
 {
-  static const int hdr_adjust = 4;
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
   FILTER_ISA(qsvector_p)    return 0;
   qsword lim = qsvector_length(mem, p);
   if ((ofs < 0) || (ofs >= lim))
@@ -1537,7 +1591,7 @@ qsptr_t qsvector_ref (qsmem_t * mem, qsptr_t p, qsword ofs)
 
 qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t p, qsword ofs, qsptr_t val)
 {
-  static const int hdr_adjust = 4;
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
   FILTER_ISA(qsvector_p)    return 0;
   qsword lim = qsvector_length(mem, p);
   if ((ofs < 0) || (ofs >= lim))
@@ -1551,7 +1605,7 @@ qsptr_t qsvector_setq (qsmem_t * mem, qsptr_t p, qsword ofs, qsptr_t val)
 
 qsptr_t qsvector_make (qsmem_t * mem, qsword k, qsptr_t fill)
 {
-  static const int hdr_adjust = 4;
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
   static const int nptr_per_bay = sizeof(qsbay0_t) / sizeof(qsptr_t);
   qsptr_t retval = QSNIL;
   qsmemaddr_t addr = 0;
@@ -1603,6 +1657,13 @@ qsptr_t qsvector_inject (qsmem_t * mem, qsword nelts, qsptr_t * carray)
   return v;
 }
 
+qsptr_t qsvector_iter (qsmem_t * mem, qsptr_t p, qsword ofs)
+{
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
+  qsmemaddr_t addr = (COBJ26(p) << 2) + hdr_adjust + ofs;
+  return QSITER(addr);
+}
+
 qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t p, qsword * out_len)
 {
   FILTER_ISA(qsvector_p)    return NULL;
@@ -1610,6 +1671,218 @@ qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t p, qsword * out_len)
   if (out_len)
       *out_len = qsvector_length(mem, p);
   return (qsptr_t*)qsobj_ref_data(mem, p, NULL);  /* ._d */
+}
+
+
+
+
+PREDICATE(qsimmlist)
+{
+  FILTER_ISA(qsobj_p)   return 0;
+  FILTER_IS_MULTIBAY	return 0;
+  FILTER_IS_POINTER     return 0;
+  FILTER_E_IS(QSNIL)    return 0;
+  return 1;
+}
+
+/* length, counting raw encoding elements. */
+qsword qsimmlist_len (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsimmlist_p)   return 0;
+
+  qsptr_t * _d = (qsptr_t*)qsobj_ref_data(mem, p, NULL);
+  qsword depth = 1;
+  qsword len = 0;
+  while (depth > 0)
+    {
+      qsptr_t elt = _d[len];
+      if (elt == QSBOL)
+	depth++;
+      else if (elt == QSEOL)
+	depth--;
+      else if (ISSYNC29(elt))
+	depth = 0;
+      len++;
+    }
+  return len-1;
+}
+
+/* length, accouting for nested lists. */
+qsword qsimmlist_length (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsimmlist_p)   return 0;
+
+  qsptr_t * elts = (qsptr_t*)qsobj_ref_data(mem, p, NULL);
+  qsword depth = 1;
+  qsword len = 0;
+  while (depth > 0)
+    {
+      if (*elts == QSBOL)
+	depth++;
+      else if (*elts == QSEOL)
+	depth--;
+      else if (ISSYNC29(*elts))
+	depth = 0;
+      if (depth == 1)
+	len++;
+      elts++;
+    }
+  return len;
+}
+
+/* elements in list, including encoding details.
+   see also qsimmlist_ref().
+ */
+qsptr_t qsimmlist_at (qsmem_t * mem, qsptr_t p, qsword nth)
+{
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
+  static const int nptr_per_bay = sizeof(qsbay0_t) / sizeof(qsptr_t);
+  FILTER_ISA(qsimmlist_p)   return QSERROR_INVALID;
+
+  qsword depth = 1;
+  qsword idx = 0;
+  qsptr_t * raw_data = (qsptr_t*)qsobj_ref_data(mem, p, NULL);
+  while (depth > 0)
+    {
+      qsptr_t elt = raw_data[idx];
+      if (idx >= nth)
+	{
+	  return elt;
+	}
+      if (elt == QSBOL)
+	depth++;
+      else if (elt == QSEOL)
+	depth--;
+      else if (ISSYNC29(elt))
+	depth = 0;
+      idx++;
+    }
+  return QSERROR_RANGE;
+}
+
+/* nth element in list, adjusting for nested listed.
+   Nexted list yields an iterator on the nested list.
+   */
+qsptr_t qsimmlist_ref (qsmem_t * mem, qsptr_t p, qsword nth)
+{
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
+  qsptr_t * raw_data = (qsptr_t*)qsobj_ref_data(mem, p, NULL);
+  qsword depth = 1;
+  qsword idx = 0;
+  while (depth > 0)
+    {
+      qsptr_t elt = raw_data[idx];
+      if (idx == nth)
+	{
+	  if (elt == QSBOL)
+	    {
+	      /* iterator starting at word after QSBOL. */
+	      return qsimmlist_iter(mem, p, idx+1);
+	    }
+	  return elt;
+	}
+      if (elt == QSBOL)
+	depth++;
+      else if (elt == QSEOL)
+	depth--;
+      else if (ISSYNC29(elt))
+	depth = 0;
+      if (depth == 1)
+	idx++;
+    }
+  return QSERROR_RANGE;
+}
+
+qsptr_t qsimmlist_make (qsmem_t * mem, qsword k, qsword fill)
+{
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
+  static const int nptr_per_bay = sizeof(qsbay0_t) / sizeof(qsptr_t);
+  qsptr_t retval = QSNIL;
+  qsmemaddr_t addr = 0;
+  qsword nbays = 1 + (k / nptr_per_bay)+1;  // always terminate with QSEOL.
+  if (!ISOBJ26((retval = qsobj_make(mem, nbays, 0, &addr)))) return retval;
+
+  qsobj_setq_ptr(mem, retval, 1, QSNIL);    /* len = nil */
+  /* use allocsize for absolute maximum allowed. */
+  qsobj_setq_ptr(mem, retval, 2, QSNIL);    /* gc_backtrack = QSNIL */
+  qsobj_setq_ptr(mem, retval, 3, QSNIL);    /* gc_iter = QSNIL */
+  qsptr_t * raw_data = (qsptr_t*)qsobj_ref_data(mem, retval, NULL);
+  qsword i;
+  for (i = 0; i < k; i++)
+    {
+      raw_data[i] = fill;  /* ._d[i] = fill */
+    }
+  retval = QSOBJ(addr);
+  /* Terminate with QSEOL for sake of qsiter. */
+  qsobj_setq_ptr(mem, retval, k + hdr_adjust, QSEOL);
+  return retval;
+}
+
+qsptr_t qsimmlist_inject (qsmem_t * mem, qsptr_t * cmem, qsword nptrs)
+{
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
+  qsptr_t retval = qsimmlist_make(mem, nptrs, QSNIL);
+  qsptr_t * _d = qsobj_ref_data(mem, retval, NULL);
+  qsword i;
+  for (i = 0; i < nptrs; i++)
+    {
+      _d[i] = cmem[i];
+    }
+  _d[i] = QSEOL;
+  return retval;
+}
+
+qsptr_t qsimmlist_injectv (qsmem_t * mem, va_list vp)
+{
+  int depth = 1;
+  qsword nptrs = 0;
+  qsptr_t elt = QSNIL;
+
+  /* Count len. */
+  va_list vp0;
+  va_copy(vp0, vp);
+  while (depth > 0)
+    {
+      elt = va_arg(vp0, qsptr_t);
+      if (elt == QSBOL)
+	depth++;
+      else if (elt == QSEOL)
+	depth--;
+      nptrs++;
+    }
+  va_end(vp0);
+
+  /* Prepare memory. */
+  qsptr_t retval = qsimmlist_make(mem, nptrs, QSNIL);
+
+  /* Populate list. */
+  qsword i = 0;
+  qsptr_t * raw_data = (qsptr_t*)qsobj_ref_data(mem, retval, NULL);
+  for (i = 0; i < nptrs; i++)
+    {
+      elt = va_arg(vp, qsptr_t);
+      raw_data[i] = elt;
+    }
+
+  return retval;
+}
+
+qsptr_t qsimmlist_injectl (qsmem_t * mem, ...)
+{
+  va_list ap;
+  va_start(ap, mem);
+  qsptr_t retval = qsimmlist_injectv(mem, ap);
+  va_end(ap);
+  return retval;
+}
+
+/* Return iterator (to first element). */
+qsptr_t qsimmlist_iter (qsmem_t * mem, qsptr_t p, qsword ofs)
+{
+  static const int hdr_adjust = 1 * (sizeof(qsbay0_t) / sizeof(qsptr_t));
+  qsmemaddr_t iteraddr = 0;
+  iteraddr = (COBJ26(p) << 2) + hdr_adjust + ofs;
+  return QSITER(iteraddr);
 }
 
 
@@ -1937,7 +2210,7 @@ PREDICATE(qsiter)
   return 0;
 }
 
-qsptr_t qsiter_make (qsmem_t * meme, qsmemaddr_t addr)
+qsptr_t qsiter_make (qsmem_t * mem, qsmemaddr_t addr)
 {
   // TODO: bounds check.
   return QSITER(addr);
@@ -2012,8 +2285,8 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
     }
   else if (ISITER28(it))
     {
-      qsptr_t peek = 0;
-      qserror_t err = 0;
+      qsptr_t peek = QSNIL;
+      qserror_t err = QSNIL;
       int depth = 0;
       qsword startofs = qsiter_get(mem, it);
       err = qsheap_word(mem, startofs, &peek);
@@ -2026,7 +2299,6 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
 
       while (depth > 0)
 	{
-	  err = qsheap_word(mem, nextofs, &peek);
 	  if (err != QSERROR_OK)
 	    {
 	      // invalid address, treat as end of iterator.
@@ -2052,6 +2324,7 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
 	      break;
 	    }
 	  nextofs++;
+	  err = qsheap_word(mem, nextofs, &peek);
 	}
       if (peek != QSEOL)  // did not end on end-of-list marker.
 	return qsiter_make(mem, nextofs);
@@ -2575,6 +2848,22 @@ static qsptr_t qsstr_ref_vec (qsmem_t * mem, qsptr_t p, qsword nth, qsword hard_
   else return QSCHAR(0);
 }
 
+static qsptr_t qsstr_ref_immlist (qsmem_t * mem, qsptr_t p, qsword nth)
+{
+  qsword depth = 1;
+  size_t hard_limit = 0;
+  qsptr_t * raw_data = (qsptr_t*)qsobj_ref_data(mem, p, &hard_limit);
+  qsptr_t elt = QSNIL;
+  while ((depth > 1) && (nth > 0))
+    {
+      elt = raw_data[nth];
+      if (!ISCHAR24(elt))
+	return QSCHAR(0);
+    }
+  if (ISCHAR24(elt)) return elt;
+  else return QSCHAR(0);
+}
+
 static qsptr_t qsstr_ref_bytevec (qsmem_t * mem, qsptr_t p, qsword nth, qsword hard_limit)
 {
   qsword lim = qsbytevec_length(mem, p);
@@ -2599,6 +2888,10 @@ qsptr_t qsstr_ref (qsmem_t * mem, qsptr_t s, qsword nth)
     {
       lim = qsvector_length(mem, s);
       return qsstr_ref_vec(mem, s, nth, lim);
+    }
+  else if (qsimmlist_p(mem, s))
+    {
+      return qsstr_ref_immlist(mem, s, nth);
     }
   else if (qsbytevec_p(mem, s))
     {
@@ -2665,6 +2958,7 @@ qsptr_t qsstr_inject_wchar (qsmem_t * mem, const wchar_t * ws, qsword wslen)
 /* copy out as C string; list/vector of char to char, or copy bytevector. */
 qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
 {
+  // TODO: support iter28
   qsword retval = 0;
   qsword lim = 0;
   qsword idx = 0;
@@ -2717,6 +3011,29 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
       cstr[idx] = 0;
       retval = idx;
     }
+  else if (qsimmlist_p(mem, s))
+    {
+      qsptr_t elt = QSNIL;
+      size_t hardlimit = 0;
+      mbstate_t ps = { 0, };
+      qsptr_t * elts = qsobj_ref_data(mem, s, &hardlimit);
+      while (ISCHAR24(*elts))
+	{
+	  wchar_t ch = CCHAR24(*elts);
+	  int span = wcrtomb(cstr + idx, ch, &ps);
+	  if (span > 0)
+	    {
+	      idx += span;
+	    }
+	  else
+	    {
+	      abort();
+	    }
+	  elts++;
+	}
+      cstr[idx] = 0;
+      retval = idx;
+    }
   else if (qsbytevec_p(mem, s))
     {
       lim = qsbytevec_length(mem, s);
@@ -2762,6 +3079,21 @@ qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t s, wchar_t * ws, qsword wlen)
 	  if (! ISCHAR24(elt)) elt = QSCHAR(0);
 	  ws[idx] = qsvector_ref(mem, s, idx);
 	  idx++;
+	}
+      ws[idx] = 0;
+      retval = idx;
+    }
+  else if (qsimmlist_p(mem, s))
+    {
+      qsptr_t elt = QSNIL;
+      size_t hardlimit = 0;
+      qsptr_t * elts = qsobj_ref_data(mem, s, &hardlimit);
+      hardlimit /= (sizeof(qsbay0_t));
+      while (ISCHAR24(*elts))
+	{
+	  ws[idx] = CCHAR24(*elts);
+	  idx++;
+	  elts++;
 	}
       ws[idx] = 0;
       retval = idx;

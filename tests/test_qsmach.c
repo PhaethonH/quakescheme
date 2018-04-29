@@ -155,7 +155,7 @@ START_TEST(test_step1)
   ck_assert_int_eq(a4, QSTRUE);
   ck_assert(scheme1->halt);
 
-  /* Evalute to self. */
+  /* Evaluate to self. */
   /** vector */
   qsptr_t v0 = qsvector_make(heap1, 1, QSNIL);
   qs_inject_exp(scheme1, v0);
@@ -170,6 +170,14 @@ START_TEST(test_step1)
   qsptr_t a6 = scheme1->A;
   ck_assert(!ISERROR16(qsstr_extract(heap1, a6, temp, sizeof(temp))));
   ck_assert_str_eq(temp, "foo");
+
+  /* Use iterator object as list. */
+  qsptr_t img1[] = { lam_sym, QSBOL, sym_x, QSEOL, QSINT(97), QSBOL };
+  qsptr_t l1 = qsimmlist_inject(heap1, img1, 6);
+  qs_inject_exp(scheme1, l1);
+  qs_step(scheme1);
+  qsptr_t a7 = scheme1->A;
+  ck_assert(qsclosure_p(heap1, a7));
 }
 END_TEST
 

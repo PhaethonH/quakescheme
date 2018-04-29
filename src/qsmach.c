@@ -154,6 +154,10 @@ qs_t * qs_inject_exp (qs_t * machine, qsptr_t exp)
 #define qspair_caddr0(mem,p) (ISNIL(p) ? QSNIL : qspair_car0(mem,qspair_cddr0(mem,p)))
 #define qspair_cdddr0(mem,p) (ISNIL(p) ? QSNIL : qspair_cdr0(mem,qspair_cddr0(mem,p)))
 
+#define ARG(n) (qslist_ref(machine->store, args, n))
+#define HEAD(p) (qslist_ref(mem, p, 0))
+#define TAIL(p) (qslist_tail(mem, p, 1))
+
 
 /* Operator is a function returning qsptr_t, given machine and arguments. */
 
@@ -172,8 +176,8 @@ qsptr_t qsop_halt (qs_t * machine, qsptr_t args)
 
 qsptr_t qsop_equals (qs_t * machine, qsptr_t args)
 {
-  qsptr_t a = qspair_car0(machine->store, args);
-  qsptr_t b = qspair_cadr0(machine->store, args);
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
   return (a == b);
 }
 
@@ -187,10 +191,10 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
   char symname[32] = { 0, };
   qsheap_t * mem = machine->store;
 
-  if (qspair_p(mem, aexp))
+  if (qslist_p(mem, aexp))
     {
-      qsptr_t head = qspair_car0(mem, aexp);
-      qsptr_t tail = qspair_car0(mem, qspair_cdr0(mem, aexp));
+      qsptr_t head = HEAD(aexp);
+      qsptr_t tail = TAIL(aexp);
       if (qssymbol_p(mem, head))
 	{
 	  qsptr_t qssymname = qssymbol_ref_name(mem, head);
@@ -198,8 +202,8 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 	  if ((0 == strcmp(symname, "lambda"))
 	       || (0 == strcmp(symname, "λ")))
 	    {
-	      qsptr_t param = qspair_car0(mem, tail);
-	      qsptr_t body = qspair_car0(mem, qspair_cdr0(mem, tail));
+	      qsptr_t param = HEAD(tail);
+	      qsptr_t body = TAIL(tail);
 	      qsptr_t lam = qslambda_make(mem, param, body);
 	      qsptr_t clo = qsclosure_make(mem, machine->E, lam);
 	      retval = clo;
@@ -243,8 +247,8 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 		  qsptr_t argiter = QSNIL;
 		  while (!ISNIL(aiter))
 		    {
-		      qsptr_t aexp = qspair_car0(mem, aiter);
-		      qsptr_t val = qs_atomic_eval(machine, aexp);
+		      qsptr_t aexpI = HEAD(aiter);
+		      qsptr_t val = qs_atomic_eval(machine, aexpI);
 		      qsptr_t next = qspair_make(mem, val, QSNIL);
 		      if (ISNIL(args))
 			{
@@ -302,9 +306,11 @@ int qs_applyproc (qs_t * machine, qsptr_t proc, qsptr_t args)
   qsptr_t aiter = args;
   while (!ISNIL(piter) && !ISNIL(aiter))
     {
-      qsptr_t pvalue = qspair_car0(mem, piter);
-      qsptr_t avalue = qspair_car0(mem, aiter);
+      qsptr_t pvalue = HEAD(piter);
+      qsptr_t avalue = HEAD(aiter);
       qsenv_setq(mem, env, pvalue, avalue);
+      piter = TAIL(piter);
+      aiter = TAIL(aiter);
     }
 
   machine->C = body;
@@ -365,12 +371,12 @@ qs_t * qs_step (qs_t * machine)
       machine->A = atomic;
       qs_applykont(machine, machine->K, machine->A);
     }
-  else if (qspair_p(mem, C))
+  else if (qslist_p(mem, C))
     {
       /* Try as non-atomic expression. */
 
-      qsptr_t head = qspair_car0(mem, C);
-      qsptr_t tail = qspair_cdr0(mem, C);
+      qsptr_t head = HEAD(C);
+      qsptr_t tail = TAIL(C);
 
       if (qssymbol_p(mem, head))
 	{
@@ -379,9 +385,9 @@ qs_t * qs_step (qs_t * machine)
 	  qserror_t res = qsstr_extract(mem, qssymname, symname, sizeof(symname));
 	  if (0 == strcmp(symname, "if"))
 	    {
-	      qsptr_t cond = qspair_car0(mem, tail);
-	      qsptr_t consequent = qspair_car0(mem, qspair_cdr0(mem, tail));
-	      qsptr_t alternate = qspair_car0(mem, qspair_cdr0(mem, qspair_cdr0(mem, tail)));
+	      qsptr_t cond = HEAD(tail);
+	      qsptr_t consequent = HEAD(TAIL(tail));
+	      qsptr_t alternate = HEAD(TAIL(TAIL(tail)));
 	      if (cond == QSFALSE)
 		{
 		  machine->C = alternate;
@@ -395,13 +401,13 @@ qs_t * qs_step (qs_t * machine)
 	  else if (0 == strcmp(symname, "set!"))
 	    {
 	      qsptr_t varname = qspair_car0(mem, tail);
-	      qsptr_t aexp = qspair_car0(mem, qspair_cdr0(mem, tail));
+	      qsptr_t aexp = HEAD(TAIL(tail));
 	      qs_applykont(machine, machine->K, QSNIL);  /* void */
 	      return machine;
 	    }
 	  else if (0 == strcmp(symname, "call/cc"))
 	    {
-	      qsptr_t proc = qspair_car0(mem, tail);
+	      qsptr_t proc = HEAD(tail);
 	      qsptr_t valueCC = qskont_make(mem, QST_KONT, machine->E, machine->K, machine->C, QSNIL);
 	      qsptr_t args = qspair_make(mem, valueCC, QSNIL);
 	      qs_applyproc(machine, proc, args);
@@ -416,7 +422,7 @@ qs_t * qs_step (qs_t * machine)
       qsptr_t argiter = QSNIL;
       while (!ISNIL(aiter))
 	{
-	  qsptr_t aexp = qspair_car0(mem, aiter);
+	  qsptr_t aexp = HEAD(aiter);
 	  qsptr_t val = qs_atomic_eval(machine, aexp);
 	  if (ISNIL(proc))
 	    {
@@ -432,7 +438,7 @@ qs_t * qs_step (qs_t * machine)
 	      qspair_setq_d(mem, argiter, next);
 	      argiter = next;
 	    }
-	  aiter = qspair_cdr0(mem, aiter);
+	  aiter = TAIL(aiter);
 	}
       qs_applyproc(machine, proc, args);
     }
