@@ -103,14 +103,112 @@ START_TEST(test_atomeval1)
 }
 END_TEST
 
+START_TEST(test_step1)
+{
+  /* Atomic Evaluation as step. */
+  init();
+
+  /* Evaluate integer. */
+  qs_inject_exp(scheme1, QSINT(99));
+  qs_step(scheme1);
+  qsptr_t a0 = scheme1->A;
+  ck_assert_int_eq(a0, QSINT(99));
+
+  /* Evaluate boolean. */
+  qs_inject_exp(scheme1, QSFALSE);
+  qs_step(scheme1);
+  qsptr_t a1 = scheme1->A;
+  ck_assert_int_eq(a1, QSFALSE);
+
+  /* Evaluate variable (symbol). */
+  qsptr_t name1 = qsstr_inject(heap1, "foo", 0);
+  qsptr_t sym1 = qssymbol_make(heap1, name1);
+  qsptr_t env = qsenv_make(heap1, QSNIL);
+  scheme1->E = env = qsenv_setq(heap1, env, sym1, QSINT(3));
+  qs_inject_exp(scheme1, sym1);
+  qs_step(scheme1);
+  qsptr_t a2 = scheme1->A;
+
+  /* Evaluate lambda. */
+  qsptr_t lam_name = qsstr_inject(heap1, "lambda", 0);
+  qsptr_t lam_sym = qssymbol_make(heap1, lam_name);
+  qsptr_t name_x = qsstr_inject(heap1, "x", 0);
+  qsptr_t sym_x = qssymbol_make(heap1, name_x);
+  qsptr_t body = qspair_make(heap1, CINT30(0), QSNIL);
+  qsptr_t param = qspair_make(heap1, sym_x, QSNIL);
+  qsptr_t lam1 = qspair_make(heap1, lam_sym,
+		  qspair_make(heap1, param,
+		    qspair_make(heap1, body, QSNIL)));
+  qs_inject_exp(scheme1, lam1);
+  qs_step(scheme1);
+  qsptr_t a3 = scheme1->A;
+  ck_assert_int_ne(QSNIL, a3);
+  ck_assert(qsclosure_p(heap1, a3));
+
+  /* Evaluate primitive operation. */
+  qsptr_t str_crash = qsstr_inject(heap1, "&.", 0);
+  qsptr_t sym_crash = qssymbol_make(heap1, str_crash);
+  qsptr_t body0 = qspair_make(heap1, sym_crash, QSNIL);
+  qs_inject_exp(scheme1, body0);
+  qs_step(scheme1);
+  qsptr_t a4 = scheme1->A;
+  ck_assert_int_eq(a4, QSTRUE);
+  ck_assert(scheme1->halt);
+
+  /* Evalute to self. */
+  /** vector */
+  qsptr_t v0 = qsvector_make(heap1, 1, QSNIL);
+  qs_inject_exp(scheme1, v0);
+  qs_step(scheme1);
+  qsptr_t a5 = scheme1->A;
+  ck_assert_int_eq(v0, a5);
+  /** string */
+  char temp[100];
+  memset(temp, 100, 0);
+  qs_inject_exp(scheme1, name1);
+  qs_step(scheme1);
+  qsptr_t a6 = scheme1->A;
+  ck_assert(!ISERROR16(qsstr_extract(heap1, a6, temp, sizeof(temp))));
+  ck_assert_str_eq(temp, "foo");
+}
+END_TEST
+
+START_TEST(test_step2)
+{
+  init();
+
+  /* test condition. */
+
+  /* test let. */
+
+  /* test mutate. */
+
+  /* test letrec. */
+
+  /* test call/cc. */
+}
+END_TEST
+
 
 TESTCASE(mach1,
   TFUNC(test_inject1)
+  )
+TESTCASE(mach2,
   TFUNC(test_atomeval1)
   )
+TESTCASE(mach3,
+  TFUNC(test_step1)
+  )
+TESTCASE(mach4,
+  TFUNC(test_step2)
+  )
+
 
 TESTSUITE(suite1,
   TCASE(mach1)
+  TCASE(mach2)
+  TCASE(mach3)
+  TCASE(mach4)
   )
 
 int main ()

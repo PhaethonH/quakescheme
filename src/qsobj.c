@@ -2473,7 +2473,7 @@ int qsutf8_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
   qsword lim = _qsutf8_hardlimit(mem, s);
   const char * _d = qsutf8_cptr(mem, s);
   qsword i;
-  for (i = 0; (i < lim) && (i+1 < slen) && (cstr[i] != 0); i++)
+  for (i = 0; (i < lim) && (i+1 < slen) && (_d[i] != 0); i++)
     {
       cstr[i] = _d[i];
     }

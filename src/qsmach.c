@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "qsmach.h"
+#include "qsprim.h"
 
 
 qs_t * qs_init (qs_t * machine, qsheap_t * store)
@@ -155,7 +156,6 @@ qs_t * qs_inject_exp (qs_t * machine, qsptr_t exp)
 
 
 /* Operator is a function returning qsptr_t, given machine and arguments. */
-typedef qsptr_t (*qsop_f)(qs_t *, qsptr_t args);
 
 qsptr_t qsop_crash (qs_t * machine, qsptr_t args)
 {
@@ -177,116 +177,6 @@ qsptr_t qsop_equals (qs_t * machine, qsptr_t args)
   return (a == b);
 }
 
-qsptr_t qsop_obj_p (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  int retval = qsobj_p(machine->store, obj);
-  return (retval ? QSTRUE : QSFALSE);
-}
-
-qsptr_t qsop_obj_make (qs_t * machine, qsptr_t args)
-{
-  qsptr_t arg_k = qspair_car0(machine->store, args);
-  qsptr_t arg_octetate = qspair_cadr0(machine->store, args);
-  qsword k = qsint_get(machine->store, arg_k);
-  //qsword octetate = qsbool_get(machine->store, arg_octetate);
-  qsword octetate = (arg_octetate != QSFALSE);
-  qsptr_t retval = qsobj_make(machine->store, k, octetate, NULL);
-  return retval;
-}
-
-qsptr_t qsop_obj_ref_ptr (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  qsptr_t arg_nth = qspair_cadr0(machine->store, args);
-  qsword nth = qsint_get(machine->store, arg_nth);
-  qsptr_t retval = qsobj_ref_ptr(machine->store, obj, nth);
-  return retval;
-}
-qsptr_t qsop_obj_setq_ptr (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  qsptr_t arg_nth = qspair_cadr0(machine->store, args);
-  qsptr_t val = qspair_caddr0(machine->store, args);
-  qsword nth = qsint_get(machine->store, arg_nth);
-  return qsobj_setq_ptr(machine->store, obj, nth, val);
-}
-
-qsptr_t qsop_obj_ref_octet (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  qsptr_t arg_nth = qspair_cadr0(machine->store, args);
-  qsword nth = qsint_get(machine->store, arg_nth);
-  int octet = qsobj_ref_octet(machine->store, obj, nth);
-  return QSINT(octet);
-}
-qsptr_t qsop_obj_setq_octet (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  qsptr_t arg_nth = qspair_cadr0(machine->store, args);
-  qsptr_t arg_val = qspair_caddr0(machine->store, args);
-  qsword nth = qsint_get(machine->store, arg_nth);
-  int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_octet(machine->store, obj, nth, val);
-}
-
-qsptr_t qsop_obj_used_p (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  int retval = qsobj_used_p(machine->store, obj);
-  return retval ? QSTRUE : QSFALSE;
-}
-
-qsptr_t qsop_obj_marked_p (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  int retval = qsobj_marked_p(machine->store, obj);
-  return retval ? QSTRUE : QSFALSE;
-}
-qsptr_t qsop_obj_setq_marked (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  qsptr_t arg_val = qspair_cadr0(machine->store, args);
-  int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_marked(machine->store, obj, val);
-}
-
-qsptr_t qsop_obj_ref_allocsize (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  qsword retval = qsobj_ref_allocsize(machine->store, obj);
-  return QSINT(retval);
-}
-
-qsptr_t qsop_obj_ref_parent (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  int retval = qsobj_ref_parent(machine->store, obj);
-  return QSINT(retval);
-}
-qsptr_t qsop_obj_setq_parent (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  qsptr_t arg_val = qspair_cadr0(machine->store, args);
-  int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_parent(machine->store, obj, val);
-}
-
-qsptr_t qsop_obj_ref_score (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  int retval = qsobj_ref_score(machine->store, obj);
-  return QSINT(retval);
-}
-qsptr_t qsop_obj_setq_score (qs_t * machine, qsptr_t args)
-{
-  qsptr_t obj = qspair_car0(machine->store, args);
-  qsptr_t arg_val = qspair_cadr0(machine->store, args);
-  int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_score(machine->store, obj, val);
-}
-
-
 
 
 
@@ -294,7 +184,7 @@ qsptr_t qsop_obj_setq_score (qs_t * machine, qsptr_t args)
 qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 {
   qsptr_t retval = QSNIL;
-  char symname[32];
+  char symname[32] = { 0, };
   qsheap_t * mem = machine->store;
 
   if (qspair_p(mem, aexp))
@@ -317,7 +207,7 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 	  else
 	    {
 	      // evaluate as primitive.
-	      qsop_f oper = NULL;
+	      qsprim_f oper = NULL;
 	      qsptr_t prim = head;
 	      if (0 == strcmp(symname, "+"))
 		{
@@ -340,53 +230,9 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 		{
 		  oper = qsop_halt;
 		}
-	      else if (0 == strcmp(symname, "&o*"))
+	      else
 		{
-		  oper = qsop_obj_make;
-		}
-	      else if (0 == strcmp(symname, "&o?"))
-		{
-		  oper = qsop_obj_p;
-		}
-	      else if (0 == strcmp(symname, "&o@p"))
-		{
-		  oper = qsop_obj_ref_ptr;
-		}
-	      else if (0 == strcmp(symname, "&o!p"))
-		{
-		  oper = qsop_obj_setq_ptr;
-		}
-	      else if (0 == strcmp(symname, "&o@o"))
-		{
-		  oper = qsop_obj_ref_octet;
-		}
-	      else if (0 == strcmp(symname, "&o!o"))
-		{
-		  oper = qsop_obj_setq_octet;
-		}
-	      else if (0 == strcmp(symname, "&o@M"))
-		{
-		  oper = qsop_obj_marked_p;
-		}
-	      else if (0 == strcmp(symname, "&o!M"))
-		{
-		  oper = qsop_obj_setq_marked;
-		}
-	      else if (0 == strcmp(symname, "&o@P"))
-		{
-		  oper = qsop_obj_ref_parent;
-		}
-	      else if (0 == strcmp(symname, "&o!P"))
-		{
-		  oper = qsop_obj_setq_parent;
-		}
-	      else if (0 == strcmp(symname, "&o@S"))
-		{
-		  oper = qsop_obj_ref_score;
-		}
-	      else if (0 == strcmp(symname, "&o!S"))
-		{
-		  oper = qsop_obj_setq_score;
+		  oper = qsprim_find(machine, symname);
 		}
 
 	      if (oper != NULL)
@@ -434,7 +280,7 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 
 
 /* Apply Operation/Primitive. */
-int qs_applyop (qs_t * machine, qsop_f op, qsptr_t args)
+int qs_applyop (qs_t * machine, qsprim_f op, qsptr_t args)
 {
   return 0;
 }
@@ -517,6 +363,7 @@ qs_t * qs_step (qs_t * machine)
   if (atomic != QSERROR_INVALID)
     {
       machine->A = atomic;
+      qs_applykont(machine, machine->K, machine->A);
     }
   else if (qspair_p(mem, C))
     {
