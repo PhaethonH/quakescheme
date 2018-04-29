@@ -9,9 +9,10 @@ TESTS = test_qsptr \
   test_qsstr \
   test_rbtree \
   test_ibtree \
+  test_qsimmlist \
   test_gc \
-  test_closure \
   test_qsstdio \
+  test_qsmach \
   test_symbols
 
 

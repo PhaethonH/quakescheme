@@ -144,6 +144,7 @@ typedef union qsbits_u qsbits_t;
 /* Constants. These values can be considered system-level symbols. */
 #define QSNIL	QSCONST(0)
 #define QSTRUE	QSCONST(1)
+#define QSFALSE	QSCONST(2)
 #define QSBOL	QSCONST(3)  // beginning-of-list, nested immlist.
 #define QSEOL	QSCONST(4)  // end-of-list, for immlist.
 #define QSBLACKHOLE QSCONST(8)  // 'unassigned' value.
@@ -172,6 +173,9 @@ typedef union qsbits_u qsbits_t;
 #define QSNUMTYPE_FLOAT16CM	QSCONST(0x4a)  /* math vec16_t (matrix_4x4_column_major) */
 #define QSNUMTYPE_INF		QSCONST(0x4f)
 typedef qsptr_t qsnumtype_t;
+
+#define QSBOOL(x)	(x ? QSTRUE : QSFALSE)
+#define CBOOL(x)	(x != QSFALSE)
 
 /* Standard (built-in) I/O ports. */
 #define QSIO_IN		QSCONST(0x80)

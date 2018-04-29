@@ -127,6 +127,7 @@ typedef struct qsobj_s {
 } qsobj_t;
 
 qsobj_t * qsobj (qsmem_t * mem, qsptr_t p, qsmemaddr_t * out_addr);
+int qsobj_p (qsmem_t * mem, qsptr_t p);
 int qsobj_used_p (qsmem_t * mem, qsptr_t p);
 int qsobj_marked_p (qsmem_t * mem, qsptr_t p);
 int qsobj_ref_score (qsmem_t * mem, qsptr_t p);
@@ -153,11 +154,11 @@ qsptr_t qsobj_ref_ptr (qsmem_t * mem, qsptr_t p, qsword ofs);
 
    Return -1 if access denied (out-of-bounds).
 */
-int qsobj_ref_oct (qsmem_t * mem, qsptr_t p, qsword ofs);
+int qsobj_ref_octet (qsmem_t * mem, qsptr_t p, qsword ofs);
 /* Returns object on success, QSERROR_* on error. */
 qsptr_t qsobj_setq_ptr (qsmem_t *, qsptr_t p, qsword ofs, qsptr_t val);
 /* Returns object on success, QSERROR_* on error. */
-qsptr_t qsobj_setq_oct (qsmem_t *, qsptr_t p, qsword ofs, int val);
+qsptr_t qsobj_setq_octet (qsmem_t *, qsptr_t p, qsword ofs, int val);
 /* Returns pointer to start of arbitrary data (->_d[0]).
    NULL if no such field available.
    Writes out total valid size (bytes) to '*size', ignored if NULL.
@@ -293,6 +294,7 @@ cmp_t qspair_cmp (qsmem_t * mem, qsptr_t x, qsptr_t y);
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 
 
+bool qslist_p (qsmem_t * mem, qsptr_t p);
 qsword qslist_length (qsmem_t * mem, qsptr_t p);
 qsword qslist_tail (qsmem_t * mem, qsptr_t p, qsword k);
 qsword qslist_ref (qsmem_t * mem, qsptr_t p, qsword k);
@@ -318,6 +320,7 @@ qserror_t qsvector_mark (qsmem_t * mem, qsword k);
 qserror_t qsvector_kmark (qsmem_t * mem, qsptr_t p, qsptr_t backptr, qsptr_t * next);
 int qsvector_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
 qsword qsvector_inject (qsmem_t * mem, qsword nelts, qsptr_t * carray);
+qsptr_t qsvector_iter (qsmem_t * mem, qsptr_t p, qsword ofs);
 qsptr_t * qsvector_cptr (qsmem_t * mem, qsptr_t p, qsword * out_len);
 
 
@@ -330,13 +333,26 @@ typedef struct qsimmlist_s {
     qsptr_t _d[];
 } qsimmlist_t;
 
-qsimmlist_t * qsimmlist (qsmem_t * mem, qsptr_t a);
-qsword qsimmlist_length (qsmem_t * mem, qsptr_t a);
-qsptr_t qsimmlist_ref (qsmem_t * mem, qsptr_t a, qsword ofs);
+bool qsimmlist_p (qsmem_t * mem, qsptr_t p);
+/* Raw size, including encoding details. */
+qsword qsimmlist_len (qsmem_t * mem, qsptr_t p);
+/* Raw access to list contents, including encoding details. */
+qsptr_t qsimmlist_at (qsmem_t * mem, qsptr_t p, qsword ofs);
+/* Adjusted size, accounting for nested lists, in the sense of (length). */
+qsword qsimmlist_length (qsmem_t * mem, qsptr_t p);
+/* Adjust for nested lists, thus in the sense of (list-ref) */
+qsptr_t qsimmlist_ref (qsmem_t * mem, qsptr_t p, qsword ofs);
+/*
 qsptr_t qsimmlist_setq (qsmem_t * mem, qsptr_t a, qsword ofs, qsptr_t val);
+*/
 /* iter() generates an iterator, subject to car/cdr for traversal. */
-qsptr_t qsimmlist_iter (qsmem_t * mem, qsptr_t a, qsword ofs);
+qsptr_t qsimmlist_iter (qsmem_t * mem, qsptr_t p, qsword ofs);
 qsptr_t qsimmlist_make (qsmem_t * mem, qsword k, qsptr_t fill);
+/* Create immlist from an image in C's space. */
+qsptr_t qsimmlist_inject (qsmem_t * mem, qsptr_t * cmem, qsword nptrs);
+/* Specify elements as arguments, terminated with QSEOL */
+qsptr_t qsimmlist_injectv (qsmem_t * mem, va_list vp);
+qsptr_t qsimmlist_injectl (qsmem_t * mem, ...);
 int qsimmlist_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen);
 
 
@@ -573,6 +589,7 @@ iterated object is freed.
 
 qsptr_t qsiter (qsmem_t * mem, qsptr_t it);
 bool qsiter_p (qsmem_t * mem, qsptr_t p);
+qsword qsiter_length (qsmem_t * mem, qsptr_t p);
 int qsiter_on_pair (qsmem_t * mem, qsptr_t it, qsptr_t * out_pairptr);
 qsword qsiter_get (qsmem_t * mem, qsptr_t it);
 qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it);  // also car
@@ -652,6 +669,7 @@ qsptr_t qsstr_inject_wchar (qsmem_t * mem, const wchar_t * ws, qsword wslen);
 qsword qsstr_extract (qsmem_t * mem, qsptr_t p, char * cstr, qsword slen);
 qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t p, wchar_t * ws, qsword wslen);
 cmp_t qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
+int qsstr_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen);
 
 
 
