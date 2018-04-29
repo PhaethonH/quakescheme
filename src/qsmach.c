@@ -426,6 +426,32 @@ qs_t * qs_step (qs_t * machine)
 
 	      return machine;
 	    }
+	  else if (0 == strcmp(symname, "letrec"))
+	    {
+	      /* extend the environment. */
+	      qsptr_t decl = HEAD(tail);
+
+	      qsptr_t extenv = qsenv_make(mem, machine->E);
+
+	      machine->E = extenv; /* evaluate exp's in extended env. */
+	      qsptr_t decN = QSNIL;
+	      while (!ISNIL(decl))
+		{
+		  decN = HEAD(decl);
+
+		  qsptr_t varN = HEAD(decN);
+		  qsptr_t expN = HEAD(TAIL(decN));
+		  qsptr_t valueN = qs_atomic_eval(machine, expN);
+		  machine->E = qsenv_setq(mem, machine->E, varN, valueN);
+
+		  decl = TAIL(decl);
+		}
+
+	      qsptr_t body = HEAD(TAIL(tail));
+	      machine->C = body;
+	      /* E already modified. */
+	      /* K remains unmodified. */
+	    }
 	  else if (0 == strcmp(symname, "set!"))
 	    {
 	      qsptr_t var = HEAD(tail);
