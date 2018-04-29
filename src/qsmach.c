@@ -142,7 +142,10 @@ qs_t * qs_inject_exp (qs_t * machine, qsptr_t exp)
   machine->K = QSNIL;
   machine->A = QSNIL;
 
-  machine->E = qsenv_make(machine->store, QSNIL);
+  if (ISNIL(machine->E))
+    {
+      machine->E = qsenv_make(machine->store, QSNIL);
+    }
   return machine;
 }
 
@@ -264,6 +267,10 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 		  /* O(prim) (value1, value2, .., valueN) */
 		  retval = oper(machine, args);
 		}
+	      else
+		{
+		  retval = QSERROR_INVALID;
+		}
 	    }
 	}
       // else if qsprimitive_p(mem, head)
@@ -289,43 +296,10 @@ int qs_applyop (qs_t * machine, qsprim_f op, qsptr_t args)
   return 0;
 }
 
-/* Apply Procedure. */
-int qs_applyproc (qs_t * machine, qsptr_t proc, qsptr_t args)
-{
-  qsheap_t * mem = machine->store;
-
-  qsptr_t env = qsclosure_ref_env(mem, proc);
-  qsptr_t lam = qsclosure_ref_lambda(mem, proc);
-
-  qsptr_t param = qslambda_ref_param(mem, lam);
-  qsptr_t body = qslambda_ref_body(mem, lam);
-
-  env = qsenv_make(mem, env);
-
-  qsptr_t piter = param;
-  qsptr_t aiter = args;
-  while (!ISNIL(piter) && !ISNIL(aiter))
-    {
-      qsptr_t pvalue = HEAD(piter);
-      qsptr_t avalue = HEAD(aiter);
-      qsenv_setq(mem, env, pvalue, avalue);
-      piter = TAIL(piter);
-      aiter = TAIL(aiter);
-    }
-
-  machine->C = body;
-  machine->E = env;
-  /*
-  machine->K = machine->K;
-  */
-
-  return 0;
-}
-
 /* Apply Continuation. */
 int qs_applykont (qs_t * machine, qsptr_t kont, qsptr_t value)
 {
-  //machine->A = value;
+  machine->A = value;
   if (ISNIL(kont))
     {
       machine->halt = 1;
@@ -354,6 +328,46 @@ appylykont : Kont × Value × Store → State
       machine->K = nextk;
       return 0;
     }
+}
+
+/* Apply Procedure. */
+int qs_applyproc (qs_t * machine, qsptr_t proc, qsptr_t args)
+{
+  qsheap_t * mem = machine->store;
+
+  if (qsclosure_p(mem, proc))
+    {
+      qsptr_t env = qsclosure_ref_env(mem, proc);
+      qsptr_t lam = qsclosure_ref_lambda(mem, proc);
+
+      qsptr_t param = qslambda_ref_param(mem, lam);
+      qsptr_t body = qslambda_ref_body(mem, lam);
+
+      env = qsenv_make(mem, env);
+
+      qsptr_t piter = param;
+      qsptr_t aiter = args;
+      while (!ISNIL(piter) && !ISNIL(aiter))
+	{
+	  qsptr_t pvalue = HEAD(piter);
+	  qsptr_t avalue = HEAD(aiter);
+	  qsenv_setq(mem, env, pvalue, avalue);
+	  piter = TAIL(piter);
+	  aiter = TAIL(aiter);
+	}
+
+      machine->C = body;
+      machine->E = env;
+      /*
+	 machine->K = machine->K;
+       */
+    }
+  else if (qskont_p(mem, proc) || ISNIL(proc))
+    {
+      qs_applykont(machine, proc, HEAD(args));
+    }
+
+  return 0;
 }
 
 
@@ -398,17 +412,36 @@ qs_t * qs_step (qs_t * machine)
 		}
 	      return machine;
 	    }
+	  else if (0 == strcmp(symname, "let"))
+	    {
+	      qsptr_t decl = HEAD(tail);
+	      qsptr_t dec0 = HEAD(decl);
+	      qsptr_t var0 = HEAD(dec0);
+	      qsptr_t exp0 = HEAD(TAIL(dec0));
+	      qsptr_t body = HEAD(TAIL(tail));
+
+	      qsptr_t k = qskont_make(machine->store, QSKONT_LETK, machine->E, machine->K, body, var0);
+	      machine->C = exp0;
+	      machine->K = k;
+
+	      return machine;
+	    }
 	  else if (0 == strcmp(symname, "set!"))
 	    {
-	      qsptr_t varname = qspair_car0(mem, tail);
+	      qsptr_t var = HEAD(tail);
 	      qsptr_t aexp = HEAD(TAIL(tail));
+
+	      qsptr_t value = qs_atomic_eval(machine, aexp);
+	      machine->E = qsenv_setq(machine->store, machine->E, var, value);
+
 	      qs_applykont(machine, machine->K, QSNIL);  /* void */
 	      return machine;
 	    }
 	  else if (0 == strcmp(symname, "call/cc"))
 	    {
-	      qsptr_t proc = HEAD(tail);
-	      qsptr_t valueCC = qskont_make(mem, QST_KONT, machine->E, machine->K, machine->C, QSNIL);
+	      qsptr_t aexp = HEAD(tail);
+	      qsptr_t proc = qs_atomic_eval(machine, aexp);
+	      qsptr_t valueCC = machine->K;
 	      qsptr_t args = qspair_make(mem, valueCC, QSNIL);
 	      qs_applyproc(machine, proc, args);
 	      return machine;
@@ -424,7 +457,7 @@ qs_t * qs_step (qs_t * machine)
 	{
 	  qsptr_t aexp = HEAD(aiter);
 	  qsptr_t val = qs_atomic_eval(machine, aexp);
-	  if (ISNIL(proc))
+	  if (aiter == C)
 	    {
 	      proc = val;
 	    }

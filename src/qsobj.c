@@ -1556,6 +1556,24 @@ qsptr_t qslist_ref (qsmem_t * mem, qsptr_t p, qsword k)
 #endif //0
 }
 
+int qslist_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
+{
+  int n = 0;
+
+  n += snprintf(buf+n, buflen-n, "(");
+  qsptr_t it = qslist(mem, p);
+  while (!ISNIL(it))
+    {
+      qsptr_t elt = qsiter_item(mem, it);
+      n += qsptr_crepr(mem, elt, buf+n, buflen-n);
+      n += snprintf(buf+n, buflen-n, " ");
+      it = qsiter_next(mem, it);
+    }
+  n += snprintf(buf+n, buflen-n, ")");
+
+  return n;
+}
+
 
 
 
@@ -2711,6 +2729,8 @@ qsptr_t qsutf8_make (qsmem_t * mem, qsword slen)
 int qsutf8_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen)
 {
   int n = 0;
+  const char * raw_str = (const char *)qsobj_ref_data(mem, s, NULL);
+  n += snprintf(buf+n, buflen-n, "%s", raw_str);
   return n;
 }
 
@@ -3130,6 +3150,27 @@ cmp_t qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b)
   return CMP_EQ;
 }
 
+int qsstr_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen)
+{
+  int n = 0;
+  if (qsutf8_p(mem, s))
+    {
+      n += snprintf(buf+n, buflen-n, "\"");
+      n += qsutf8_crepr(mem, s, buf+n, buflen-n);
+      n += snprintf(buf+n, buflen-n, "\"");
+    }
+  else if (qspair_p(mem, s))
+    {
+    }
+  else if (qsvector_p(mem, s))
+    {
+    }
+  else if (qsimmlist_p(mem, s))
+    {
+    }
+  return n;
+}
+
 
 
 
@@ -3230,6 +3271,14 @@ CMP_FUNC(qssymbol)
     return CMP_LT;
   else
     return CMP_GT;
+}
+
+int qssymbol_crepr (qsmem_t * mem, qsptr_t y, char * buf, int buflen)
+{
+  int n = 0;
+  qsptr_t s = qssymbol_ref_name(mem, y);
+  n += qsstr_crepr(mem, s, buf+n, buflen-n);
+  return n;
 }
 
 
@@ -3591,13 +3640,11 @@ qsptr_t qsSTDIO_write_u8 (qsmem_t * mem, qsptr_t p, int octet)
 int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
+
   if (qspair_p(mem, p))
     {
-      n += qspair_crepr(mem, p, buf+n, buflen-n);
-    }
-  else if (qstree_p(mem, p))
-    {
-      n += qstree_crepr(mem, p, buf+n, buflen-n);
+      //n += qspair_crepr(mem, p, buf+n, buflen-n);
+      n += qslist_crepr(mem, p, buf+n, buflen-n);
     }
   else if (qsvector_p(mem, p))
     {
@@ -3610,6 +3657,26 @@ int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
   else if (qsbytevec_p(mem, p))
     {
       n += qsbytevec_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (qsimmlist_p(mem, p))
+    {
+      n += qslist_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (qssymbol_p(mem, p))
+    {
+      n += qssymbol_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (qsstr_p(mem, p))
+    {
+      n += qsstr_crepr(mem, p, buf+n, buflen-n);
+    }
+  else if (qstree_p(mem, p))
+    {
+      n += qstree_crepr(mem, p, buf+n, buflen-n);
+    }
+  else
+    {
+      n += snprintf(buf+n, buflen-n, "#<OBJ@%08xp>", COBJ26(p));
     }
   return n;
 }

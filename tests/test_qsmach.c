@@ -17,7 +17,8 @@ qsheap_t *heap1 = (qsheap_t*)&_heap1;
 
 qs_t _scheme1, *scheme1 = &_scheme1;
 
-char buf[131072];
+//char buf[131072];
+char buf[65536];
 
 
 void init ()
@@ -185,15 +186,78 @@ START_TEST(test_step2)
 {
   init();
 
+  qsptr_t q0 = QSNIL;
+
   /* test condition. */
+  qsptr_t name_if = qsstr_inject(heap1, "if", 0);
+  qsptr_t sym_if = qssymbol_make(heap1, name_if);
+  qsptr_t cond1 = qsimmlist_injectl(heap1, sym_if, QSTRUE, QSINT(42), QSINT(17), QSEOL);
+  qs_inject_exp(scheme1, cond1);
+  qs_step(scheme1);  // once to select a code branch.
+  qs_step(scheme1);  // again to evaluate the branched code.
+  q0 = scheme1->A;
+  ck_assert_int_eq(q0, QSINT(42));
+
+  qsptr_t cond2 = qsimmlist_injectl(heap1, sym_if, QSFALSE, QSINT(42), QSINT(17), QSEOL);
+  qs_inject_exp(scheme1, cond2);
+  qs_step(scheme1);  // once to select a code branch.
+  qs_step(scheme1);  // again to evaluate the branched code.
+  q0 = scheme1->A;
+  ck_assert_int_eq(q0, QSINT(17));
 
   /* test let. */
+  qsptr_t name_let = qsstr_inject(heap1, "let", 0);
+  qsptr_t sym_let = qssymbol_make(heap1, name_let);
+  qsptr_t name_x = qsstr_inject(heap1, "x", 0);
+  qsptr_t sym_x = qssymbol_make(heap1, name_x);
+  // (let ((x 101)) x)
+  qsptr_t let1 = qsimmlist_injectl(heap1, sym_let, QSBOL, QSBOL, sym_x, QSINT(101), QSEOL, QSEOL, sym_x, QSEOL);
+  qs_inject_exp(scheme1, let1);
+  qs_step(scheme1);
+  ck_assert(!ISNIL(scheme1->C));
+  qs_step(scheme1);
+  qs_step(scheme1);
+  q0 = scheme1->A;
+  ck_assert_int_eq(q0, QSINT(101));
 
   /* test mutate. */
+  qsptr_t name_setq = qsstr_inject(heap1, "set!", 0);
+  qsptr_t sym_setq = qssymbol_make(heap1, name_setq);
+  qsptr_t mutate1 = qsimmlist_injectl(heap1, sym_setq, sym_x, QSINT(102), QSEOL);
+  qs_inject_exp(scheme1, mutate1);
+  qs_step(scheme1);
+  q0 = qsenv_ref(heap1, scheme1->E, sym_x);
+  ck_assert_int_eq(q0, QSINT(102));
 
   /* test letrec. */
 
   /* test call/cc. */
+  qsptr_t name_lambda = qsstr_inject(heap1, "lambda", 0);
+  qsptr_t sym_lambda = qssymbol_make(heap1, name_lambda);
+  qsptr_t name_f = qsstr_inject(heap1, "f", 0);
+  qsptr_t sym_f = qssymbol_make(heap1, name_f);
+  qsptr_t name_k = qsstr_inject(heap1, "k", 0);
+  qsptr_t sym_k = qssymbol_make(heap1, name_k);
+  qsptr_t name_callcc = qsstr_inject(heap1, "call/cc", 0);
+  qsptr_t sym_callcc = qssymbol_make(heap1, name_callcc);
+  /*
+     (define f (lambda (k) (k 5)))
+     (call/cc f)
+  */
+  qsptr_t param1 = qspair_make(heap1, sym_k, QSNIL);
+  qsptr_t body1 = qsimmlist_injectl(heap1, sym_k, QSINT(5), QSEOL);
+  qsptr_t lam1 = qslambda_make(heap1, param1, body1);
+  qsptr_t clo1 = qsclosure_make(heap1, qsenv_make(heap1,QSNIL), lam1);
+  scheme1->E = qsenv_setq(heap1, scheme1->E, sym_f, clo1);
+
+  qsptr_t callcc1 = qsimmlist_injectl(heap1, sym_callcc, sym_f, QSEOL);
+
+  qs_inject_exp(scheme1, callcc1);
+  qs_step(scheme1);
+  qs_step(scheme1);
+  q0 = scheme1->A;
+  ck_assert_int_eq(q0, QSINT(5));
+
 }
 END_TEST
 

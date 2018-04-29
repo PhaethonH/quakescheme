@@ -669,6 +669,7 @@ qsptr_t qsstr_inject_wchar (qsmem_t * mem, const wchar_t * ws, qsword wslen);
 qsword qsstr_extract (qsmem_t * mem, qsptr_t p, char * cstr, qsword slen);
 qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t p, wchar_t * ws, qsword wslen);
 cmp_t qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
+int qsstr_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen);
 
 
 
