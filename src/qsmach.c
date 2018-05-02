@@ -376,6 +376,12 @@ int qs_applyproc (qs_t * machine, qsptr_t proc, qsptr_t args)
     {
       qs_applykont(machine, proc, HEAD(args));
     }
+  else
+    {
+      /* cannot apply as procedure. */
+      machine->A = QSERROR_INVALID;
+      machine->K = QSNIL;
+    }
 
   return 0;
 }
