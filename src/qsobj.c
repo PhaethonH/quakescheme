@@ -2524,6 +2524,23 @@ int qschar_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
   return n;
 }
 
+CMP_FUNC(qschar)
+{
+  if (!qschar_p(mem, a) &&  !qschar_p(mem, b))
+    {
+      return CMP_NE;
+    }
+  if (!qschar_p(mem, a))
+    return CMP_LT;
+  if (!qschar_p(mem,b))
+    return CMP_GT;
+  int cp_a = CCHAR24(a);
+  int cp_b = CCHAR24(b);
+  if (cp_a < cp_b) return CMP_LT;
+  if (cp_a > cp_b) return CMP_GT;
+  return CMP_EQ;
+}
+
 
 
 
@@ -3399,7 +3416,14 @@ qsptr_t qsenv_ref (qsmem_t * mem, qsptr_t p, qsptr_t key)
 
 qsptr_t qsenv_setq (qsmem_t * mem, qsptr_t p, qsptr_t key, qsptr_t val)
 {
+  /*
   FILTER_ISA(qsenv_p)   return p;
+  */
+  if (! qsenv_p(mem, p))
+    {
+      p = qsenv_make(mem, QSNIL);
+    }
+
   qsptr_t apair = qsenv_assoc(mem, p, key);
   if (ISNIL(apair))
     {

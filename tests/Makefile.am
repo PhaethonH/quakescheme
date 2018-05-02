@@ -13,7 +13,8 @@ TESTS = test_qsptr \
   test_gc \
   test_qsstdio \
   test_qsmach \
-  test_symbols
+  test_symbols \
+  test_read1
 
 
 

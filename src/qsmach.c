@@ -138,6 +138,7 @@ So, use entry point for machine program injection.
 */
 qs_t * qs_inject_exp (qs_t * machine, qsptr_t exp)
 {
+  machine->halt = 0;
   machine->C = exp;
   machine->K = QSNIL;
   machine->A = QSNIL;
@@ -262,10 +263,18 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 			  qspair_setq_d(mem, argiter, next);
 			  argiter = next;
 			}
+		      aiter = TAIL(aiter);
 		    }
 
 		  /* O(prim) (value1, value2, .., valueN) */
-		  retval = oper(machine, args);
+		  if (oper)
+		    {
+		      retval = oper(machine, args);
+		    }
+		  else
+		    {
+		      retval = QSERROR_INVALID;
+		    }
 		}
 	      else
 		{
@@ -303,6 +312,7 @@ int qs_applykont (qs_t * machine, qsptr_t kont, qsptr_t value)
   if (ISNIL(kont))
     {
       machine->halt = 1;
+      machine->C = machine->A;
       return 0;
     }
   else
@@ -402,7 +412,8 @@ qs_t * qs_step (qs_t * machine)
 	      qsptr_t cond = HEAD(tail);
 	      qsptr_t consequent = HEAD(TAIL(tail));
 	      qsptr_t alternate = HEAD(TAIL(TAIL(tail)));
-	      if (cond == QSFALSE)
+	      qsptr_t testval = qs_atomic_eval(machine, cond);
+	      if (testval == QSFALSE)
 		{
 		  machine->C = alternate;
 		}
@@ -420,7 +431,7 @@ qs_t * qs_step (qs_t * machine)
 	      qsptr_t exp0 = HEAD(TAIL(dec0));
 	      qsptr_t body = HEAD(TAIL(tail));
 
-	      qsptr_t k = qskont_make(machine->store, QSKONT_LETK, machine->E, machine->K, body, var0);
+	      qsptr_t k = qskont_make(machine->store, QSKONT_LETK, machine->K, machine->E, body, var0);
 	      machine->C = exp0;
 	      machine->K = k;
 
@@ -500,6 +511,11 @@ qs_t * qs_step (qs_t * machine)
 	  aiter = TAIL(aiter);
 	}
       qs_applyproc(machine, proc, args);
+    }
+  else
+    {
+      machine->halt = 1;
+      machine->A = QSERROR_INVALID;
     }
 
   return machine;

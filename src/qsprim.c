@@ -142,11 +142,25 @@ qsptr_t qsop_obj_setq_score (qs_t * machine, qsptr_t args)
 
 
 
+qsptr_t qsop_char_equal_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  qsptr_t res = qschar_cmp(machine->store, a, b);
+  return QSBOOL(res == CMP_EQ);
+}
+
+
+
 
 
 qsprimmap_t qsprims [MAX_PRIMS] = {
       { "&&",	  qsprim_crash },
       { "&.",	  qsprim_halt },
+
+      { "&+",	  qsop_obj_p },
+      { "&-",	  qsop_obj_p },
+      { "&*",	  qsop_obj_p },
 
       { "&o?",	  qsop_obj_p },
       { "&o*",	  qsop_obj_make },
@@ -162,6 +176,8 @@ qsprimmap_t qsprims [MAX_PRIMS] = {
       { "&o!P",	  qsop_obj_setq_parent },
       { "&o@S",	  qsop_obj_ref_score },
       { "&o!S",	  qsop_obj_setq_score },
+
+      { "&c=?",	  qsop_char_equal_p },
 
       { 0, 0 },
 };
