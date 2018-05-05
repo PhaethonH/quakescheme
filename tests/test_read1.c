@@ -450,12 +450,14 @@ qsptr_t build_cons ()
 */
 qsptr_t build_add_tok ()
 {
-  qsptr_t clause0 = qsimmlist_injectl(heap1,
-//    sym._let, QSBOL, QSBOL, sym.nextnode, QSBOL, sym.cons, sym.ch, QSNIL, QSEOL, QSEOL, QSEOL,
-//    QSBOL, sym._let, QSBOL, QSBOL, sym._, QSBOL, sym.obj_setq_ptr, sym.pending, QSINT(3), sym.nextnode, QSEOL, QSEOL, QSEOL,
-//    sym.nextnode, QSEOL, QSEOL, QSEOL,
-    sym.cons,
-    QSEOL);
+  qsptr_t img_clause0[] = {
+      sym._let,
+        QSBOL, QSBOL, sym.nextnode, QSBOL, sym.cons, sym.ch, QSNIL, QSEOL, QSEOL, QSEOL,
+      QSBOL, sym._let, QSBOL, QSBOL, sym.obj_setq_ptr, sym.pending, QSINT(2), sym.nextnode, QSEOL, QSEOL, QSEOL,
+      sym.nextnode, QSEOL, QSEOL, QSEOL,
+      QSEOL
+  };
+  qsptr_t clause0 = qsimmlist_inject(heap1, img_clause0, 26);
   qsptr_t param = qsimmlist_injectl(heap1, sym.ch, sym.pending, QSEOL);
   qsptr_t lam = qslambda_make(heap1, param, clause0);
   qsptr_t clo = qsclosure_make(heap1, QSNIL, lam);
@@ -466,13 +468,18 @@ qsptr_t build_add_tok ()
 
 
 
+int spam = 0;
+const int run_limit = 10;
 int lim_run0 (qsptr_t e0, qsptr_t exp)
 {
   int n = 0;
   scheme1->E = e0;
   qs_inject_exp(scheme1, exp);
-  while (! scheme1->halt && n++ < 1000)
-    qs_step(scheme1);
+  while (! scheme1->halt && n++ < run_limit)
+    {
+      if (spam) { puts("--STEP--"); qs_dump(scheme1); }
+      qs_step(scheme1);
+    }
 //  ck_assert_int_lt(n, 1000);
   return n;
 }
@@ -609,8 +616,10 @@ START_TEST(test_reader1)
 
   qsptr_t add_tok = build_add_tok();
   e0 = qsenv_setq(heap1, e0, sym.add_tok, add_tok);
+  e0 = qsenv_setq(heap1, e0, sym._, QSINT(0));
   qsptr_t dummyroot = qspair_make(heap1, QSCHAR(' '), QSNIL);
   exp = qsimmlist_injectl(heap1, sym.add_tok, dummyroot, dummyroot, QSEOL);
+  spam=1;
   lim_run(e0, exp);
 }
 END_TEST

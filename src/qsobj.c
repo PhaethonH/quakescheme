@@ -599,6 +599,10 @@ const char * qsobj_typeof (qsmem_t * mem, qsptr_t p)
       if (qspair_p(mem, p)) return "Pair";
       if (qstree_p(mem, p)) return "Tree";
     }
+  if (qsiter_p(mem, p))
+    {
+      return "Iter";
+    }
   return "UNK";
 }
 
@@ -1445,6 +1449,11 @@ qsptr_t qspair_iter (qsmem_t * mem, qsptr_t p)
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
+  n += snprintf(buf+n, buflen-n, "( ");
+  n += qsptr_crepr(mem, qspair_ref_a(mem,p), buf+n, buflen-n);
+  n += snprintf(buf+n, buflen-n, " . ");
+  n += qsptr_crepr(mem, qspair_ref_a(mem,p), buf+n, buflen-n);
+  n += snprintf(buf+n, buflen-n, ")");
   return n;
 }
 
@@ -1562,12 +1571,23 @@ int qslist_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 
   n += snprintf(buf+n, buflen-n, "(");
   qsptr_t it = qslist(mem, p);
-  while (!ISNIL(it))
+  while (ISITER28(it) && (n < buflen))
     {
       qsptr_t elt = qsiter_item(mem, it);
-      n += qsptr_crepr(mem, elt, buf+n, buflen-n);
+      if (ISERROR16(elt))
+	break;
+      if (ISITER28(elt))
+	{
+	  n += qslist_crepr(mem, elt, buf+n, buflen-n);
+	}
+      else
+	{
+	  n += qsptr_crepr(mem, elt, buf+n, buflen-n);
+	}
       n += snprintf(buf+n, buflen-n, " ");
       it = qsiter_next(mem, it);
+      if (ISERROR16(it))
+	break;
     }
   n += snprintf(buf+n, buflen-n, ")");
 
@@ -1868,6 +1888,7 @@ qsptr_t qsimmlist_injectv (qsmem_t * mem, va_list vp)
 	depth--;
       nptrs++;
     }
+  nptrs++;
   va_end(vp0);
 
   /* Prepare memory. */
@@ -1881,6 +1902,7 @@ qsptr_t qsimmlist_injectv (qsmem_t * mem, va_list vp)
       elt = va_arg(vp, qsptr_t);
       raw_data[i] = elt;
     }
+  raw_data[i] = QSEOL;
 
   return retval;
 }
@@ -2272,7 +2294,7 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
   else if (ISITER28(it))
     {
       qsword ofs = qsiter_get(mem, it);
-      qsptr_t ref = 0;
+      qsptr_t ref = QSERROR_INVALID;
       qserror_t err = qsheap_word(mem, ofs, &ref);
       if (err != QSERROR_OK)
 	return QSNIL;
@@ -2282,10 +2304,15 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
 	  qsptr_t iter2 = QSITER( CITER28(it)+1 );
 	  return iter2;
 	}
+      else if (ref == QSEOL)
+	{
+	  // failure in qsiter_next() for returning pointer to QSEOL.
+	  return QSERROR_RANGE;
+	}
       return ref;
     }
   // TODO: exception.
-  return QSNIL;
+  return QSERROR_INVALID;
 }
 
 qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
@@ -2295,7 +2322,7 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
     {
       /* iter is pointing to pair bay. */
       qsptr_t next = qspair_ref_d(mem, pairptr);
-      if (ISNIL(next))
+      if (! ISOBJ26(next))
 	return QSNIL;
       qsmemaddr_t next_addr = COBJ26(next);
       qsmemaddr_t iter_addr = next_addr << 2;
@@ -2354,6 +2381,26 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
 qsptr_t qsiter_crepr (qsmem_t * mem, qsptr_t it, char * buf, int buflen)
 {
   int n = 0;
+  qsptr_t pair = QSNIL;
+  qsptr_t elt;
+  if (qsiter_on_pair(mem, it, &pair))
+    {
+      elt = qspair_ref_a(mem, pair);
+      if (! ISERROR16(elt))
+	n += qsptr_crepr(mem, elt, buf+n, buflen-n);
+    }
+  else
+    {
+      elt = qsiter_item(mem, it);
+      if (elt == QSBOL)
+	{
+	  n += snprintf(buf+n, buflen-n, "(");
+	  n += qslist_crepr(mem, qsiter_next(mem,it), buf+n, buflen-n);
+	  n += snprintf(buf+n, buflen-n, ")");
+	}
+      else if (! ISERROR16(elt))
+        n += qsptr_crepr(mem, elt, buf+n, buflen-n);
+    }
   return n;
 }
 
@@ -3294,7 +3341,7 @@ int qssymbol_crepr (qsmem_t * mem, qsptr_t y, char * buf, int buflen)
 {
   int n = 0;
   qsptr_t s = qssymbol_ref_name(mem, y);
-  n += qsstr_crepr(mem, s, buf+n, buflen-n);
+  n += qsstr_extract(mem, s, buf+n, buflen-n) - 1;
   return n;
 }
 
@@ -3396,6 +3443,37 @@ qsptr_t qsenv_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key)
   if (ISNIL(dict))      return QSNIL;
   qsptr_t apair = qsrbtree_assoc(mem, dict, key);
   return apair;
+}
+
+qsword qsenv_sublen (qsmem_t * mem, qsptr_t treenode)
+{
+  int n = 1;
+  qsptr_t left = qstree_ref_left(mem, treenode);
+  qsptr_t right = qstree_ref_right(mem, treenode);
+  if (ISOBJ26(left))
+    {
+      n += qsenv_sublen(mem, left);
+    }
+  if (ISOBJ26(right))
+    {
+      n += qsenv_sublen(mem, right);
+    }
+  return n;
+}
+
+qsword qsenv_length (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsenv_p)	return 0;
+  qsptr_t dict = qsenv_ref_dict(mem, p);
+  if (ISNIL(dict))	return 0;
+  qsptr_t tree = qsrbtree_ref_top(mem, dict);
+  int n = qsenv_sublen(mem, dict);
+  qsptr_t next = qsenv_ref_next(mem, p);
+  if (!ISNIL(next))
+    {
+      n += qsenv_length(mem, next);
+    }
+  return n;
 }
 
 qsptr_t qsenv_ref (qsmem_t * mem, qsptr_t p, qsptr_t key)
@@ -3725,7 +3803,8 @@ int qsptr_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
     }
   else if (ISITER28(p))
     {
-      n += qsiter_crepr(mem, p, buf+n, buflen-n);
+      //n += qsiter_crepr(mem, p, buf+n, buflen-n);
+      n += qslist_crepr(mem, p, buf+n, buflen-n);
     }
   else if (ISOBJ26(p))
     {

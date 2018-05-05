@@ -35,17 +35,17 @@ START_TEST(test_immlist1)
 
   qsptr_t q0 = QSNIL;
 
-  /* test injectl (construct from argument list) */
+  /* test injectl (construct from argument list): (1 2) */
   qsptr_t l0 = qsimmlist_injectl(heap1, QSINT(1), QSINT(2), QSEOL);
   int len0 = qsimmlist_length(heap1, l0);
   ck_assert_int_eq(len0, 2);
 
-  /* test longer injectl */
+  /* test longer injectl: (1 2 3) */
   qsptr_t l1 = qsimmlist_injectl(heap1, QSINT(1), QSINT(2), QSINT(3), QSEOL);
   int len1 = qsimmlist_length(heap1, l1);
   ck_assert_int_eq(len1, 3);
 
-  /* test inject (copy from image) */
+  /* test inject (copy from image): (11 22 33 44) */
   qsptr_t img[] = { QSINT(11), QSINT(22), QSINT(33), QSINT(44), QSEOL };
   qsptr_t l2 = qsimmlist_inject(heap1, img, 5);
   int len2 = qsimmlist_length(heap1, l2);
@@ -57,7 +57,7 @@ START_TEST(test_immlist1)
 
   char temp[100];
 
-  /* test inject string immlist. */
+  /* test inject string immlist: (#\h #\i) */
   memset(temp, sizeof(temp), 0);
   qsptr_t img2[] = { QSCHAR('h'), QSCHAR('i'), QSEOL };
   qsptr_t l3 = qsimmlist_inject(heap1, img2, 3);
@@ -81,7 +81,7 @@ START_TEST(test_immlist1)
   ck_assert_int_eq(q0, QSINT(44));
   it = qsiter_next(heap1, it);
   q0 = qsiter_item(heap1, it);
-  ck_assert_int_eq(QSNIL, q0);
+  ck_assert(!ISITER28(q0));
 
   /* test iterate nested list: (1 (101 102) 2) */
   qsptr_t img3[] = { QSINT(1), QSBOL, QSINT(101), QSINT(102), QSEOL, QSINT(2), QSEOL };
@@ -93,6 +93,21 @@ START_TEST(test_immlist1)
   ck_assert_int_eq(raw_len, 6);
   ck_assert_int_eq(adj_len, 3);
   ck_assert_int_eq(iter_len, 3);
+
+  qsptr_t it3 = qsimmlist_iter(heap1, l4, 0);
+  q0 = qsiter_item(heap1, it3);
+  ck_assert(ISINT30(q0));
+  it3 = qsiter_next(heap1, it3);
+  q0 = qsiter_item(heap1, it3);
+  ck_assert(ISITER28(q0));
+  it3 = qsiter_next(heap1, it3);
+  q0 = qsiter_item(heap1, it3);
+  ck_assert(ISINT30(q0));
+  it3 = qsiter_next(heap1, it3);
+  ck_assert(!ISITER28(it3));
+
+  qsptr_crepr(heap1, l4, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(1 (101 102 ) 2 )");
 }
 END_TEST
 

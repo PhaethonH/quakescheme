@@ -312,7 +312,7 @@ int qs_applykont (qs_t * machine, qsptr_t kont, qsptr_t value)
   if (ISNIL(kont))
     {
       machine->halt = 1;
-      machine->C = machine->A;
+      //machine->C = machine->A;
       return 0;
     }
   else
@@ -330,7 +330,9 @@ appylykont : Kont × Value × Store → State
   : a not in dom(σ), a fresh address
   */
 
+      /*
       env = qsenv_make(mem, env);
+      */
       env = qsenv_setq(mem, env, varname, value);
 
       machine->C = body;
@@ -381,6 +383,7 @@ int qs_applyproc (qs_t * machine, qsptr_t proc, qsptr_t args)
       /* cannot apply as procedure. */
       machine->A = QSERROR_INVALID;
       machine->K = QSNIL;
+      machine->halt = 1;
     }
 
   return 0;
@@ -528,4 +531,30 @@ qs_t * qs_step (qs_t * machine)
 }
 
 
+
+
+
+char dumpbuf[131072];
+int qs_dump (qs_t * machine)
+{
+  memset(dumpbuf, sizeof(dumpbuf), 0);
+  int n = 0;
+  int dumpbuflen = sizeof(dumpbuf);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "{\n");
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  halt=%d\n", machine->halt);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  C = ");
+  n += qsptr_crepr(machine->store, machine->C, dumpbuf+n, dumpbuflen-n);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "\n");
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  E = [%d] (%08x, %08x)",
+		qsenv_length(machine->store, machine->E),
+		machine->E,
+		qsenv_ref_next(machine->store, machine->E));
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "\n");
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  K = ");
+  n += qsptr_crepr(machine->store, machine->K, dumpbuf+n, dumpbuflen-n);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "}\n");
+
+  puts(dumpbuf);
+  return n;
+}
 
