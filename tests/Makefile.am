@@ -10,6 +10,7 @@ TESTS = test_qsptr \
   test_rbtree \
   test_ibtree \
   test_qsimmlist \
+  test_closure \
   test_gc \
   test_qsstdio \
   test_qsmach \

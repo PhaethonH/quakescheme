@@ -331,7 +331,7 @@ qserror_t qsobj_setq_ptr (qsmem_t * mem, qsptr_t p, qsword field_idx, qsptr_t va
   qsptr_t * ptr = qsobj_prepare_ptr(mem, p, field_idx);
   if (!ptr) return QSERROR_INVALID;
   *ptr = val;
-  return QSERROR_OK;
+  return p;
 }
 
 qserror_t qsobj_setq_octet (qsmem_t * mem, qsptr_t p, qsword field_idx, int val)
@@ -339,7 +339,7 @@ qserror_t qsobj_setq_octet (qsmem_t * mem, qsptr_t p, qsword field_idx, int val)
   uint8_t * octet = qsobj_prepare_octet(mem, p, field_idx);
   if (!octet) return QSERROR_INVALID;
   *octet = val;
-  return QSERROR_OK;
+  return p;
 }
 
 
@@ -1561,6 +1561,7 @@ qsptr_t qslist_ref (qsmem_t * mem, qsptr_t p, qsword k)
 #else
   qsptr_t it = qslist_tail(mem, p, k);
   if (ISNIL(it)) return QSNIL;
+  if (ISERROR16(it)) return it;
   return qsiter_item(mem, it);
 #endif //0
 }
@@ -3467,11 +3468,11 @@ qsword qsenv_length (qsmem_t * mem, qsptr_t p)
   qsptr_t dict = qsenv_ref_dict(mem, p);
   if (ISNIL(dict))	return 0;
   qsptr_t tree = qsrbtree_ref_top(mem, dict);
-  int n = qsenv_sublen(mem, dict);
+  int n = qsenv_sublen(mem, tree);
   qsptr_t next = qsenv_ref_next(mem, p);
   if (!ISNIL(next))
     {
-      n += qsenv_length(mem, next);
+      //n += qsenv_length(mem, next);
     }
   return n;
 }

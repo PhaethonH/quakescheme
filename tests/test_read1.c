@@ -327,7 +327,7 @@ qsptr_t build_ws_p ()
   qsptr_t lam = qslambda_make(heap1,
 		       qsimmlist_injectl(heap1, sym.ch, QSEOL),
 		       clause3);
-  ws_p = qsclosure_make(heap1, QSNIL, lam);
+  ws_p = qsclosure_make(heap1, scheme1->E, lam);
 
   return ws_p;
 }
@@ -353,7 +353,7 @@ qsptr_t build_eos_p ()
   qsptr_t lam = qslambda_make(heap1,
 			      qsimmlist_injectl(heap1, sym.str, sym.ofs, QSEOL),
 			      clause0);
-  eos_p = qsclosure_make(heap1, QSNIL, lam);
+  eos_p = qsclosure_make(heap1, scheme1->E, lam);
 
   return eos_p;
 }
@@ -377,7 +377,7 @@ qsptr_t build_dq_p ()
     QSEOL);
   qsptr_t param = qspair_make(heap1, sym.ch, QSNIL);
   qsptr_t lam = qslambda_make(heap1, param, clause0);
-  qsptr_t clo = qsclosure_make(heap1, QSNIL, lam);
+  qsptr_t clo = qsclosure_make(heap1, scheme1->E, lam);
   return clo;
 }
 qsptr_t build_bksl_p ()
@@ -389,7 +389,7 @@ qsptr_t build_bksl_p ()
     QSEOL);
   qsptr_t param = qspair_make(heap1, sym.ch, QSNIL);
   qsptr_t lam = qslambda_make(heap1, param, clause0);
-  qsptr_t clo = qsclosure_make(heap1, QSNIL, lam);
+  qsptr_t clo = qsclosure_make(heap1, scheme1->E, lam);
   return clo;
 }
 qsptr_t build_op_p ()
@@ -401,7 +401,7 @@ qsptr_t build_op_p ()
     QSEOL);
   qsptr_t param = qspair_make(heap1, sym.ch, QSNIL);
   qsptr_t lam = qslambda_make(heap1, param, clause0);
-  qsptr_t clo = qsclosure_make(heap1, QSNIL, lam);
+  qsptr_t clo = qsclosure_make(heap1, scheme1->E, lam);
   return clo;
 }
 qsptr_t build_cl_p ()
@@ -413,7 +413,7 @@ qsptr_t build_cl_p ()
     QSEOL);
   qsptr_t param = qspair_make(heap1, sym.ch, QSNIL);
   qsptr_t lam = qslambda_make(heap1, param, clause0);
-  qsptr_t clo = qsclosure_make(heap1, QSNIL, lam);
+  qsptr_t clo = qsclosure_make(heap1, scheme1->E, lam);
   return clo;
 }
 
@@ -437,7 +437,7 @@ qsptr_t build_cons ()
     QSEOL);
   qsptr_t param = qsimmlist_injectl(heap1, sym.x, sym.y, QSEOL);
   qsptr_t lam = qslambda_make(heap1, param, clause0);
-  qsptr_t clo = qsclosure_make(heap1, QSNIL, lam);
+  qsptr_t clo = qsclosure_make(heap1, scheme1->E, lam);
   return clo;
 }
 
@@ -453,14 +453,14 @@ qsptr_t build_add_tok ()
   qsptr_t img_clause0[] = {
       sym._let,
         QSBOL, QSBOL, sym.nextnode, QSBOL, sym.cons, sym.ch, QSNIL, QSEOL, QSEOL, QSEOL,
-      QSBOL, sym._let, QSBOL, QSBOL, sym.obj_setq_ptr, sym.pending, QSINT(2), sym.nextnode, QSEOL, QSEOL, QSEOL,
+      QSBOL, sym._let, QSBOL, QSBOL, sym._, QSBOL, sym.obj_setq_ptr, sym.pending, QSINT(2), sym.nextnode, QSEOL, QSEOL, QSEOL,
       sym.nextnode, QSEOL, QSEOL, QSEOL,
       QSEOL
   };
-  qsptr_t clause0 = qsimmlist_inject(heap1, img_clause0, 26);
+  qsptr_t clause0 = qsimmlist_inject(heap1, img_clause0, 28);
   qsptr_t param = qsimmlist_injectl(heap1, sym.ch, sym.pending, QSEOL);
   qsptr_t lam = qslambda_make(heap1, param, clause0);
-  qsptr_t clo = qsclosure_make(heap1, QSNIL, lam);
+  qsptr_t clo = qsclosure_make(heap1, scheme1->E, lam);
   return clo;
 }
 
@@ -469,7 +469,7 @@ qsptr_t build_add_tok ()
 
 
 int spam = 0;
-const int run_limit = 10;
+const int run_limit = 1000;
 int lim_run0 (qsptr_t e0, qsptr_t exp)
 {
   int n = 0;
@@ -493,7 +493,9 @@ START_TEST(test_reader1)
   qsptr_t ws_p = build_ws_p();
   qsptr_crepr(heap1, ws_p, buf, sizeof(buf));
 
+  ck_assert(qssymbol_p(heap1, sym.ws_p));
   qsptr_t e0 = scheme1->E = qsenv_setq(heap1, scheme1->E, sym.ws_p, ws_p);
+  ck_assert_int_eq(qsenv_length(heap1, e0), 1);
 
   int n = 0;
   qsptr_t exp = QSNIL;
@@ -542,7 +544,12 @@ START_TEST(test_reader1)
 
 
   qsptr_t eos_p = build_eos_p();
+  ck_assert_int_eq(qsenv_length(heap1, e0), 1);
+  ck_assert(qssymbol_p(heap1, sym.eos_p));
+  ck_assert(qsenv_p(heap1, e0));
   e0 = qsenv_setq(heap1, e0, sym.eos_p, eos_p);
+
+  ck_assert_int_eq(qsenv_length(heap1, e0), 2);
 
   qsptr_t s1 = qsstr_inject(heap1, "lorem ipsum", 0);
 
@@ -616,11 +623,17 @@ START_TEST(test_reader1)
 
   qsptr_t add_tok = build_add_tok();
   e0 = qsenv_setq(heap1, e0, sym.add_tok, add_tok);
-  e0 = qsenv_setq(heap1, e0, sym._, QSINT(0));
+//  ck_assert_int_eq(qsenv_length(heap1, e0), 2); 
   qsptr_t dummyroot = qspair_make(heap1, QSCHAR(' '), QSNIL);
-  exp = qsimmlist_injectl(heap1, sym.add_tok, dummyroot, dummyroot, QSEOL);
+  e0 = qsenv_setq(heap1, e0, sym._, dummyroot);
+  exp = qsimmlist_injectl(heap1, sym.add_tok, sym._, sym._, QSEOL);
   spam=1;
   lim_run(e0, exp);
+  printf("A = %08x\n", scheme1->A);
+  puts(qsobj_typeof(heap1, scheme1->A));
+
+  puts("--END--");
+  qs_dump(scheme1);
 }
 END_TEST
 

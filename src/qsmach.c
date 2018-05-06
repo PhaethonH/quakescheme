@@ -143,7 +143,7 @@ qs_t * qs_inject_exp (qs_t * machine, qsptr_t exp)
   machine->K = QSNIL;
   machine->A = QSNIL;
 
-  if (ISNIL(machine->E))
+  if (!qsenv_p(machine->store, machine->E))
     {
       machine->E = qsenv_make(machine->store, QSNIL);
     }
@@ -330,9 +330,7 @@ appylykont : Kont × Value × Store → State
   : a not in dom(σ), a fresh address
   */
 
-      /*
       env = qsenv_make(mem, env);
-      */
       env = qsenv_setq(mem, env, varname, value);
 
       machine->C = body;
@@ -542,6 +540,7 @@ int qs_dump (qs_t * machine)
   int dumpbuflen = sizeof(dumpbuf);
   n += snprintf(dumpbuf+n, dumpbuflen-n, "{\n");
   n += snprintf(dumpbuf+n, dumpbuflen-n, "  halt=%d\n", machine->halt);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  A = %08x\n", machine->A);
   n += snprintf(dumpbuf+n, dumpbuflen-n, "  C = ");
   n += qsptr_crepr(machine->store, machine->C, dumpbuf+n, dumpbuflen-n);
   n += snprintf(dumpbuf+n, dumpbuflen-n, "\n");
