@@ -233,9 +233,9 @@ qsprimmap_t qsprims [MAX_PRIMS] = {
       { "&&",	  qsprim_crash },
       { "&.",	  qsprim_halt },
 
-      { "&+",	  qsop_obj_p },
-      { "&-",	  qsop_obj_p },
-      { "&*",	  qsop_obj_p },
+      { "&+",	  qsop_int_add },
+      { "&-",	  qsop_int_sub },
+      { "&*",	  qsop_int_mul },
 
       { "&o?",	  qsop_obj_p },
       { "&o*",	  qsop_obj_make },
