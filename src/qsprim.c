@@ -62,7 +62,8 @@ qsptr_t qsop_obj_setq_ptr (qs_t * machine, qsptr_t args)
   qsptr_t arg_nth = ARG(1);
   qsptr_t val = ARG(2);
   qsword nth = qsint_get(machine->store, arg_nth);
-  return qsobj_setq_ptr(machine->store, obj, nth, val);
+  qsobj_setq_ptr(machine->store, obj, nth, val);
+  return obj;
 }
 
 qsptr_t qsop_obj_ref_octet (qs_t * machine, qsptr_t args)
@@ -80,7 +81,8 @@ qsptr_t qsop_obj_setq_octet (qs_t * machine, qsptr_t args)
   qsptr_t arg_val = ARG(2);
   qsword nth = qsint_get(machine->store, arg_nth);
   int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_octet(machine->store, obj, nth, val);
+  qsobj_setq_octet(machine->store, obj, nth, val);
+  return obj;
 }
 
 qsptr_t qsop_obj_used_p (qs_t * machine, qsptr_t args)
@@ -101,7 +103,8 @@ qsptr_t qsop_obj_setq_marked (qs_t * machine, qsptr_t args)
   qsptr_t obj = ARG(0);
   qsptr_t arg_val = ARG(1);
   int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_marked(machine->store, obj, val);
+  qsobj_setq_marked(machine->store, obj, val);
+  return obj;
 }
 
 qsptr_t qsop_obj_ref_allocsize (qs_t * machine, qsptr_t args)
@@ -122,7 +125,8 @@ qsptr_t qsop_obj_setq_parent (qs_t * machine, qsptr_t args)
   qsptr_t obj = ARG(0);
   qsptr_t arg_val = ARG(1);
   int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_parent(machine->store, obj, val);
+  qsobj_setq_parent(machine->store, obj, val);
+  return obj;
 }
 
 qsptr_t qsop_obj_ref_score (qs_t * machine, qsptr_t args)
@@ -136,7 +140,8 @@ qsptr_t qsop_obj_setq_score (qs_t * machine, qsptr_t args)
   qsptr_t obj = ARG(0);
   qsptr_t arg_val = ARG(1);
   int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_score(machine->store, obj, val);
+  qsobj_setq_score(machine->store, obj, val);
+  return obj;
 }
 
 

@@ -495,7 +495,7 @@ qsptr_t build_add_tok ()
   return clo;
 }
 
-qsptr_t build_qstokenize_atom ()
+qsptr_t Xbuild_qstokenize_atom ()
 {
   /*
   (qstokenize_atom
@@ -526,42 +526,86 @@ qsptr_t build_qstokenize_atom ()
 
   qsptr_t img_clause3[] = {
       sym._let, QSBOL, QSBOL, sym.is_dq, QSBOL, sym.dq_p, sym.ch, QSEOL, QSEOL, QSEOL,
-      QSBOL, sym._if, sym.is_dq, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL, clause2, QSEOL
+      QSBOL, sym._if, sym.is_dq, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL, clause2, QSEOL, QSEOL,
   };
   qsptr_t clause3 = qsimmlist_inject(heap1, img_clause3, 0);
 
   qsptr_t img_clause4[] = {
       sym._let, QSBOL, QSBOL, sym.is_cl, QSBOL, sym.cl_p, sym.ch, QSEOL, QSEOL, QSEOL,
-      QSBOL, sym._if, sym.is_cl, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL, clause3, QSEOL
+      QSBOL, sym._if, sym.is_cl, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL, clause3, QSEOL, QSEOL,
   };
   qsptr_t clause4 = qsimmlist_injectl(heap1, img_clause4, 0);
 
   qsptr_t img_clause5[] = {
       sym._let, QSBOL, QSBOL, sym.is_op, QSBOL, sym.op_p, sym.ch, QSEOL, QSEOL, QSEOL,
-      QSBOL, sym._if, sym.is_op, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL, clause4, QSEOL
+      QSBOL, sym._if, sym.is_op, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL, clause4, QSEOL, QSEOL,
   };
   qsptr_t clause5 = qsimmlist_injectl(heap1, img_clause5, 0);
 
   qsptr_t img_clause6[] = {
-      sym._let, QSBOL, QSBOL, sym.is_ws, QSBOL, sym.ws_p, sym.ch, QSEOL, QSEOL, QSEOL,
+      sym._let, QSBOL, QSBOL, sym.is_ws, QSBOL, sym.ws_p, sym.ch, QSEOL, QSEOL, QSEOL, QSEOL,
       QSBOL, sym._if, sym.is_ws, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL, clause5, QSEOL
   };
   qsptr_t clause6 = qsimmlist_injectl(heap1, img_clause6, 0);
 
   qsptr_t img_clause7[] = {
-      sym._let, QSBOL, QSBOL, sym.ch, QSBOL, sym.string_ref, sym.str, sym.ofs, QSEOL, QSEOL, QSEOL, clause6, QSEOL
+      sym._let, QSBOL, QSBOL, sym.ch, QSBOL, sym.string_ref, sym.str, sym.ofs, QSEOL, QSEOL, QSEOL, clause6, QSEOL, QSEOL,
   };
   qsptr_t clause7 = qsimmlist_injectl(heap1, img_clause7, 0);
 
   qsptr_t img_clause8[] = {
       sym._let, QSBOL, QSBOL, sym.eos, QSBOL, sym.eos_p, sym.str, sym.ofs, QSEOL, QSEOL, QSEOL,
       QSBOL, sym._if, sym.eos, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL,
-      clause7, QSEOL
+      clause7, QSEOL, QSEOL,
   };
   qsptr_t clause8 = qsimmlist_injectl(heap1, img_clause8, 0);
 
   qsptr_t param = qsimmlist_injectl(heap1, sym.str, sym.ofs, sym.root, sym.pending, QSEOL);
   qsptr_t body = clause8;
+  qsptr_t lambda = qslambda_make(heap1, param, body);
+  qsptr_t clo = qsclosure_make(heap1, scheme1->E, lambda);
+
+  return clo;
+}
+
+qsptr_t build_qstokenize_atom ()
+{
+  /*
+  (qstokenize_atom
+   (lambda (str ofs root pending)
+    (let ((eos (eos? str ofs))) (if eos (cons ofs root)
+     (let ((ch (&s@ str ofs)))
+      (let ((is_ws (ws? ch))) (if is_ws (cons ofs root)
+       (let ((is_op (op? ch))) (if is_op (cons ofs root)
+        (let ((is_cl (cl? ch))) (if is_cl (cons ofs root)
+         (let ((is_dq (dq? ch))) (if is_dq (cons ofs root)
+          (let ((nextofs (+ 1 ofs)))
+	   (let ((nextpending (add-tok ch pending)))
+            (qstokenize_atom str nextofs root nextpending))))))))))))))))
+	   */
+  qsptr_t img_qstokenize_atom[151] = {
+      sym._let, QSBOL, QSBOL, sym.eos, QSBOL, sym.eos_p, sym.str, sym.ofs,
+      QSEOL, QSEOL, QSEOL, QSBOL, sym._if, sym.eos, QSBOL, sym.cons, sym.ofs,
+      sym.root, QSEOL, QSBOL, sym._let, QSBOL, QSBOL, sym.ch, QSBOL,
+      sym.string_ref, sym.str, sym.ofs, QSEOL, QSEOL, QSEOL, QSBOL, sym._let,
+      QSBOL, QSBOL, sym.is_ws, QSBOL, sym.ws_p, sym.ch, QSEOL, QSEOL, QSEOL,
+      QSBOL, sym._if, sym.is_ws, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL,
+      QSBOL, sym._let, QSBOL, QSBOL, sym.is_op, QSBOL, sym.op_p, sym.ch, QSEOL,
+      QSEOL, QSEOL, QSBOL, sym._if, sym.is_op, QSBOL, sym.cons, sym.ofs,
+      sym.root, QSEOL, QSBOL, sym._let, QSBOL, QSBOL, sym.is_cl, QSBOL,
+      sym.cl_p, sym.ch, QSEOL, QSEOL, QSEOL, QSBOL, sym._if, sym.is_cl, QSBOL,
+      sym.cons, sym.ofs, sym.root, QSEOL, QSBOL, sym._let, QSBOL, QSBOL,
+      sym.is_dq, QSBOL, sym.dq_p, sym.ch, QSEOL, QSEOL, QSEOL, QSBOL, sym._if,
+      sym.is_dq, QSBOL, sym.cons, sym.ofs, sym.root, QSEOL, QSBOL, sym._let,
+      QSBOL, QSBOL, sym.nextofs, QSBOL, sym.int_add, QSINT(1), sym.ofs, QSEOL,
+      QSEOL, QSEOL, QSBOL, sym._let, QSBOL, QSBOL, sym.nextpending, QSBOL,
+      sym.add_tok, sym.ch, sym.pending, QSEOL, QSEOL, QSEOL, QSBOL,
+      sym.qstokenize_atom, sym.str, sym.nextofs, sym.root, sym.nextpending,
+      QSEOL, QSEOL, QSEOL, QSEOL, QSEOL, QSEOL, QSEOL, QSEOL, QSEOL, QSEOL,
+      QSEOL, QSEOL, QSEOL, QSEOL
+  };
+  qsptr_t body = qsimmlist_inject(scheme1->store, img_qstokenize_atom, 151);
+  qsptr_t param = qsimmlist_injectl(heap1, sym.str, sym.ofs, sym.root, sym.pending, QSEOL);
   qsptr_t lambda = qslambda_make(heap1, param, body);
   qsptr_t clo = qsclosure_make(heap1, scheme1->E, lambda);
 
@@ -733,7 +777,7 @@ START_TEST(test_reader1)
   qsptr_t dummyroot = qspair_make(heap1, QSCHAR(' '), QSNIL);
   e0 = qsenv_setq(heap1, e0, sym._, dummyroot);
   exp = qsimmlist_injectl(heap1, sym.add_tok, sym._, sym._, QSEOL);
-//  spam=1;
+  spam=1;
   lim_run(e0, exp);
 //  printf("A = %08x\n", scheme1->A);
 //  puts(qsobj_typeof(heap1, scheme1->A));
@@ -741,7 +785,9 @@ START_TEST(test_reader1)
   qsptr_t qstokenize_atom = build_qstokenize_atom();
   e0 = qsenv_setq(heap1, e0, sym.qstokenize_atom, qstokenize_atom);
   qsptr_t in1 = qsstr_inject(heap1, "foobar bletch", 0);
-  exp = qsimmlist_injectl(heap1, sym.qstokenize_atom, in1, QSEOL);
+  dummyroot = qspair_make(heap1, QSCHAR(' '), QSNIL);
+  e0 = qsenv_setq(heap1, e0, sym._, dummyroot);
+  exp = qsimmlist_injectl(heap1, sym.qstokenize_atom, in1, QSINT(0), dummyroot, dummyroot, QSEOL);
   lim_run(e0, exp);
 
   /*
