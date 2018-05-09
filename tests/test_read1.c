@@ -7,6 +7,7 @@
 #include "qsheap.h"
 #include "qsobj.h"
 #include "qsmach.h"
+#include "qssexpr.h"
 
 /* Unit test  reader1 */
 
@@ -803,16 +804,20 @@ START_TEST(test_reader1)
 }
 END_TEST
 
-START_TEST(test_test2)
+START_TEST(test_sexpr1)
 {
   init();
+  qsptr_t se0 = qssexpr_parse0_str(heap1, "hello", NULL);
+
+  qsptr_crepr(heap1, se0, buf, sizeof(buf));
+  printf("buf=%s", buf);
 }
 END_TEST
 
 
 TESTCASE(reader1,
   TFUNC(test_reader1)
-  TFUNC(test_test2)
+  TFUNC(test_sexpr1)
   )
 
 TESTSUITE(suite1,

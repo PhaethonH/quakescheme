@@ -365,6 +365,7 @@ typedef struct qsenv_s {
 } qsenv_t;
 
 bool qsenv_p (qsmem_t * mem, qsptr_t p);
+qsword qsenv_length (qsmem_t * mem, qsptr_t p);
 qsptr_t qsenv_ref_dict (qsmem_t * mem, qsptr_t p);
 qsptr_t qsenv_ref_next (qsmem_t * mem, qsptr_t p);
 qsptr_t qsenv_setq_dict (qsmem_t * mem, qsptr_t p, qsptr_t val);
