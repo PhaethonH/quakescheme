@@ -3,6 +3,6 @@
 
 #include "qsobj.h"
 
-qsptr_t qssexpr_parse0_str (qsheap_t *, const char *, const char **);
+qsptr_t qssexpr_parse_cstr (qsheap_t *, int version, const char *, const char **);
 
 #endif // _QSSEXPR_H_

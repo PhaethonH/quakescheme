@@ -127,256 +127,88 @@ struct matchrule_s *matchruleset[READER_MAX] = {
 };
 
 
-#if 0
-qsptr_t qssexpr_parse0_str (qsheap_t * mem, const char * srcstr, const char ** endptr)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* convert reversed list-of-character to qsutf8 (C-style string) */
+static
+qsptr_t qssexpr_revlist_to_qsutf8 (qsheap_t * mem, qsptr_t revlist)
 {
-  qsptr_t retval = QSBLACKHOLE;
-  qsptr_t parent = QSNIL, prevnode = QSNIL, nextnode = QSNIL;
-  int ch = 0;
-  int prevch = 0;
-  int scan = 0;
-  int halt = 0;
-  enum reader_op_e state = READER_INIT, nextstate = READER_END;
-  enum reader_op_e output = 0;
-  qsptr_t lexeme = QSNIL;
-  qsptr_t atomval = QSNIL;
-
-  ch = srcstr[scan];
-  while (!halt)
+  qsword lislen = qslist_length(mem, revlist);
+  qsptr_t name = qsutf8_make(mem, lislen);
+  char * payload = qsobj_ref_data(mem, name, NULL);
+  for (int i = 0; i < lislen; i++)
     {
-      const struct matchrule_s *matchrules = matchruleset[state], *entry = NULL;
-      nextstate = READER_END;
-      output = PARSER_DISCARD;
-      /* find rule to match. */
-      for (entry = matchrules; entry->predicate; entry++)
-	{
-	  if (entry->predicate(ch))
-	    {
-	      output = entry->output;
-	      nextstate = entry->next_state;
-	      break;
-	    }
-	}
-
-      printf("(state=%s, next_state=%s, output=%s, ch@%d='%c')\n", reader_op_str[state], reader_op_str[nextstate], reader_op_str[output], scan, ch);
-      printf(" (retval=%08x, parent=%08x, prevnode=%08x\n", retval, parent, prevnode);
-
-      switch (output)
-	{
-	case PARSER_DISCARD:
-	  break;
-	case PARSER_CONSUME:
-	  /* concatenate current character onto pending atom. */
-	  lexeme = qspair_make(mem, QSCHAR(ch), lexeme);
-	  break;
-	case PARSER_FORCE_END_STRING:
-	  /* append string delimiter ("), then append as atom. */
-	  lexeme = qspair_make(mem, QSCHAR('"'), lexeme);
-	  /* fallthrough */
-	case PARSER_APPEND_ATOM:
-	  /* atom construction complete, append to result. */
-	    {
-	      /* convert list-of-charater to utf8 C string */
-	      qsword lexlen = qslist_length(mem, lexeme);
-	      qsptr_t name = qsutf8_make(mem, lexlen);
-	      char * payload = qsobj_ref_data(mem, name, NULL);
-	      for (int i = 0; i < lexlen; i++)
-		{
-		  qsptr_t node = qslist_ref(mem, lexeme, lexlen-i-1);
-		  int ch = CCHAR24(node);
-		  printf("%08x/ch %x\n", node, ch);
-		  payload[i] = ch;
-		}
-	      printf("payload/%d = %s\n", lexlen, payload);
-	      atomval = qssymbol_make(mem, name);
-	    }
-
-//	  printf(" atom/%d = %s\n", atom.fill, atom.s);
-	  if (qspair_p(mem, retval) || ISNIL(retval))
-	    { /* building a list. */
-	      puts("atom1");
-	      if (!ISNIL(prevnode))
-		{ /* continue nested list - (back)pointer to parent in cdr. */
-		  puts("atom1a");
-/*
-   -- before --
-   [a|P]
-   ^ prevnode
-
-   -- after --
-   [a|>]*[b|P]
-         ^ prevnode
-*/
-		  qsptr_t temp = qspair_ref_d(mem, prevnode);
-		  nextnode = qspair_make(mem, atomval, temp);
-		  qspair_setq_d(mem, prevnode, nextnode);
-		}
-	      else
-		{ /* first of list - maintain pointer to parent in cdr. */
-		  puts("atom1b");
-/*
-   -- before --
-       v parent
-   ... [a|P]			parent=nil
-       ^ prevnode
-
-   -- after --
-             v parent
-   ... [a|>]*[x|P]
-                ^                  parent
-	    *[b|P]             *[b|P]
-	     ^ prevnode         ^ prevnode
-*/
-//		  nextnode = qspair_make(mem, atomval, parent);
-//		  if (parent) qspair_setq_a(mem, parent, nextnode);
-		  if (!ISNIL(parent))
-		    {
-		  puts("atom1c");
-		      // extend parent.
-		      nextnode = qspair_make(mem, QSNIL, qspair_ref_d(mem, parent));
-		      qspair_setq_d(mem, parent, nextnode);
-		      parent = nextnode;
-		      // begin nested list.
-		    }
-		  if (ISNIL(retval))
-		    retval = parent;
-		  nextnode = qspair_make(mem, atomval, parent);
-		}
-	      /* then advance for next iteration. */
-	      prevnode = nextnode;
-	    }
-	  else if (retval == QSBLACKHOLE)
-	    { /* toplevel atom. */
-	      puts("atom2");
-	      retval = atomval;
-	      halt = 1;
-	    }
-	  else
-	    {
-	      abort();
-	    }
-	  lexeme = QSNIL;
-	  prevch = ch; /* push one character. */
-	  break;
-	case PARSER_BEGIN_LIST:
-	  /* start of a new list; on atom read, modify nextnode->al. */
-	  if (!ISNIL(prevnode))
-	    { /* attach to list in progress; cdr is pointer to parent. */
-	      puts("list1");
-/*
-            prevnode v  parent^
-		 ... [a|P]
-
-	    -- after --
-                          v parent
-		... [a|>]*[/|P]
-		          ^
-	prevnode=nil	  future nextnode's parent
-
-	    -- on attach atom ---	  -- on attach new list (below) ---
-	                  v parent
-		... [a|>] [x|P]		  ... [a|>] [x|P]
-		           |			     |
-			 *[a|P]			   *[/|P]
-		 prevnode ^	       prevnode=nil ^ parent
-
-		 */
-	      qsptr_t temp = qspair_ref_d(mem, prevnode);
-	      parent = nextnode = qspair_make(mem, QSNIL, temp);
-	      qspair_setq_d(mem, prevnode, nextnode);
-	    }
-	  else
-	    { /* no list in progress. */
-	      puts("list2");
-/*	    -- before --
-	        v parent
-            ... [x|P]			  parent=nil
-
-	    -- after --
-	    ... [x|P]			 *[x|P=/]
-	         | ^
-	       *[y|P]
-   prevnode=nil ^ parent
-*/
-
-	      nextnode = qspair_make(mem, QSNIL, parent);
-	      /* advance parent pointer. */
-	      parent = nextnode;
-	    }
-	  if (retval == QSBLACKHOLE)
-	    {
-	      puts("list4");
-	    retval = QSNIL;
-	    }
-	  else if (ISNIL(retval))
-	    {
-	      puts("list4");
-	    retval = nextnode;
-	    }
-	  else
-	    {
-	      abort();
-	    }
-	  prevnode = QSNIL;
-	  break;
-	case PARSER_END_LIST:
-	  /* Finish list building, resume building on parent. */
-	  if (!ISNIL(prevnode))
-	    { /* Salient list; resume parent building by chasing cdr. */
-	      nextnode = qspair_ref_d(mem, prevnode);
-	      qspair_setq_d(mem, prevnode, QSNIL);
-	    }
-	  else
-	    { /* No list node built, skip back to parent. */
-	      nextnode = parent;
-	    }
-	  prevnode = nextnode;
-//	  if ((prevnode == retval) || (!qspair_p(mem, prevnode)))
-	  if (!qspair_p(mem, prevnode))
-	    halt = 1;
-	  break;
-	case PARSER_HALT:
-	  halt = 1;
-	  prevch = ch;
-	  break;
-	}
-
-      state = nextstate;
-
-      if (prevch)
-	{ /* pull a pushed character. */
-	  ch = prevch;
-	  prevch = 0;
-	}
-      else if (srcstr[scan])
-	{ /* get next character. */
-	  scan++;
-	  ch = srcstr[scan];
-	}
-      else
-	{ /* end of stream, yield \0 */
-	  ch = 0;
-	}
+      qsptr_t node = qslist_ref(mem, revlist, lislen-i-1);
+      int ch = CCHAR24(node);
+      payload[i] = ch;
     }
-
-  while (qspair_p(mem, prevnode))
-    {
-      nextnode = qspair_ref_d(mem, prevnode);
-      qspair_setq_d(mem, prevnode, QSNIL);
-      prevnode = nextnode;
-    }
-
-  if (endptr)
-    {
-//      printf("endptr +%d\n", scan);
-      *endptr = srcstr+scan;
-    }
-
-  return retval;
+  return qssymbol_make(mem, name);
 }
-#endif //0
-#if 1
-qsptr_t qssexpr_parse0_str (qsheap_t * mem, const char * srcstr, const char ** endptr)
+
+static
+qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** endptr)
 {
   qsptr_t retval = QSBLACKHOLE;
   qsptr_t parent = QSNIL, prevnode = QSNIL, nextnode = QSNIL;
@@ -406,9 +238,6 @@ qsptr_t qssexpr_parse0_str (qsheap_t * mem, const char * srcstr, const char ** e
 	    }
 	}
 
-//      printf("(state=%s, next_state=%s, output=%s, ch@%d='%c')\n", reader_op_str[state], reader_op_str[nextstate], reader_op_str[output], scan, ch);
-//      printf(" (retval=%08x, parent=%08x, prevnode=%08x\n", retval, parent, prevnode);
-
       switch (output)
 	{
 	case PARSER_DISCARD:
@@ -423,23 +252,7 @@ qsptr_t qssexpr_parse0_str (qsheap_t * mem, const char * srcstr, const char ** e
 	  /* fallthrough */
 	case PARSER_APPEND_ATOM:
 	  /* atom construction complete, append to result. */
-	    {
-	      /* convert list-of-charater to utf8 C string */
-	      qsword lexlen = qslist_length(mem, lexeme);
-	      qsptr_t name = qsutf8_make(mem, lexlen);
-	      char * payload = qsobj_ref_data(mem, name, NULL);
-	      for (int i = 0; i < lexlen; i++)
-		{
-		  qsptr_t node = qslist_ref(mem, lexeme, lexlen-i-1);
-		  int ch = CCHAR24(node);
-//		  printf("%08x/ch %x\n", node, ch);
-		  payload[i] = ch;
-		}
-//	      printf("payload/%d = %s\n", lexlen, payload);
-	      atomval = qssymbol_make(mem, name);
-	    }
-
-//	  printf(" atom/%d = %s\n", atom.fill, atom.s);
+	  atomval = qssexpr_revlist_to_qsutf8(mem, lexeme):
 
 	  if (retval == QSBLACKHOLE)
 	    { /* case 4: toplevel atom. */
@@ -551,87 +364,14 @@ qsptr_t qssexpr_parse0_str (qsheap_t * mem, const char * srcstr, const char ** e
 
   if (endptr)
     {
-//      printf("endptr +%d\n", scan);
       *endptr = srcstr+scan;
     }
 
   return retval;
 }
-#endif //0
 
-
-/*
-int sexpr_print (struct sexpr_s * sexpr)
+qsptr_t qssexpr_parse_cstr (qsheap_t * mem, int version, const char * srcstr, const char ** endptr)
 {
-again:
-  if (sexpr == NULL)
-    return 0;
-  if (sexpr->atom)
-    {
-      printf("%s", sexpr->atom);
-    }
-  else
-    {
-      printf("(");
-      sexpr_print(sexpr->al);
-      printf(")");
-    }
-  if (sexpr->d)
-    {
-      printf(" ");
-      sexpr = sexpr->d;
-      goto again;
-    }
-  return 0;
-}
-*/
-
-
-#if 0
-
-int test_run (const char * srcstr)
-{
-  const char * remainder = NULL;
-  struct sexpr_s * sexpr = sexpr_parse_str(NULL, srcstr, &remainder);
-  printf("sexpr=[");
-  sexpr_print(sexpr);
-  printf("]  remainder=[%s]\n", remainder);
+  return qssexpr_parse0_cstr(mem, srcstr, endptr);
 }
 
-static
-int test1 ()
-{
-  test_run( "\"hi\"" );
-  test_run( "\"hi" );
-}
-
-static
-int test2 ()
-{
-  test_run( "(foo bar(foobar) baz quux ())" );
-  test_run( "((foo))" );
-}
-
-static
-int test3 ()
-{
-  test_run( "  (1 (atom #\\space \"foobar\")lorem_ipsum_dolor_sit_amet(alpha bravo charlie (d e l t a)) (#true))extra" );
-}
-
-
-int main ()
-{
-  struct sexpr_s * sexpr0 = sexpr_init(NULL, NULL, NULL, NULL);
-  struct sexpr_s * sexpr0a = sexpr_init(NULL, "bar", NULL, NULL);
-  struct sexpr_s * sexpr0b = sexpr_init(NULL, "foo", NULL, sexpr0a);
-  sexpr0->al = sexpr0b;
-  sexpr_print(sexpr0); puts("");
-
-  test1();
-  test2();
-  test3();
-
-  return 0;
-}
-
-#endif //0
