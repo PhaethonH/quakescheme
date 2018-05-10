@@ -810,7 +810,31 @@ START_TEST(test_sexpr1)
   qsptr_t se0 = qssexpr_parse0_str(heap1, "hello", NULL);
 
   qsptr_crepr(heap1, se0, buf, sizeof(buf));
-  printf("buf=%s", buf);
+  ck_assert_str_eq(buf, "hello");
+
+  qsptr_t se1 = qssexpr_parse0_str(heap1, "\"hi\"", NULL);
+  qsptr_crepr(heap1, se1, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "\"hi\"");
+
+  qsptr_t se2 = qssexpr_parse0_str(heap1, "\"hi", NULL);
+  qsptr_crepr(heap1, se2, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "\"hi\"");
+
+  qsptr_t se3 = qssexpr_parse0_str(heap1, "(baz)", NULL);
+  qsptr_crepr(heap1, se3, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(baz )");
+
+  qsptr_t se4 = qssexpr_parse0_str(heap1, "(foo bar)", NULL);
+  qsptr_crepr(heap1, se4, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(foo bar )");
+
+  qsptr_t se5 = qssexpr_parse0_str(heap1, "((quux))", NULL);
+  qsptr_crepr(heap1, se5, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "((quux ) )");
+
+  qsptr_t se6 = qssexpr_parse0_str(heap1, "(foo bar(foobar)quux ())", NULL);
+  qsptr_crepr(heap1, se6, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(foo bar (foobar ) quux '() )");
 }
 END_TEST
 
