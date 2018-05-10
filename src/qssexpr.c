@@ -127,70 +127,6 @@ struct matchrule_s *matchruleset[READER_MAX] = {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* convert reversed list-of-character to qsutf8 (C-style string) */
 static
 qsptr_t qssexpr_revlist_to_qsutf8 (qsheap_t * mem, qsptr_t revlist)
@@ -238,6 +174,9 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 	    }
 	}
 
+      printf("(ch='%c', state=%s, next=%s, output=%s)\n", ch, reader_op_str[state], reader_op_str[nextstate], reader_op_str[output]);
+      printf(" (next?=%08x, root=%08x, parent=%08x, prev=%08x)\n", nextnode, retval, parent, prevnode);
+
       switch (output)
 	{
 	case PARSER_DISCARD:
@@ -252,7 +191,7 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 	  /* fallthrough */
 	case PARSER_APPEND_ATOM:
 	  /* atom construction complete, append to result. */
-	  atomval = qssexpr_revlist_to_qsutf8(mem, lexeme):
+	  atomval = qssexpr_revlist_to_qsutf8(mem, lexeme);
 
 	  if (retval == QSBLACKHOLE)
 	    { /* case 4: toplevel atom. */
@@ -297,7 +236,7 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 		}
 	      else if (ISNIL(retval))
 		{ /* case 2: start list nesting; atom-add=>setcar(parent,) */
-		  retval = nextnode = qspair_make(mem, QSNIL, QSNIL);
+		  retval = nextnode = qspair_make(mem, QSNIL, QSBLACKHOLE);
 		  parent = nextnode;
 		}
 	      else
@@ -328,7 +267,8 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 	      nextnode = parent;
 	    }
 	  prevnode = nextnode;
-	  if (!qspair_p(mem, prevnode))
+//	  if ((prevnode == retval) || !qspair_p(mem, prevnode))
+	  if ((prevnode == QSBLACKHOLE) || ISNIL(prevnode))
 	    halt = 1;  /* error or end of toplevel list. */
 	  break;
 	case PARSER_HALT:

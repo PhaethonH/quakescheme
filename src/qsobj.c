@@ -1572,8 +1572,11 @@ int qslist_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 
   n += snprintf(buf+n, buflen-n, "(");
   qsptr_t it = qslist(mem, p);
+  qsptr_t it0 = it;
   while (ISITER28(it) && (n < buflen))
     {
+      if (it != it0)
+        n += snprintf(buf+n, buflen-n, " ");
       qsptr_t elt = qsiter_item(mem, it);
       if (ISERROR16(elt))
 	break;
@@ -1585,7 +1588,6 @@ int qslist_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 	{
 	  n += qsptr_crepr(mem, elt, buf+n, buflen-n);
 	}
-      n += snprintf(buf+n, buflen-n, " ");
       it = qsiter_next(mem, it);
       if (ISERROR16(it))
 	break;

@@ -107,7 +107,7 @@ START_TEST(test_immlist1)
   ck_assert(!ISITER28(it3));
 
   qsptr_crepr(heap1, l4, buf, sizeof(buf));
-  ck_assert_str_eq(buf, "(1 (101 102 ) 2 )");
+  ck_assert_str_eq(buf, "(1 (101 102) 2)");
 }
 END_TEST
 

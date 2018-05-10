@@ -822,20 +822,25 @@ START_TEST(test_sexpr1)
 
   qsptr_t se3 = qssexpr_parse_cstr(heap1, 0, "(baz)", NULL);
   qsptr_crepr(heap1, se3, buf, sizeof(buf));
-  ck_assert_str_eq(buf, "(baz )");
+  ck_assert_str_eq(buf, "(baz)");
 
   qsptr_t se4 = qssexpr_parse_cstr(heap1, 0, "(foo bar)", NULL);
   qsptr_crepr(heap1, se4, buf, sizeof(buf));
-  ck_assert_str_eq(buf, "(foo bar )");
+  ck_assert_str_eq(buf, "(foo bar)");
 
   qsptr_t se5 = qssexpr_parse_cstr(heap1, 0, "((quux))", NULL);
   qsptr_crepr(heap1, se5, buf, sizeof(buf));
-  ck_assert_str_eq(buf, "((quux ) )");
+  ck_assert_str_eq(buf, "((quux))");
 
   qsptr_t se6 = qssexpr_parse_cstr(heap1, 0, "(foo bar(foobar)quux ())", NULL);
   qsptr_crepr(heap1, se6, buf, sizeof(buf));
-  ck_assert_str_eq(buf, "(foo bar (foobar ) quux '() )");
+  ck_assert_str_eq(buf, "(foo bar (foobar) quux '())");
 
+  const char * remainder;
+  qsptr_t se7 = qssexpr_parse_cstr(heap1, 0, "(1 (atom #\\space \"foobar\")lorem_ipsum_dolor_sit_amet(alpha bravo charlie (d e l t a)) (#true))extra", &remainder);
+  qsptr_crepr(heap1, se7, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(1 (atom #\\space \"foobar\") lorem_ipsum_dolor_sit_amet (alpha bravo charlie (d e l t a)) (#true))");
+  ck_assert_str_eq(remainder, "extra");
 }
 END_TEST
 
