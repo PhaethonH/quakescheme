@@ -834,7 +834,7 @@ START_TEST(test_sexpr1)
 
   qsptr_t se6 = qssexpr_parse_cstr(heap1, 0, "(foo bar(foobar)quux ())", NULL);
   qsptr_crepr(heap1, se6, buf, sizeof(buf));
-  ck_assert_str_eq(buf, "(foo bar (foobar) quux '())");
+  ck_assert_str_eq(buf, "(foo bar (foobar) quux ())");
 
   const char * remainder;
   qsptr_t se7 = qssexpr_parse_cstr(heap1, 0, "(1 (atom #\\space \"foobar\")lorem_ipsum_dolor_sit_amet(alpha bravo charlie (d e l t a)) (#true))extra", &remainder);

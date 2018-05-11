@@ -2678,7 +2678,7 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
   switch (c)
     {
     case QSNIL:
-      n += snprintf(buf+n, buflen-n, "'()");
+      n += snprintf(buf+n, buflen-n, "()");
       break;
     case QSTRUE:
       n += snprintf(buf+n, buflen-n, "#t");
