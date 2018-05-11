@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdarg.h>
 
+#include <errno.h>
 #include <math.h>
 #include <wchar.h>
 #include <stdlib.h>
@@ -3739,6 +3740,108 @@ qsptr_t qsSTDIO_write_u8 (qsmem_t * mem, qsptr_t p, int octet)
   return p;
 }
 
+
+
+
+/* Create atom object based on string representation of object. */
+qsptr_t qsatom_parse_cstr (qsmem_t * mem, const char * repr, int reprmax)
+{
+  char * endptr = NULL;
+  /* Cheating by using libc functions. */
+
+  if (!repr) return QSNIL;
+  if (!*repr) return QSNIL;
+  if (reprmax == 0)
+    {
+      reprmax = strlen(repr);
+    }
+
+  /* try integer. */
+  long ival = strtol(repr, &endptr, 10);
+  if (endptr && (*endptr == 0))
+    { /* all of it was integer. */
+      if (ival > (~(0) >> SHIFT_PTR30))
+	{
+	  return QSINT(ival);
+	}
+      else
+	{
+	  return qslong_make(mem, ival);
+	}
+    }
+  /* try float */
+  float fval = strtof(repr, &endptr);
+  if ((errno == 0) && endptr && (! *endptr))
+    {
+      return QSFLOAT(fval);
+    }
+  /* try double */
+  double dval = strtod(repr, &endptr);
+  if ((errno == 0) && endptr && !*endptr)
+    {
+      return qsdouble_make(mem, dval);
+    }
+  /* try string */
+  int slen = strlen(repr);
+  if ((*repr == '"') && (repr[slen-1] == '"'))
+    {
+      /* string-like. */
+      /* TODO: interpret escape sequences. */
+      return qsstr_inject(mem, repr+1, slen-2);
+    }
+  /* try quoted */
+  qsptr_t symname = QSNIL;
+  /* try special */
+  if (*repr == '#')
+    {
+      if ((0 == strcmp(repr+1, "t")) || (0 == strcmp(repr+1, "true")))
+	{
+	  return QSTRUE;
+	}
+      if ((0 == strcmp(repr+1, "f")) || (0 == strcmp(repr+1, "false")))
+	{
+	  return QSFALSE;
+	}
+      if (*(repr+1) == ':')
+	{ /* keyword. */
+	  symname = qsstr_inject(mem, repr, 0);
+	}
+    }
+  /* TODO: fails if multiple quote-class characters in a row. */
+  if (*repr == '\'')
+    {
+      symname = qsstr_inject(mem, repr+1, 0);
+    }
+  if (*repr == '`')
+    {
+      symname = qsstr_inject(mem, repr+1, 0);
+    }
+  if (*repr == ',')
+    {
+      if (repr[1] == '@')
+	{
+	  symname = qsstr_inject(mem, repr+2, 0);
+	}
+      else
+	{
+	  symname = qsstr_inject(mem, repr+1, 0);
+	}
+    }
+  /* try symbol. */
+  /* if (qssymbol_is_valid_name(repr)) */
+  if (ISNIL(symname))
+    {
+      symname = qsstr_inject(mem, repr, 0);
+    }
+
+  if (!ISNIL(symname))
+    {
+      return qssymbol_make(mem, symname);
+    }
+
+  /* give up */
+  return QSBLACKHOLE;
+}
 
 
 

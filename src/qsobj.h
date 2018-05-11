@@ -733,6 +733,7 @@ qsptr_t qsSTDIO_write_bytevector (qsmem_t * mem, qsptr_t p);
 */
 
 
+qsptr_t qsatom_parse_cstr (qsmem_t * mem, const char * s, int slen);
 
 int qsptr_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
 

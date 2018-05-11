@@ -144,6 +144,24 @@ qsptr_t qssexpr_revlist_to_qsutf8 (qsheap_t * mem, qsptr_t revlist)
 }
 
 static
+qsptr_t qssexpr_revlist_to_atom (qsheap_t * mem, qsptr_t revlist)
+{
+  qsword lislen = qslist_length(mem, revlist);
+  qsptr_t lexeme = qsutf8_make(mem, lislen);
+  char * payload = qsobj_ref_data(mem, lexeme, NULL);
+  for (int i = 0; i < lislen; i++)
+    {
+      qsptr_t node = qslist_ref(mem, revlist, lislen-i-1);
+      int ch = CCHAR24(node);
+      payload[i] = ch;
+    }
+  size_t slen;
+  qsptr_t retval = qsatom_parse_cstr(mem, payload, lislen);
+  printf("atom [%s] is %08x\n", payload, retval);
+  return retval;
+}
+
+static
 qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** endptr)
 {
   qsptr_t retval = QSBLACKHOLE;
@@ -174,9 +192,6 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 	    }
 	}
 
-      printf("(ch='%c', state=%s, next=%s, output=%s)\n", ch, reader_op_str[state], reader_op_str[nextstate], reader_op_str[output]);
-      printf(" (next?=%08x, root=%08x, parent=%08x, prev=%08x)\n", nextnode, retval, parent, prevnode);
-
       switch (output)
 	{
 	case PARSER_DISCARD:
@@ -191,7 +206,8 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 	  /* fallthrough */
 	case PARSER_APPEND_ATOM:
 	  /* atom construction complete, append to result. */
-	  atomval = qssexpr_revlist_to_qsutf8(mem, lexeme);
+	  //atomval = qssexpr_revlist_to_qsutf8(mem, lexeme);
+	  atomval = qssexpr_revlist_to_atom(mem, lexeme);
 
 	  if (retval == QSBLACKHOLE)
 	    { /* case 4: toplevel atom. */
@@ -267,7 +283,6 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 	      nextnode = parent;
 	    }
 	  prevnode = nextnode;
-//	  if ((prevnode == retval) || !qspair_p(mem, prevnode))
 	  if ((prevnode == QSBLACKHOLE) || ISNIL(prevnode))
 	    halt = 1;  /* error or end of toplevel list. */
 	  break;

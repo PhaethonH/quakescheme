@@ -839,11 +839,11 @@ START_TEST(test_sexpr1)
   const char * remainder;
   qsptr_t se7 = qssexpr_parse_cstr(heap1, 0, "(1 (atom #\\space \"foobar\")lorem_ipsum_dolor_sit_amet(alpha bravo charlie (d e l t a)) (#true))extra", &remainder);
   qsptr_crepr(heap1, se7, buf, sizeof(buf));
-  ck_assert_str_eq(buf, "(1 (atom #\\space \"foobar\") lorem_ipsum_dolor_sit_amet (alpha bravo charlie (d e l t a)) (#true))");
+  ck_assert_str_eq(buf, "(1 (atom #\\space \"foobar\") lorem_ipsum_dolor_sit_amet (alpha bravo charlie (d e l t a)) (#t))");
   ck_assert_str_eq(remainder, "extra");
 
-  qsptr_t se8g = qssexpr_parse_cstr(heap1, 0, "(1 (2 3) 4)", NULL);
-  qsptr_crepr(heap1, se8g, buf, sizeof(buf));
+  qsptr_t se8 = qssexpr_parse_cstr(heap1, 0, "(1 (2 3) 4)", NULL);
+  qsptr_crepr(heap1, se8, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(1 (2 3) 4)");
 }
 END_TEST
