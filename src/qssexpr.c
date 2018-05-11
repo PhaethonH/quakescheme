@@ -30,6 +30,7 @@ int is_string_escape (int ch) { return (ch == '\\'); }
 int is_any (int ch) { return 1; }
 
 enum reader_op_e {
+    /* Reader states. Order is significant. */
     READER_INIT = 0,
     READER_ATOM,
     READER_STRING,
@@ -50,6 +51,7 @@ enum reader_op_e {
 
 /* table of names for debugging purposes */
 const char * reader_op_str[] = {
+    /* Order matters, match enum reader_op_e */
     "READER_INIT",
     "READER_ATOM",
     "READER_STRING",
@@ -72,7 +74,7 @@ struct matchrule_s {
     enum reader_op_e output;
 };
 
-struct matchrule_s matchrule_INIT[] = {
+struct matchrule_s matchrule0_INIT[] = {
       { is_end, READER_END, PARSER_DISCARD },
       { is_whitespace, READER_INIT, PARSER_DISCARD },
       { is_op, READER_INIT, PARSER_BEGIN_LIST },
@@ -82,7 +84,7 @@ struct matchrule_s matchrule_INIT[] = {
       { NULL, 0, 0 },
 };
 
-struct matchrule_s matchrule_ATOM[] = {
+struct matchrule_s matchrule0_ATOM[] = {
       { is_end, READER_END, PARSER_APPEND_ATOM },
       { is_whitespace, READER_INIT, PARSER_APPEND_ATOM },
       { is_op, READER_INIT, PARSER_APPEND_ATOM },
@@ -92,7 +94,7 @@ struct matchrule_s matchrule_ATOM[] = {
       { NULL, 0, 0 },
 };
 
-struct matchrule_s matchrule_STRING[] = {
+struct matchrule_s matchrule0_STRING[] = {
       { is_end, READER_END, PARSER_FORCE_END_STRING },
       { is_string_escape, READER_STRING_ESCAPE, PARSER_CONSUME },
       { is_string_delimit, READER_STRING_END, PARSER_CONSUME },
@@ -100,30 +102,31 @@ struct matchrule_s matchrule_STRING[] = {
       { NULL, 0, 0 },
 };
 
-struct matchrule_s matchrule_STRING_ESCAPE[] = {
+struct matchrule_s matchrule0_STRING_ESCAPE[] = {
       { is_end, READER_END, PARSER_FORCE_END_STRING },
       { is_any, READER_STRING, PARSER_CONSUME },
       { NULL, 0, 0 },
 };
 
-struct matchrule_s matchrule_STRING_END[] = {
+struct matchrule_s matchrule0_STRING_END[] = {
       { is_end, READER_END, PARSER_APPEND_ATOM },
       { is_any, READER_INIT, PARSER_APPEND_ATOM },
       { NULL, 0, 0 },
 };
 
-struct matchrule_s matchrule_END[] = {
+struct matchrule_s matchrule0_END[] = {
       { is_any, READER_END, PARSER_HALT },
       { NULL, 0, 0 },
 };
 
-struct matchrule_s *matchruleset[READER_MAX] = {
-    matchrule_INIT,
-    matchrule_ATOM,
-    matchrule_STRING,
-    matchrule_STRING_ESCAPE,
-    matchrule_STRING_END,
-    matchrule_END,
+struct matchrule_s *matchruleset0[READER_MAX] = {
+    /* Order matters; match order in enum reader_op_e */
+    matchrule0_INIT,
+    matchrule0_ATOM,
+    matchrule0_STRING,
+    matchrule0_STRING_ESCAPE,
+    matchrule0_STRING_END,
+    matchrule0_END,
 };
 
 
@@ -178,7 +181,8 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
   ch = srcstr[scan];
   while (!halt)
     {
-      const struct matchrule_s *matchrules = matchruleset[state], *entry = NULL;
+      const struct matchrule_s *matchrules = matchruleset0[state];
+      const struct matchrule_s *entry = NULL;
       nextstate = READER_END;
       output = PARSER_DISCARD;
       /* find rule to match. */
@@ -327,6 +331,10 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 
 qsptr_t qssexpr_parse_cstr (qsheap_t * mem, int version, const char * srcstr, const char ** endptr)
 {
-  return qssexpr_parse0_cstr(mem, srcstr, endptr);
+  switch (version)
+    {
+    case 0:
+      return qssexpr_parse0_cstr(mem, srcstr, endptr);
+    }
 }
 

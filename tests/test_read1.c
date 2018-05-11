@@ -807,8 +807,8 @@ END_TEST
 START_TEST(test_sexpr1)
 {
   init();
-  qsptr_t se0 = qssexpr_parse_cstr(heap1, 0, "hello", NULL);
 
+  qsptr_t se0 = qssexpr_parse_cstr(heap1, 0, "hello", NULL);
   qsptr_crepr(heap1, se0, buf, sizeof(buf));
   ck_assert_str_eq(buf, "hello");
 
@@ -848,10 +848,25 @@ START_TEST(test_sexpr1)
 }
 END_TEST
 
+START_TEST(test_sexpr2)
+{
+  init();
+
+  qsptr_t se0 = qssexpr_parse_cstr(heap1, 0, "(&+ 2 3)", NULL);
+  qsptr_crepr(heap1, se0, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(&+ 2 3)");
+  qs_inject_exp(scheme1, se0);
+  qs_step(scheme1);
+  qs_step(scheme1);
+  ck_assert_int_eq(scheme1->A, QSINT(5));
+}
+END_TEST
+
 
 TESTCASE(reader1,
   TFUNC(test_reader1)
   TFUNC(test_sexpr1)
+  TFUNC(test_sexpr2)
   )
 
 TESTSUITE(suite1,
