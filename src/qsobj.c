@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdarg.h>
 
+#include <errno.h>
 #include <math.h>
 #include <wchar.h>
 #include <stdlib.h>
@@ -331,7 +332,7 @@ qserror_t qsobj_setq_ptr (qsmem_t * mem, qsptr_t p, qsword field_idx, qsptr_t va
   qsptr_t * ptr = qsobj_prepare_ptr(mem, p, field_idx);
   if (!ptr) return QSERROR_INVALID;
   *ptr = val;
-  return QSERROR_OK;
+  return p;
 }
 
 qserror_t qsobj_setq_octet (qsmem_t * mem, qsptr_t p, qsword field_idx, int val)
@@ -339,7 +340,7 @@ qserror_t qsobj_setq_octet (qsmem_t * mem, qsptr_t p, qsword field_idx, int val)
   uint8_t * octet = qsobj_prepare_octet(mem, p, field_idx);
   if (!octet) return QSERROR_INVALID;
   *octet = val;
-  return QSERROR_OK;
+  return p;
 }
 
 
@@ -598,6 +599,10 @@ const char * qsobj_typeof (qsmem_t * mem, qsptr_t p)
         }
       if (qspair_p(mem, p)) return "Pair";
       if (qstree_p(mem, p)) return "Tree";
+    }
+  if (qsiter_p(mem, p))
+    {
+      return "Iter";
     }
   return "UNK";
 }
@@ -1445,6 +1450,11 @@ qsptr_t qspair_iter (qsmem_t * mem, qsptr_t p)
 int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
+  n += snprintf(buf+n, buflen-n, "( ");
+  n += qsptr_crepr(mem, qspair_ref_a(mem,p), buf+n, buflen-n);
+  n += snprintf(buf+n, buflen-n, " . ");
+  n += qsptr_crepr(mem, qspair_ref_a(mem,p), buf+n, buflen-n);
+  n += snprintf(buf+n, buflen-n, ")");
   return n;
 }
 
@@ -1552,6 +1562,7 @@ qsptr_t qslist_ref (qsmem_t * mem, qsptr_t p, qsword k)
 #else
   qsptr_t it = qslist_tail(mem, p, k);
   if (ISNIL(it)) return QSNIL;
+  if (ISERROR16(it)) return it;
   return qsiter_item(mem, it);
 #endif //0
 }
@@ -1562,12 +1573,25 @@ int qslist_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 
   n += snprintf(buf+n, buflen-n, "(");
   qsptr_t it = qslist(mem, p);
-  while (!ISNIL(it))
+  qsptr_t it0 = it;
+  while (ISITER28(it) && (n < buflen))
     {
+      if (it != it0)
+        n += snprintf(buf+n, buflen-n, " ");
       qsptr_t elt = qsiter_item(mem, it);
-      n += qsptr_crepr(mem, elt, buf+n, buflen-n);
-      n += snprintf(buf+n, buflen-n, " ");
+      if (ISERROR16(elt))
+	break;
+      if (ISITER28(elt))
+	{
+	  n += qslist_crepr(mem, elt, buf+n, buflen-n);
+	}
+      else
+	{
+	  n += qsptr_crepr(mem, elt, buf+n, buflen-n);
+	}
       it = qsiter_next(mem, it);
+      if (ISERROR16(it))
+	break;
     }
   n += snprintf(buf+n, buflen-n, ")");
 
@@ -1868,6 +1892,7 @@ qsptr_t qsimmlist_injectv (qsmem_t * mem, va_list vp)
 	depth--;
       nptrs++;
     }
+  nptrs++;
   va_end(vp0);
 
   /* Prepare memory. */
@@ -1881,6 +1906,7 @@ qsptr_t qsimmlist_injectv (qsmem_t * mem, va_list vp)
       elt = va_arg(vp, qsptr_t);
       raw_data[i] = elt;
     }
+  raw_data[i] = QSEOL;
 
   return retval;
 }
@@ -2272,7 +2298,7 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
   else if (ISITER28(it))
     {
       qsword ofs = qsiter_get(mem, it);
-      qsptr_t ref = 0;
+      qsptr_t ref = QSERROR_INVALID;
       qserror_t err = qsheap_word(mem, ofs, &ref);
       if (err != QSERROR_OK)
 	return QSNIL;
@@ -2282,10 +2308,15 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
 	  qsptr_t iter2 = QSITER( CITER28(it)+1 );
 	  return iter2;
 	}
+      else if (ref == QSEOL)
+	{
+	  // failure in qsiter_next() for returning pointer to QSEOL.
+	  return QSERROR_RANGE;
+	}
       return ref;
     }
   // TODO: exception.
-  return QSNIL;
+  return QSERROR_INVALID;
 }
 
 qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
@@ -2295,7 +2326,7 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
     {
       /* iter is pointing to pair bay. */
       qsptr_t next = qspair_ref_d(mem, pairptr);
-      if (ISNIL(next))
+      if (! ISOBJ26(next))
 	return QSNIL;
       qsmemaddr_t next_addr = COBJ26(next);
       qsmemaddr_t iter_addr = next_addr << 2;
@@ -2354,6 +2385,26 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
 qsptr_t qsiter_crepr (qsmem_t * mem, qsptr_t it, char * buf, int buflen)
 {
   int n = 0;
+  qsptr_t pair = QSNIL;
+  qsptr_t elt;
+  if (qsiter_on_pair(mem, it, &pair))
+    {
+      elt = qspair_ref_a(mem, pair);
+      if (! ISERROR16(elt))
+	n += qsptr_crepr(mem, elt, buf+n, buflen-n);
+    }
+  else
+    {
+      elt = qsiter_item(mem, it);
+      if (elt == QSBOL)
+	{
+	  n += snprintf(buf+n, buflen-n, "(");
+	  n += qslist_crepr(mem, qsiter_next(mem,it), buf+n, buflen-n);
+	  n += snprintf(buf+n, buflen-n, ")");
+	}
+      else if (! ISERROR16(elt))
+        n += qsptr_crepr(mem, elt, buf+n, buflen-n);
+    }
   return n;
 }
 
@@ -2524,6 +2575,23 @@ int qschar_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
   return n;
 }
 
+CMP_FUNC(qschar)
+{
+  if (!qschar_p(mem, a) &&  !qschar_p(mem, b))
+    {
+      return CMP_NE;
+    }
+  if (!qschar_p(mem, a))
+    return CMP_LT;
+  if (!qschar_p(mem,b))
+    return CMP_GT;
+  int cp_a = CCHAR24(a);
+  int cp_b = CCHAR24(b);
+  if (cp_a < cp_b) return CMP_LT;
+  if (cp_a > cp_b) return CMP_GT;
+  return CMP_EQ;
+}
+
 
 
 
@@ -2610,7 +2678,7 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
   switch (c)
     {
     case QSNIL:
-      n += snprintf(buf+n, buflen-n, "'()");
+      n += snprintf(buf+n, buflen-n, "()");
       break;
     case QSTRUE:
       n += snprintf(buf+n, buflen-n, "#t");
@@ -3277,7 +3345,7 @@ int qssymbol_crepr (qsmem_t * mem, qsptr_t y, char * buf, int buflen)
 {
   int n = 0;
   qsptr_t s = qssymbol_ref_name(mem, y);
-  n += qsstr_crepr(mem, s, buf+n, buflen-n);
+  n += qsstr_extract(mem, s, buf+n, buflen-n) - 1;
   return n;
 }
 
@@ -3381,6 +3449,37 @@ qsptr_t qsenv_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key)
   return apair;
 }
 
+qsword qsenv_sublen (qsmem_t * mem, qsptr_t treenode)
+{
+  int n = 1;
+  qsptr_t left = qstree_ref_left(mem, treenode);
+  qsptr_t right = qstree_ref_right(mem, treenode);
+  if (ISOBJ26(left))
+    {
+      n += qsenv_sublen(mem, left);
+    }
+  if (ISOBJ26(right))
+    {
+      n += qsenv_sublen(mem, right);
+    }
+  return n;
+}
+
+qsword qsenv_length (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsenv_p)	return 0;
+  qsptr_t dict = qsenv_ref_dict(mem, p);
+  if (ISNIL(dict))	return 0;
+  qsptr_t tree = qsrbtree_ref_top(mem, dict);
+  int n = qsenv_sublen(mem, tree);
+  qsptr_t next = qsenv_ref_next(mem, p);
+  if (!ISNIL(next))
+    {
+      //n += qsenv_length(mem, next);
+    }
+  return n;
+}
+
 qsptr_t qsenv_ref (qsmem_t * mem, qsptr_t p, qsptr_t key)
 {
   qsptr_t frame = p;
@@ -3399,7 +3498,14 @@ qsptr_t qsenv_ref (qsmem_t * mem, qsptr_t p, qsptr_t key)
 
 qsptr_t qsenv_setq (qsmem_t * mem, qsptr_t p, qsptr_t key, qsptr_t val)
 {
+  /*
   FILTER_ISA(qsenv_p)   return p;
+  */
+  if (! qsenv_p(mem, p))
+    {
+      p = qsenv_make(mem, QSNIL);
+    }
+
   qsptr_t apair = qsenv_assoc(mem, p, key);
   if (ISNIL(apair))
     {
@@ -3637,6 +3743,108 @@ qsptr_t qsSTDIO_write_u8 (qsmem_t * mem, qsptr_t p, int octet)
 
 
 
+/* Create atom object based on string representation of object. */
+qsptr_t qsatom_parse_cstr (qsmem_t * mem, const char * repr, int reprmax)
+{
+  char * endptr = NULL;
+  /* Cheating by using libc functions. */
+
+  if (!repr) return QSNIL;
+  if (!*repr) return QSNIL;
+  if (reprmax == 0)
+    {
+      reprmax = strlen(repr);
+    }
+
+  /* try integer. */
+  long ival = strtol(repr, &endptr, 10);
+  if (endptr && (*endptr == 0))
+    { /* all of it was integer. */
+      if (ival > (~(0) >> SHIFT_PTR30))
+	{
+	  return QSINT(ival);
+	}
+      else
+	{
+	  return qslong_make(mem, ival);
+	}
+    }
+  /* try float */
+  float fval = strtof(repr, &endptr);
+  if ((errno == 0) && endptr && (! *endptr))
+    {
+      return QSFLOAT(fval);
+    }
+  /* try double */
+  double dval = strtod(repr, &endptr);
+  if ((errno == 0) && endptr && !*endptr)
+    {
+      return qsdouble_make(mem, dval);
+    }
+  /* try string */
+  int slen = strlen(repr);
+  if ((*repr == '"') && (repr[slen-1] == '"'))
+    {
+      /* string-like. */
+      /* TODO: interpret escape sequences. */
+      return qsstr_inject(mem, repr+1, slen-2);
+    }
+  /* try quoted */
+  qsptr_t symname = QSNIL;
+  /* try special */
+  if (*repr == '#')
+    {
+      if ((0 == strcmp(repr+1, "t")) || (0 == strcmp(repr+1, "true")))
+	{
+	  return QSTRUE;
+	}
+      if ((0 == strcmp(repr+1, "f")) || (0 == strcmp(repr+1, "false")))
+	{
+	  return QSFALSE;
+	}
+      if (*(repr+1) == ':')
+	{ /* keyword. */
+	  symname = qsstr_inject(mem, repr, 0);
+	}
+    }
+  /* TODO: fails if multiple quote-class characters in a row. */
+  if (*repr == '\'')
+    {
+      symname = qsstr_inject(mem, repr+1, 0);
+    }
+  if (*repr == '`')
+    {
+      symname = qsstr_inject(mem, repr+1, 0);
+    }
+  if (*repr == ',')
+    {
+      if (repr[1] == '@')
+	{
+	  symname = qsstr_inject(mem, repr+2, 0);
+	}
+      else
+	{
+	  symname = qsstr_inject(mem, repr+1, 0);
+	}
+    }
+  /* try symbol. */
+  /* if (qssymbol_is_valid_name(repr)) */
+  if (ISNIL(symname))
+    {
+      symname = qsstr_inject(mem, repr, 0);
+    }
+
+  if (!ISNIL(symname))
+    {
+      return qssymbol_make(mem, symname);
+    }
+
+  /* give up */
+  return QSBLACKHOLE;
+}
+
+
+
 int qsobj_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
@@ -3701,7 +3909,8 @@ int qsptr_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
     }
   else if (ISITER28(p))
     {
-      n += qsiter_crepr(mem, p, buf+n, buflen-n);
+      //n += qsiter_crepr(mem, p, buf+n, buflen-n);
+      n += qslist_crepr(mem, p, buf+n, buflen-n);
     }
   else if (ISOBJ26(p))
     {

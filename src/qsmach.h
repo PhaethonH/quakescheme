@@ -36,4 +36,8 @@ qs_t * qs_step (qs_t * machine);
 qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp);
 
 
+/* debugging */
+int qs_dump (qs_t * machine);
+
+
 #endif // QSMACH_H_

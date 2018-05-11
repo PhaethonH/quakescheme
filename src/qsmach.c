@@ -138,11 +138,12 @@ So, use entry point for machine program injection.
 */
 qs_t * qs_inject_exp (qs_t * machine, qsptr_t exp)
 {
+  machine->halt = 0;
   machine->C = exp;
   machine->K = QSNIL;
   machine->A = QSNIL;
 
-  if (ISNIL(machine->E))
+  if (!qsenv_p(machine->store, machine->E))
     {
       machine->E = qsenv_make(machine->store, QSNIL);
     }
@@ -262,10 +263,18 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 			  qspair_setq_d(mem, argiter, next);
 			  argiter = next;
 			}
+		      aiter = TAIL(aiter);
 		    }
 
 		  /* O(prim) (value1, value2, .., valueN) */
-		  retval = oper(machine, args);
+		  if (oper)
+		    {
+		      retval = oper(machine, args);
+		    }
+		  else
+		    {
+		      retval = QSERROR_INVALID;
+		    }
 		}
 	      else
 		{
@@ -303,6 +312,7 @@ int qs_applykont (qs_t * machine, qsptr_t kont, qsptr_t value)
   if (ISNIL(kont))
     {
       machine->halt = 1;
+      //machine->C = machine->A;
       return 0;
     }
   else
@@ -366,6 +376,13 @@ int qs_applyproc (qs_t * machine, qsptr_t proc, qsptr_t args)
     {
       qs_applykont(machine, proc, HEAD(args));
     }
+  else
+    {
+      /* cannot apply as procedure. */
+      machine->A = QSERROR_INVALID;
+      machine->K = QSNIL;
+      machine->halt = 1;
+    }
 
   return 0;
 }
@@ -402,7 +419,8 @@ qs_t * qs_step (qs_t * machine)
 	      qsptr_t cond = HEAD(tail);
 	      qsptr_t consequent = HEAD(TAIL(tail));
 	      qsptr_t alternate = HEAD(TAIL(TAIL(tail)));
-	      if (cond == QSFALSE)
+	      qsptr_t testval = qs_atomic_eval(machine, cond);
+	      if (testval == QSFALSE)
 		{
 		  machine->C = alternate;
 		}
@@ -420,7 +438,7 @@ qs_t * qs_step (qs_t * machine)
 	      qsptr_t exp0 = HEAD(TAIL(dec0));
 	      qsptr_t body = HEAD(TAIL(tail));
 
-	      qsptr_t k = qskont_make(machine->store, QSKONT_LETK, machine->E, machine->K, body, var0);
+	      qsptr_t k = qskont_make(machine->store, QSKONT_LETK, machine->K, machine->E, body, var0);
 	      machine->C = exp0;
 	      machine->K = k;
 
@@ -501,9 +519,41 @@ qs_t * qs_step (qs_t * machine)
 	}
       qs_applyproc(machine, proc, args);
     }
+  else
+    {
+      machine->halt = 1;
+      machine->A = QSERROR_INVALID;
+    }
 
   return machine;
 }
 
 
+
+
+
+char dumpbuf[131072];
+int qs_dump (qs_t * machine)
+{
+  memset(dumpbuf, sizeof(dumpbuf), 0);
+  int n = 0;
+  int dumpbuflen = sizeof(dumpbuf);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "{\n");
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  halt=%d\n", machine->halt);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  A = %08x\n", machine->A);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  C = ");
+  n += qsptr_crepr(machine->store, machine->C, dumpbuf+n, dumpbuflen-n);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "\n");
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  E = [%d] (%08x, %08x)",
+		qsenv_length(machine->store, machine->E),
+		machine->E,
+		qsenv_ref_next(machine->store, machine->E));
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "\n");
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "  K = ");
+  n += qsptr_crepr(machine->store, machine->K, dumpbuf+n, dumpbuflen-n);
+  n += snprintf(dumpbuf+n, dumpbuflen-n, "}\n");
+
+  puts(dumpbuf);
+  return n;
+}
 

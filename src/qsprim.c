@@ -62,7 +62,8 @@ qsptr_t qsop_obj_setq_ptr (qs_t * machine, qsptr_t args)
   qsptr_t arg_nth = ARG(1);
   qsptr_t val = ARG(2);
   qsword nth = qsint_get(machine->store, arg_nth);
-  return qsobj_setq_ptr(machine->store, obj, nth, val);
+  qsobj_setq_ptr(machine->store, obj, nth, val);
+  return obj;
 }
 
 qsptr_t qsop_obj_ref_octet (qs_t * machine, qsptr_t args)
@@ -80,7 +81,8 @@ qsptr_t qsop_obj_setq_octet (qs_t * machine, qsptr_t args)
   qsptr_t arg_val = ARG(2);
   qsword nth = qsint_get(machine->store, arg_nth);
   int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_octet(machine->store, obj, nth, val);
+  qsobj_setq_octet(machine->store, obj, nth, val);
+  return obj;
 }
 
 qsptr_t qsop_obj_used_p (qs_t * machine, qsptr_t args)
@@ -101,7 +103,8 @@ qsptr_t qsop_obj_setq_marked (qs_t * machine, qsptr_t args)
   qsptr_t obj = ARG(0);
   qsptr_t arg_val = ARG(1);
   int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_marked(machine->store, obj, val);
+  qsobj_setq_marked(machine->store, obj, val);
+  return obj;
 }
 
 qsptr_t qsop_obj_ref_allocsize (qs_t * machine, qsptr_t args)
@@ -122,7 +125,8 @@ qsptr_t qsop_obj_setq_parent (qs_t * machine, qsptr_t args)
   qsptr_t obj = ARG(0);
   qsptr_t arg_val = ARG(1);
   int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_parent(machine->store, obj, val);
+  qsobj_setq_parent(machine->store, obj, val);
+  return obj;
 }
 
 qsptr_t qsop_obj_ref_score (qs_t * machine, qsptr_t args)
@@ -136,10 +140,96 @@ qsptr_t qsop_obj_setq_score (qs_t * machine, qsptr_t args)
   qsptr_t obj = ARG(0);
   qsptr_t arg_val = ARG(1);
   int val = qsint_get(machine->store, arg_val);
-  return qsobj_setq_score(machine->store, obj, val);
+  qsobj_setq_score(machine->store, obj, val);
+  return obj;
 }
 
 
+
+
+qsptr_t qsop_char_equal_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  qsptr_t res = qschar_cmp(machine->store, a, b);
+  return QSBOOL(res == CMP_EQ);
+}
+
+qsptr_t qsop_char_to_integer (qs_t * machine, qsptr_t args)
+{
+  qsptr_t chobj = ARG(0);
+  return qsint_make(machine->store, qschar_p(machine->store, chobj));
+}
+
+qsptr_t qsop_integer_to_char (qs_t * machine, qsptr_t args)
+{
+  qsptr_t intobj = ARG(0);
+  return qschar_make(machine->store, qsint_get(machine->store, intobj));
+}
+
+
+
+
+qsptr_t qsop_int_eq_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  return QSBOOL(a == b);
+}
+
+qsptr_t qsop_int_lt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  return QSBOOL(a < b);
+}
+
+qsptr_t qsop_int_gt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  return QSBOOL(a > b);
+}
+
+qsptr_t qsop_int_add (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  return QSINT(CINT30(a) + CINT30(b));
+}
+
+qsptr_t qsop_int_sub (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  return QSINT(CINT30(a) - CINT30(b));
+}
+
+qsptr_t qsop_int_mul (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  return QSINT(CINT30(a) * CINT30(b));
+}
+
+
+
+qsptr_t qsop_str_ref (qs_t * machine, qsptr_t args)
+{
+  qsptr_t sobj = ARG(0);
+  qsptr_t nth = ARG(1);
+
+  qsptr_t retval = qsstr_ref(machine->store, sobj, nth);
+  return retval;
+}
+
+qsptr_t qsop_str_length (qs_t * machine, qsptr_t args)
+{
+  qsptr_t sobj = ARG(0);
+
+  qsptr_t retval = QSINT(qsstr_length(machine->store, sobj));
+  return retval;
+}
 
 
 
@@ -147,6 +237,10 @@ qsptr_t qsop_obj_setq_score (qs_t * machine, qsptr_t args)
 qsprimmap_t qsprims [MAX_PRIMS] = {
       { "&&",	  qsprim_crash },
       { "&.",	  qsprim_halt },
+
+      { "&+",	  qsop_int_add },
+      { "&-",	  qsop_int_sub },
+      { "&*",	  qsop_int_mul },
 
       { "&o?",	  qsop_obj_p },
       { "&o*",	  qsop_obj_make },
@@ -162,6 +256,19 @@ qsprimmap_t qsprims [MAX_PRIMS] = {
       { "&o!P",	  qsop_obj_setq_parent },
       { "&o@S",	  qsop_obj_ref_score },
       { "&o!S",	  qsop_obj_setq_score },
+
+      { "&c=?",	  qsop_char_equal_p },
+      { "&c|i",	  qsop_char_to_integer },
+
+      { "&i=?",	  qsop_int_eq_p },
+      { "&i<?",	  qsop_int_lt_p },
+      { "&i>?",	  qsop_int_gt_p },
+      { "&i+",	  qsop_int_add },
+      { "&i-",	  qsop_int_sub },
+      { "&i*",	  qsop_int_mul },
+
+      { "&s@",	  qsop_str_ref },
+      { "&s#",	  qsop_str_length },
 
       { 0, 0 },
 };
