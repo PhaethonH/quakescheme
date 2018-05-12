@@ -2210,6 +2210,7 @@ qsptr_t qslong_make2 (qsmem_t * mem, int32_t high, uint32_t low)
 int qslong_crepr (qsmem_t * mem, qsptr_t l, char * buf, int buflen)
 {
   int n = 0;
+  n += snprintf(buf+n, buflen-n, "%ld", qslong_get(mem, l));
   return n;
 }
 
@@ -2250,6 +2251,7 @@ qsptr_t qsdouble_make (qsmem_t * mem, double val)
 int qsdouble_crepr (qsmem_t * mem, qsptr_t d, char * buf, int buflen)
 {
   int n = 0;
+  n += snprintf(buf+n, buflen-n, "%g", qsdouble_get(mem, d));
   return n;
 }
 
@@ -3861,6 +3863,7 @@ qsptr_t qsSTDIO_write_u8 (qsmem_t * mem, qsptr_t p, int octet)
 qsptr_t qsatom_parse_cstr (qsmem_t * mem, const char * repr, int reprmax)
 {
   char * endptr = NULL;
+
   /* Cheating by using libc functions. */
 
   if (!repr) return QSNIL;
@@ -3874,12 +3877,14 @@ qsptr_t qsatom_parse_cstr (qsmem_t * mem, const char * repr, int reprmax)
   long ival = strtol(repr, &endptr, 10);
   if (endptr && (*endptr == 0))
     { /* all of it was integer. */
-      if (ival > (~(0) >> SHIFT_PTR30))
+       if ((MIN_INT30 <= ival) && (ival <= MAX_INT30))
 	{
+	  /* fits in one-word. */
 	  return QSINT(ival);
 	}
       else
 	{
+	  /* create object to store as long. */
 	  return qslong_make(mem, ival);
 	}
     }

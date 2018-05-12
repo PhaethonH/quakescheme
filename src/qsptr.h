@@ -109,14 +109,17 @@ typedef union qsbits_u qsbits_t;
 #define TAG_CONST16 0xffff
 
 
-#define QSFLOAT(x) (((qsbits_t)((float)(x))).u | TAG_FLOAT31)
-#define QSINT(x) (((x) << SHIFT_INT30) | TAG_INT30)
-#define QSITER(x) (((x) << SHIFT_ITER28) | TAG_ITER28)
-#define QSOBJ(x) (((x) << SHIFT_HEAP26) | TAG_HEAP26)
-#define QSSYM(x) (((x) << SHIFT_SYM26) | TAG_SYM26)
-#define QSCHAR(x) (((x) << SHIFT_CHAR24) | TAG_CHAR24)
-#define QSERROR(x) (((x) << SHIFT_ERROR16) | TAG_ERROR16)
-#define QSCONST(x) (((x) << SHIFT_CONST16) | TAG_CONST16)
+#define QSFLOAT(x) ((((qsbits_t)((float)(x))).u & ~(TAGMASK_FLOAT31)) | TAG_FLOAT31)
+#define QSINT(x) ((qsword)(((x) << SHIFT_INT30) | TAG_INT30))
+#define QSITER(x) (((qsword)((x) << SHIFT_ITER28) | TAG_ITER28))
+#define QSOBJ(x) ((qsword)(((x) << SHIFT_HEAP26) | TAG_HEAP26))
+#define QSSYM(x) ((qsword)(((x) << SHIFT_SYM26) | TAG_SYM26))
+#define QSCHAR(x) ((qsword)(((x) << SHIFT_CHAR24) | TAG_CHAR24))
+#define QSERROR(x) ((qsword)(((x) << SHIFT_ERROR16) | TAG_ERROR16))
+#define QSCONST(x) ((qsword)(((x) << SHIFT_CONST16) | TAG_CONST16))
+
+#define MAX_INT30 ((int)(~((qsword)0) >> (SHIFT_PTR30 + 1)))
+#define MIN_INT30 ((int)(-MAX_INT30 - 1))
 
 #define ISNIL(x) (x == QSNIL)
 #define ISFLOAT31(x) ((((qsbits_t)(x)).u & TAGMASK_FLOAT31) == TAG_FLOAT31)
