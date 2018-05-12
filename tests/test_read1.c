@@ -808,49 +808,51 @@ START_TEST(test_reader1)
 }
 END_TEST
 
+/* TODO: v0 parser. */
+
 START_TEST(test_sexpr1)
 {
   init();
 
-  qsptr_t se0 = qssexpr_parse_cstr(heap1, 0, "hello", NULL);
+  qsptr_t se0 = qssexpr_parse_cstr(heap1, 1, "hello", NULL);
   qsptr_crepr(heap1, se0, buf, sizeof(buf));
   ck_assert_str_eq(buf, "hello");
 
-  qsptr_t se1 = qssexpr_parse_cstr(heap1, 0, "\"hi\"", NULL);
+  qsptr_t se1 = qssexpr_parse_cstr(heap1, 1, "\"hi\"", NULL);
   qsptr_crepr(heap1, se1, buf, sizeof(buf));
   ck_assert_str_eq(buf, "\"hi\"");
 
-  qsptr_t se2 = qssexpr_parse_cstr(heap1, 0, "\"hi", NULL);
+  qsptr_t se2 = qssexpr_parse_cstr(heap1, 1, "\"hi", NULL);
   qsptr_crepr(heap1, se2, buf, sizeof(buf));
   ck_assert_str_eq(buf, "\"hi\"");
 
-  qsptr_t se3 = qssexpr_parse_cstr(heap1, 0, "(baz)", NULL);
+  qsptr_t se3 = qssexpr_parse_cstr(heap1, 1, "(baz)", NULL);
   qsptr_crepr(heap1, se3, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(baz)");
 
-  qsptr_t se4 = qssexpr_parse_cstr(heap1, 0, "(foo bar)", NULL);
+  qsptr_t se4 = qssexpr_parse_cstr(heap1, 1, "(foo bar)", NULL);
   qsptr_crepr(heap1, se4, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(foo bar)");
 
-  qsptr_t se5 = qssexpr_parse_cstr(heap1, 0, "((quux))", NULL);
+  qsptr_t se5 = qssexpr_parse_cstr(heap1, 1, "((quux))", NULL);
   qsptr_crepr(heap1, se5, buf, sizeof(buf));
   ck_assert_str_eq(buf, "((quux))");
 
-  qsptr_t se6 = qssexpr_parse_cstr(heap1, 0, "(foo bar(foobar)quux ())", NULL);
+  qsptr_t se6 = qssexpr_parse_cstr(heap1, 1, "(foo bar(foobar)quux ())", NULL);
   qsptr_crepr(heap1, se6, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(foo bar (foobar) quux ())");
 
   const char * remainder;
-  qsptr_t se7 = qssexpr_parse_cstr(heap1, 0, "(1 (atom #\\space \"foobar\")lorem_ipsum_dolor_sit_amet(alpha bravo charlie (d e l t a)) (#true))extra", &remainder);
+  qsptr_t se7 = qssexpr_parse_cstr(heap1, 1, "(1 (atom #\\space \"foobar\")lorem_ipsum_dolor_sit_amet(alpha bravo charlie (d e l t a)) (#true))extra", &remainder);
   qsptr_crepr(heap1, se7, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(1 (atom #\\space \"foobar\") lorem_ipsum_dolor_sit_amet (alpha bravo charlie (d e l t a)) (#t))");
   ck_assert_str_eq(remainder, "extra");
 
-  qsptr_t se8 = qssexpr_parse_cstr(heap1, 0, "(1 (2 3) 4)", NULL);
+  qsptr_t se8 = qssexpr_parse_cstr(heap1, 1, "(1 (2 3) 4)", NULL);
   qsptr_crepr(heap1, se8, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(1 (2 3) 4)");
 
-  qsptr_t se9 = qssexpr_parse_cstr(heap1, 0, "(((quuux)))", NULL);
+  qsptr_t se9 = qssexpr_parse_cstr(heap1, 1, "(((quuux)))", NULL);
   qsptr_crepr(heap1, se9, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(((quuux)))");
 
@@ -861,7 +863,7 @@ START_TEST(test_sexpr2)
 {
   init();
 
-  qsptr_t se0 = qssexpr_parse_cstr(heap1, 0, "(&+ 2 3)", NULL);
+  qsptr_t se0 = qssexpr_parse_cstr(heap1, 1, "(&+ 2 3)", NULL);
   qsptr_crepr(heap1, se0, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(&+ 2 3)");
   qs_inject_exp(scheme1, se0);
@@ -877,18 +879,18 @@ START_TEST(test_cexp1)
 
   qsptr_t e0 = qsenv_make(heap1, QSNIL);
 
-  qsptr_t se0 = qssexpr_parse_cstr(heap1, 0, "(let ((foo 42)) foo)", NULL);
+  qsptr_t se0 = qssexpr_parse_cstr(heap1, 1, "(let ((foo 42)) foo)", NULL);
   qsptr_crepr(heap1, se0, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(let ((foo 42)) foo)");
   lim_run0(e0, se0);
   ck_assert_int_eq(scheme1->A, QSINT(42));
 
-  qsptr_t se1 = qssexpr_parse_cstr(heap1, 0, "(&+ 1 2)", NULL);
+  qsptr_t se1 = qssexpr_parse_cstr(heap1, 1, "(&+ 1 2)", NULL);
   qsptr_crepr(heap1, se1, buf, sizeof(buf));
   lim_run0(e0, se1);
   ck_assert_int_eq(scheme1->A, QSINT(3));
 
-  qsptr_t se2 = qssexpr_parse_cstr(heap1, 0, "(let ((f (lambda (x) (&+ 1 x)))) (f 3))", NULL);
+  qsptr_t se2 = qssexpr_parse_cstr(heap1, 1, "(let ((f (lambda (x) (&+ 1 x)))) (f 3))", NULL);
   qsptr_crepr(heap1, se2, buf, sizeof(buf));
   lim_run0(e0, se2);
   ck_assert_int_eq(scheme1->A, QSINT(4));
