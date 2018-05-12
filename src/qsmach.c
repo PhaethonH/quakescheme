@@ -208,7 +208,7 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 	       || (0 == strcmp(symname, "λ")))
 	    {
 	      qsptr_t param = HEAD(tail);
-	      qsptr_t body = TAIL(tail);
+	      qsptr_t body = HEAD(TAIL(tail));
 	      qsptr_t lam = qslambda_make(mem, param, body);
 	      qsptr_t clo = qsclosure_make(mem, machine->E, lam);
 	      retval = clo;

@@ -882,14 +882,24 @@ START_TEST(test_cexp1)
   ck_assert_str_eq(buf, "(let ((foo 42)) foo)");
   lim_run0(e0, se0);
   ck_assert_int_eq(scheme1->A, QSINT(42));
+
+  qsptr_t se1 = qssexpr_parse_cstr(heap1, 0, "(&+ 1 2)", NULL);
+  qsptr_crepr(heap1, se1, buf, sizeof(buf));
+  lim_run0(e0, se1);
+  ck_assert_int_eq(scheme1->A, QSINT(3));
+
+  qsptr_t se2 = qssexpr_parse_cstr(heap1, 0, "(let ((f (lambda (x) (&+ 1 x)))) (f 3))", NULL);
+  qsptr_crepr(heap1, se2, buf, sizeof(buf));
+  lim_run0(e0, se2);
+  ck_assert_int_eq(scheme1->A, QSINT(4));
 }
 END_TEST
 
 
 TESTCASE(reader1,
-//  TFUNC(test_reader1)
-//  TFUNC(test_sexpr1)
-//  TFUNC(test_sexpr2)
+  TFUNC(test_reader1)
+  TFUNC(test_sexpr1)
+  TFUNC(test_sexpr2)
   TFUNC(test_cexp1)
   )
 
