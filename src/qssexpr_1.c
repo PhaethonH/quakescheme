@@ -8,13 +8,14 @@
 
 
 /*
-Simplistic S-Expression reader.
+Basic S-Expression reader.
 
 * NULL
 * list
 * atom:
   * symbol (from identifier)
   * string (delimiters ('"') stripped)
+  * number (float31, int30, long, double, nan, inf)
   * other (typically '#...")
 */
 
