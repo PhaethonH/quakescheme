@@ -1002,12 +1002,13 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
   root = qsrbtree_setq_down(mem, root, qsrbtree_ref_top(mem, root));
 
   qsptr_t d = QSNIL;
-  qsptr_t newkey = qspair_ref_a(mem, apair);
+  //qsptr_t newkey = qspair_ref_a(mem, apair);
+  qsptr_t newkey = qstree_ref_data(mem, apair);
   cmp_t libra = 0;
   qsword lim = 258;  /* avoid infinite loop; max used depth around  31. */
 
   /* traverse to bottom of tree. */
-  while (!ISNIL(qsrbtree_ref_down(mem, root)) && (--lim > 0))
+  while (!ISNIL(qsrbtree_ref_down(mem, root)) && (--lim > 1))
     {
       qsptr_t currnode = qsrbtree_ref_down(mem, root);
       d = qstree_ref_data(mem, currnode);
@@ -1027,7 +1028,7 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
       switch (libra)
         {
         case CMP_EQ: /* match */
-          lim = 0;
+          lim = 1;
           break;
         case CMP_LT:
           /* go left. */
@@ -1279,7 +1280,7 @@ int qsrbtree_node_crepr (qsmem_t * mem, qsptr_t node, char * buf, int buflen)
     }
   else
     {
-      n += snprintf(buf+n, buflen-n, "#{%s@%08x}", qsobj_typeof(mem, data), data);
+      //n += snprintf(buf+n, buflen-n, "#{%s@%08x}", qsobj_typeof(mem, data), data);
       n += qsptr_crepr(mem, data, buf+n, buflen-n);
     }
 
@@ -3949,25 +3950,19 @@ qsptr_t qsatom_parse_cstr (qsmem_t * mem, const char * repr, int reprmax)
 
   if (!ISNIL(symname))
     {
-      printf("** SYMBOL: %s **\n", qsutf8_cptr(mem,symname));
       if (ISNIL(mem->symstore))
 	{
-	  printf("instantiated symstore\n");
 	  mem->symstore = qssymstore_make(mem);
 	}
-      printf("symstore = %08x\n", mem->symstore);
       qsptr_t found = qssymstore_assoc(mem, mem->symstore, symname);
       if (qssymbol_p(mem, found))
 	{
-	  printf("to-sym found %s\n", qsutf8_cptr(mem,qssymbol_ref_name(mem,found)));
 	  return found;
 	}
       found = qssymbol_make(mem, symname);
-      printf("new-sym [%08x] %s\n", found, qsutf8_cptr(mem,qssymbol_ref_name(mem,found)));
       mem->symstore = qssymstore_intern(mem, mem->symstore, found);
 	{
 	  qsptr_t chk = qssymstore_assoc(mem, mem->symstore, symname);
-	  printf(" intern check chk=%08x v made=%08x\n", chk, found);
 	}
       return found;
     }
