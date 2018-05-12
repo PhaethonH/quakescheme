@@ -60,6 +60,9 @@ START_TEST(test_env1)
   q0 = qsenv_ref(heap1, e0, syms[1]);
   ck_assert_int_eq(q0, QSERROR_INVALID);
 
+  qsenv_crepr(heap1, e0, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(ENV foo:10)");
+
 
   /* Frame 1: check resolving down frames. */
   qsptr_t e1 = qsenv_make(heap1, e0);
@@ -99,6 +102,8 @@ START_TEST(test_env1)
   q0 = qsenv_ref(heap1, e0, syms[0]);
   ck_assert_int_eq(q0, QSINT(10));
 
+  qsenv_crepr(heap1, e1, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(ENV lorem_ipsum:13 baz:12 bar:11)");
 }
 END_TEST
 

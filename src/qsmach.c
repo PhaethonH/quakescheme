@@ -12,6 +12,7 @@ qs_t * qs_init (qs_t * machine, qsheap_t * store)
   machine->K = QSNIL;
   machine->A = QSNIL;
   machine->store = store;
+//  machine->store->symstore = qssymstore_make(machine->store);
   return machine;
 }
 
@@ -530,6 +531,16 @@ qs_t * qs_step (qs_t * machine)
 
 
 
+
+int qs_intern (qs_t * machine, qsptr_t sym)
+{
+  if (ISNIL(machine->store->symstore))
+    {
+      machine->store->symstore = qssymstore_make(machine->store);
+    }
+  qssymstore_intern(machine->store, machine->store->symstore, sym);
+  return 1;
+}
 
 
 char dumpbuf[131072];

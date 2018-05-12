@@ -875,21 +875,23 @@ START_TEST(test_cexp1)
 {
   init();
 
+  qsptr_t e0 = qsenv_make(heap1, QSNIL);
+
   qsptr_t se0 = qssexpr_parse_cstr(heap1, 0, "(let ((foo 42)) foo)", NULL);
   qsptr_crepr(heap1, se0, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(let ((foo 42)) foo)");
-  qs_inject_exp(scheme1, se0);
-  qs_step(scheme1);
-  qs_step(scheme1);
+spam=1;
+  lim_run0(e0, se0);
+qs_dump(scheme1);
   ck_assert_int_eq(scheme1->A, QSINT(42));
 }
 END_TEST
 
 
 TESTCASE(reader1,
-  TFUNC(test_reader1)
-  TFUNC(test_sexpr1)
-  TFUNC(test_sexpr2)
+//  TFUNC(test_reader1)
+//  TFUNC(test_sexpr1)
+//  TFUNC(test_sexpr2)
   TFUNC(test_cexp1)
   )
 

@@ -1016,6 +1016,7 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
 	{
 	  //qsptr_t currkey = qspair_ref_a(mem, d);
 	  qsptr_t currkey = qstree_ref_data(mem, d);
+          /* TODO: qsobj_cmp */
 	  libra = qsobj_cmp(mem, newkey, currkey);
 	}
       else
@@ -1031,13 +1032,11 @@ qsptr_t qsrbtree_insert (qsmem_t * mem, qsptr_t root, qsptr_t apair)
         case CMP_LT:
           /* go left. */
 	  root = qsrbtree_split_left(mem, root);
-	  assert(!ISNIL(root));
           break;
         case CMP_NE:  /* not-equal or no-compare, go right. */
         case CMP_GT:
 	  /* go right. */
 	  root = qsrbtree_split_right(mem, root);
-	  assert(!ISNIL(root));
           break;
         }
     }
@@ -1220,10 +1219,12 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
           return probe;
           break;
         case CMP_LT:
+	  /* left */
           probe = qstree_ref_left(mem, probe);
           break;
         case CMP_NE:  /* not-equal or no-compare, go right. */
         case CMP_GT:
+	  /* right */
           probe = qstree_ref_right(mem, probe);
           break;
         }
@@ -1256,6 +1257,50 @@ qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t root, qsptr_t key)
   if (ISNIL(probe)) return QSNIL;
   qsptr_t d = qstree_ref_data(mem, probe);
   return d;
+}
+
+int qsrbtree_node_crepr (qsmem_t * mem, qsptr_t node, char * buf, int buflen)
+{
+  int n = 0;
+  qsptr_t left = qstree_ref_left(mem, node);
+  qsptr_t data = qstree_ref_data(mem, node);
+  qsptr_t right = qstree_ref_right(mem, node);
+  if (!ISNIL(left)) {
+    n += qsrbtree_node_crepr(mem, left, buf+n, buflen-n);
+    n += snprintf(buf+n, buflen-n, " ");
+  }
+  if (qspair_p(mem, data))
+    {
+      qsptr_t a = qspair_ref_a(mem, data);
+      qsptr_t d = qspair_ref_d(mem, data);
+      n += qsptr_crepr(mem, a, buf+n, buflen-n);
+      n += snprintf(buf+n, buflen-n, ":");
+      n += qsptr_crepr(mem, d, buf+n, buflen-n);
+    }
+  else
+    {
+      n += snprintf(buf+n, buflen-n, "#{%s@%08x}", qsobj_typeof(mem, data), data);
+      n += qsptr_crepr(mem, data, buf+n, buflen-n);
+    }
+
+  if (!ISNIL(right)) {
+    n += snprintf(buf+n, buflen-n, " ");
+    n += qsrbtree_node_crepr(mem, right, buf+n, buflen-n);
+  }
+  return n;
+}
+
+int qsrbtree_crepr (qsmem_t * mem, qsptr_t rbtree, char * buf, int buflen)
+{
+  int n = 0;
+
+  qsptr_t top = qsrbtree_ref_top(mem, rbtree);
+  qsptr_t probe = top;
+  n += snprintf(buf+n, buflen-n, "(rbtree ");
+  n += qsrbtree_node_crepr(mem, probe, buf+n, buflen-n);
+  n += snprintf(buf+n, buflen-n, ")");
+
+  return n;
 }
 
 
@@ -3313,10 +3358,28 @@ qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name)
   qsptr_t y = qssym_make(mem, addr);
   qstree_setq_right(mem, retval, y);
 #else
+  int always_intern = 0;
+  if (always_intern)
+    {
+      qsptr_t found = qssymstore_assoc(mem, mem->symstore, name);
+      if (qssymbol_p(mem, found))
+	return found;
+    }
+
   qsptr_t retval = qstree_make(mem, QST_SYMBOL, name, QSNIL);
   if (!ISOBJ26(retval)) return retval;
   /* right field value to address value. */
   qstree_setq_right(mem, retval, QSINT(COBJ26(retval)));
+
+  if (always_intern)
+    {
+      // (?) always intern
+      if (ISNIL(mem->symstore))
+	{
+	  mem->symstore = qssymstore_make(mem);
+	}
+      qssymstore_intern(mem, mem->symstore, retval);
+    }
 #endif //0
 
   return retval;
@@ -3377,6 +3440,12 @@ qsptr_t qssymstore_make (qsmem_t * mem)
   MUTATE_PTR(1, tag);     /* .tag = tag */
   MUTATE_PTR(2, table);   /* .table = table */
   MUTATE_PTR(3, tree);    /* .tree = tree */
+
+  if (ISNIL(mem->symstore))
+    {
+      /* system symstore auto-binds to first created symstore. */
+      mem->symstore = p;
+    }
 
   return p;
 }
@@ -3535,9 +3604,53 @@ qsptr_t qsenv_make (qsmem_t * mem, qsptr_t next)
 
 CMP_FUNC_NAIVE(qsenv);
 
+int qsenv_helper_crepr (qsmem_t * mem, qsptr_t x, char * buf, int buflen)
+{
+  int n = 0;
+  qsptr_t left = qstree_ref_left(mem, x);
+  qsptr_t data = qstree_ref_data(mem, x);
+  qsptr_t right = qstree_ref_right(mem, x);
+  if (!ISNIL(left)) {
+    n += qsenv_helper_crepr(mem, left, buf+n, buflen-n);
+    n += snprintf(buf+n, buflen-n, " ");
+  }
+  if (qspair_p(mem, data))
+    {
+      qsptr_t a = qspair_ref_a(mem, data);
+      qsptr_t d = qspair_ref_d(mem, data);
+//      n += snprintf(buf+n, buflen-n, " ");
+      n += qsptr_crepr(mem, a, buf+n, buflen-n);
+      n += snprintf(buf+n, buflen-n, ":");
+      n += qsptr_crepr(mem, d, buf+n, buflen-n);
+//      n += snprintf(buf+n, buflen-n, " ");
+    }
+  else
+    {
+      n += qsptr_crepr(mem, data, buf+n, buflen-n);
+    }
+
+  if (!ISNIL(right)) {
+    n += snprintf(buf+n, buflen-n, " ");
+    n += qsenv_helper_crepr(mem, right, buf+n, buflen-n);
+  }
+  return n;
+}
+
 int qsenv_crepr (qsmem_t * mem, qsptr_t e, char * buf, int buflen)
 {
   int n = 0;
+
+  qsptr_t rbtree = qsenv_ref_dict(mem, e);
+  qsptr_t top = qsrbtree_ref_top(mem, rbtree);
+  qsptr_t probe = top;
+  n += snprintf(buf+n, buflen-n, "(ENV ");
+//  while (!ISNIL(probe))
+    {
+      n += qsenv_helper_crepr(mem, probe, buf+n, buflen-n);
+      //n += qsrbtree_node_crepr(mem, probe, buf+n, buflen-n);
+    }
+  n += snprintf(buf+n, buflen-n, ")");
+
   return n;
 }
 
@@ -3836,7 +3949,27 @@ qsptr_t qsatom_parse_cstr (qsmem_t * mem, const char * repr, int reprmax)
 
   if (!ISNIL(symname))
     {
-      return qssymbol_make(mem, symname);
+      printf("** SYMBOL: %s **\n", qsutf8_cptr(mem,symname));
+      if (ISNIL(mem->symstore))
+	{
+	  printf("instantiated symstore\n");
+	  mem->symstore = qssymstore_make(mem);
+	}
+      printf("symstore = %08x\n", mem->symstore);
+      qsptr_t found = qssymstore_assoc(mem, mem->symstore, symname);
+      if (qssymbol_p(mem, found))
+	{
+	  printf("to-sym found %s\n", qsutf8_cptr(mem,qssymbol_ref_name(mem,found)));
+	  return found;
+	}
+      found = qssymbol_make(mem, symname);
+      printf("new-sym [%08x] %s\n", found, qsutf8_cptr(mem,qssymbol_ref_name(mem,found)));
+      mem->symstore = qssymstore_intern(mem, mem->symstore, found);
+	{
+	  qsptr_t chk = qssymstore_assoc(mem, mem->symstore, symname);
+	  printf(" intern check chk=%08x v made=%08x\n", chk, found);
+	}
+      return found;
     }
 
   /* give up */

@@ -215,6 +215,7 @@ typedef struct qsheap_s {
     uint32_t cap;		/* maximum number of words. */
     //qsheapaddr_t freelist;	/* start of free list. */
     qsheapaddr_t end_freelist;	/* end of free list. */
+    qsptr_t symstore;
     //qsobj_t space[];
     qsheapcell_t space[];
 } qsheap_t;

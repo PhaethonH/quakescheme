@@ -242,6 +242,7 @@ qsptr_t qsrbtree_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key);
 
 qsptr_t qsrbtree_make (qsmem_t * mem, qsptr_t top_node, qsptr_t cmp);
 cmp_t qsrbtree_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
+int qsrbtree_crepr (qsmem_t * mem, qsptr_t rbtree, char * buf, int buflen);
 
 
 
