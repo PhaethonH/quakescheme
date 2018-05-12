@@ -337,7 +337,9 @@ int qssxparse_v0_feed (qsheap_t * mem, struct qssxparse_s * parser, int ch, qspt
 	      else
 		{ /* case 3: new list is nested. */
 		  qssexpr_log("list3");
-		  parser->parent = qspair_make(mem, QSNIL, parser->parent);
+		  parser->nextnode = qspair_make(mem, QSNIL, parser->parent);
+		  qspair_setq_a(mem, parser->parent, parser->nextnode);
+		  parser->parent = parser->nextnode;
 		}
 	    }
 	  else

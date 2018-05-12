@@ -849,6 +849,11 @@ START_TEST(test_sexpr1)
   qsptr_t se8 = qssexpr_parse_cstr(heap1, 0, "(1 (2 3) 4)", NULL);
   qsptr_crepr(heap1, se8, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(1 (2 3) 4)");
+
+  qsptr_t se9 = qssexpr_parse_cstr(heap1, 0, "(((quuux)))", NULL);
+  qsptr_crepr(heap1, se9, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(((quuux)))");
+
 }
 END_TEST
 
@@ -866,11 +871,26 @@ START_TEST(test_sexpr2)
 }
 END_TEST
 
+START_TEST(test_cexp1)
+{
+  init();
+
+  qsptr_t se0 = qssexpr_parse_cstr(heap1, 0, "(let ((foo 42)) foo)", NULL);
+  qsptr_crepr(heap1, se0, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(let ((foo 42)) foo)");
+  qs_inject_exp(scheme1, se0);
+  qs_step(scheme1);
+  qs_step(scheme1);
+  ck_assert_int_eq(scheme1->A, QSINT(42));
+}
+END_TEST
+
 
 TESTCASE(reader1,
   TFUNC(test_reader1)
   TFUNC(test_sexpr1)
   TFUNC(test_sexpr2)
+  TFUNC(test_cexp1)
   )
 
 TESTSUITE(suite1,
