@@ -20,6 +20,27 @@ Simplistic S-Expression reader.
 */
 
 
+#include <stdarg.h>
+static
+int qssexpr_logv (const char * fmt, va_list vp)
+{
+  int retval;
+  if (0)
+    {
+     retval = vprintf(fmt, vp);
+     puts("");
+    }
+  return retval;
+}
+static
+int qssexpr_log (const char * fmt, ...)
+{
+  va_list vp;
+  va_start(vp, fmt);
+  return qssexpr_logv(fmt, vp);
+}
+
+
 
 int is_end (int ch) { return ch == 0; }
 int is_whitespace (int ch) { return isspace(ch); }
@@ -160,28 +181,72 @@ qsptr_t qssexpr_revlist_to_atom (qsheap_t * mem, qsptr_t revlist)
     }
   size_t slen;
   qsptr_t retval = qsatom_parse_cstr(mem, payload, lislen);
-  printf("atom [%s] is %08x\n", payload, retval);
+  qssexpr_log("atom [%s] is %08x\n", payload, retval);
   return retval;
 }
 
-static
-qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** endptr)
-{
-  qsptr_t retval = QSBLACKHOLE;
-  qsptr_t parent = QSNIL, prevnode = QSNIL, nextnode = QSNIL;
-  int ch = 0;
-  int prevch = 0;
-  int scan = 0;
-  int halt = 0;
-  enum reader_op_e state = READER_INIT, nextstate = READER_END;
-  enum reader_op_e output = 0;
-  qsptr_t lexeme = QSNIL;
-  qsptr_t atomval = QSNIL;
 
-  ch = srcstr[scan];
-  while (!halt)
+/* S-Expression parser state. */
+struct qssxparse_s {
+    int version;
+    int complete;   /* 1=expression in root is comlete; 0=incomplete. */
+
+    qsheap_t * mem;
+    qsptr_t root;
+    qsptr_t parent;
+    qsptr_t prevnode;
+    qsptr_t nextnode;
+
+    int ch;	    /* most recently processed character. */
+    int prevch;	    /* pushed character to be processed next cycle. */
+    enum reader_op_e state;
+    qsptr_t lexeme; /* lexeme built so far. */
+};
+
+struct qssxparse_s * qssxparse_init (qsheap_t * mem, struct qssxparse_s * parser, int version)
+{
+  qssexpr_log("parser init");
+  parser->version = 0;
+  parser->root = QSBLACKHOLE;
+  parser->parent = QSNIL;
+  parser->prevnode = QSNIL;
+  parser->nextnode = QSNIL;
+  parser->ch = 0;
+  parser->prevch = 0;
+  parser->state = READER_INIT;
+  parser->lexeme = QSNIL;
+  parser->complete = 0;
+
+  return parser;
+}
+
+/*
+   Feed S-Expression parser one character at a time.
+
+   Returns completion state of parser,
+     0 = no object ready
+     1 = completed objected stored in *out
+         if out==NULL, object can still be retrieved from private field ->root
+*/
+static
+int qssxparse_v0_feed (qsheap_t * mem, struct qssxparse_s * parser, int ch, qsptr_t * out)
+{
+  enum reader_op_e nextstate = READER_END;
+  enum reader_op_e output = 0;
+  qsptr_t atomval = QSNIL;
+  int pending = 1;
+
+  while (pending)
     {
-      const struct matchrule_s *matchrules = matchruleset0[state];
+      if (parser->prevch)
+	{
+	  /* Resumed with a pushed character. */
+	  parser->ch = ch;
+	  ch = parser->prevch;
+	  parser->prevch = 0;
+	}
+
+      const struct matchrule_s *matchrules = matchruleset0[parser->state];
       const struct matchrule_s *entry = NULL;
       nextstate = READER_END;
       output = PARSER_DISCARD;
@@ -196,115 +261,165 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 	    }
 	}
 
+      qssexpr_log("(ch='%c', state=%s, next=%s, output=%s)\n", ch, reader_op_str[parser->state], reader_op_str[nextstate], reader_op_str[output]);
+      qssexpr_log(" (root=%08x, parent=%08x, prevnode=%08x, nextnode=%08x\n",
+	     parser->root, parser->parent, parser->prevnode, parser->nextnode);
+
       switch (output)
 	{
 	case PARSER_DISCARD:
 	  break;
 	case PARSER_CONSUME:
 	  /* concatenate current character onto pending atom. */
-	  lexeme = qspair_make(mem, QSCHAR(ch), lexeme);
+	  parser->lexeme = qspair_make(mem, QSCHAR(ch), parser->lexeme);
 	  break;
 	case PARSER_FORCE_END_STRING:
 	  /* append string delimiter ("), then append as atom. */
-	  lexeme = qspair_make(mem, QSCHAR('"'), lexeme);
+	  parser->lexeme = qspair_make(mem, QSCHAR('"'), parser->lexeme);
 	  /* fallthrough */
 	case PARSER_APPEND_ATOM:
 	  /* atom construction complete, append to result. */
 	  //atomval = qssexpr_revlist_to_qsutf8(mem, lexeme);
-	  atomval = qssexpr_revlist_to_atom(mem, lexeme);
+	  atomval = qssexpr_revlist_to_atom(mem, parser->lexeme);
 
-	  if (retval == QSBLACKHOLE)
+	  if (parser->root == QSBLACKHOLE)
 	    { /* case 4: toplevel atom. */
-	      retval = atomval;
-	      halt = 1;
+	      qssexpr_log("atom4");
+	      parser->root = atomval;
+	      parser->complete = 1;
 	    }
-	  else if (qspair_p(mem, retval) || ISNIL(retval))
+	  else if (qspair_p(mem, parser->root) || ISNIL(parser->root))
 	    { /* else, add to list. */
-	      if (ISNIL(prevnode))
+	      if (ISNIL(parser->prevnode))
 		{
 		  /* case 2: create (and link) list node, cdr=parent. */
-		  nextnode = qspair_make(mem, atomval, parent);
-		  qspair_setq_a(mem, parent, nextnode);
-		  if (ISNIL(retval))
+		  qssexpr_log("atom2");
+		  parser->nextnode = qspair_make(mem, atomval, parser->parent);
+		  qspair_setq_a(mem, parser->parent, parser->nextnode);
+		  if (ISNIL(parser->root))
 		    {
-		      /* case 2b: start nesting of lists. */
-		      retval = nextnode;
+		      /* case 3: start nesting of lists. */
+		      qssexpr_log("atom3");
+		      parser->root = parser->nextnode;
 		    }
 		}
 	      else
 		{
 		  /* case 1: middle of a list; preserve cdr=parent. */
-		  qsptr_t temp = qspair_ref_d(mem, prevnode);
-		  nextnode = qspair_make(mem, atomval, temp);
-		  qspair_setq_d(mem, prevnode, nextnode);
+		  qssexpr_log("atom1");
+		  qsptr_t temp = qspair_ref_d(mem, parser->prevnode);
+		  parser->nextnode = qspair_make(mem, atomval, temp);
+		  qspair_setq_d(mem, parser->prevnode, parser->nextnode);
 		}
-	      prevnode = nextnode;
+	      parser->prevnode = parser->nextnode;
 	    }
 
-	  lexeme = QSNIL;
-	  prevch = ch; /* push one character. */
+	  parser->lexeme = QSNIL;
+	  parser->prevch = ch; /* push one character. */
 	  break;
 	case PARSER_BEGIN_LIST:
 	  /* start of a new list; on atom read, modify nextnode->al. */
 
-	  if (ISNIL(prevnode))
+	  if (ISNIL(parser->prevnode))
 	    { /* start of list-of-list. */
-	      if (retval == QSBLACKHOLE)
+	      if (parser->root == QSBLACKHOLE)
 		{ /* case 1: toplevel list; changes retval on atom add. */
-		  retval = QSNIL;
-		  parent = QSNIL;
+		  qssexpr_log("list1");
+		  parser->root = QSNIL;
+		  parser->parent = QSNIL;
 		}
-	      else if (ISNIL(retval))
+	      else if (ISNIL(parser->root))
 		{ /* case 2: start list nesting; atom-add=>setcar(parent,) */
-		  retval = nextnode = qspair_make(mem, QSNIL, QSBLACKHOLE);
-		  parent = nextnode;
+		  qssexpr_log("list2");
+		  parser->root = parser->nextnode = qspair_make(mem, QSNIL, QSBLACKHOLE);
+		  parser->parent = parser->nextnode;
 		}
 	      else
 		{ /* case 3: new list is nested. */
-		  parent = qspair_make(mem, QSNIL, parent);
+		  qssexpr_log("list3");
+		  parser->parent = qspair_make(mem, QSNIL, parser->parent);
 		}
 	    }
 	  else
 	    {
 	      /* case 4: list nested in middle of list. */
-	      qsptr_t temp = qspair_ref_d(mem, prevnode);
-	      nextnode = qspair_make(mem, QSNIL, temp);
-	      qspair_setq_d(mem, prevnode, nextnode);
-	      parent = nextnode;
+	      qssexpr_log("list4");
+	      qsptr_t temp = qspair_ref_d(mem, parser->prevnode);
+	      parser->nextnode = qspair_make(mem, QSNIL, temp);
+	      qspair_setq_d(mem, parser->prevnode, parser->nextnode);
+	      parser->parent = parser->nextnode;
 	    }
 
-	  prevnode = QSNIL;
+	  parser->prevnode = QSNIL;
 	  break;
 	case PARSER_END_LIST:
 	  /* Finish list building, resume building on parent. */
-	  if (!ISNIL(prevnode))
+	  if (!ISNIL(parser->prevnode))
 	    { /* Salient list; resume parent building by chasing cdr. */
-	      nextnode = qspair_ref_d(mem, prevnode);
-	      qspair_setq_d(mem, prevnode, QSNIL);
+	      parser->nextnode = qspair_ref_d(mem, parser->prevnode);
+	      qspair_setq_d(mem, parser->prevnode, QSNIL);
 	    }
 	  else
 	    { /* No list node built, skip back to parent. */
-	      nextnode = parent;
+	      parser->nextnode = parser->parent;
 	    }
-	  prevnode = nextnode;
-	  if ((prevnode == QSBLACKHOLE) || ISNIL(prevnode))
-	    halt = 1;  /* error or end of toplevel list. */
+	  parser->prevnode = parser->nextnode;
+	  if ((parser->prevnode == QSBLACKHOLE) || ISNIL(parser->prevnode))
+	    parser->complete = 1; /* error or end of toplevel list. */
 	  break;
 	case PARSER_HALT:
-	  halt = 1;
-	  prevch = ch;
+	  parser->complete = 1;
+	  parser->prevch = ch;
 	  break;
 	}
 
-      state = nextstate;
+      parser->state = nextstate;
 
-      if (prevch)
+      /* next char */
+      if (parser->prevch)
 	{ /* pull a pushed character. */
-	  ch = prevch;
-	  prevch = 0;
+	  parser->ch = ch = parser->prevch;
+	  parser->prevch = 0;
+	  pending = 1;
 	}
-      else if (srcstr[scan])
+      else
 	{ /* get next character. */
+	  parser->ch = ch;
+	  pending = 0;
+	}
+    }
+
+  if (parser->complete)
+    {
+      while (qspair_p(mem, parser->prevnode))
+	{ /* unwind: list-ends are cdr=parent, change to null and chase */
+	  parser->nextnode = qspair_ref_d(mem, parser->prevnode);
+	  qspair_setq_d(mem, parser->prevnode, QSNIL);
+	  parser->prevnode = parser->nextnode;
+	}
+      if (out)
+	*out = parser->root;
+    }
+
+  return parser->complete;
+}
+
+static
+qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** endptr)
+{
+  qsptr_t retval = QSBLACKHOLE;
+  int ch = 0;
+  int scan = 0;
+  struct qssxparse_s _parser = { 0, }, *parser = &_parser;
+
+  qssxparse_init(mem, parser, 0);
+  ch = srcstr[scan];
+  while (! parser->complete)
+    {
+      qssxparse_v0_feed(mem, parser, ch, &retval);
+
+      if (srcstr[scan])
+	{
 	  scan++;
 	  ch = srcstr[scan];
 	}
@@ -313,19 +428,10 @@ qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** 
 	  ch = 0;
 	}
     }
-
-  while (qspair_p(mem, prevnode))
-    { /* unwind: list-ends are cdr=parent, change to null and chase */
-      nextnode = qspair_ref_d(mem, prevnode);
-      qspair_setq_d(mem, prevnode, QSNIL);
-      prevnode = nextnode;
-    }
-
   if (endptr)
     {
-      *endptr = srcstr+scan;
+      *endptr = srcstr + scan;
     }
-
   return retval;
 }
 
@@ -335,6 +441,10 @@ qsptr_t qssexpr_parse_cstr (qsheap_t * mem, int version, const char * srcstr, co
     {
     case 0:
       return qssexpr_parse0_cstr(mem, srcstr, endptr);
+      break;
+    default:
+      break;
     }
+  return QSBLACKHOLE;
 }
 

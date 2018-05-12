@@ -778,7 +778,9 @@ START_TEST(test_reader1)
   qsptr_t dummyroot = qspair_make(heap1, QSCHAR(' '), QSNIL);
   e0 = qsenv_setq(heap1, e0, sym._, dummyroot);
   exp = qsimmlist_injectl(heap1, sym.add_tok, sym._, sym._, QSEOL);
+/*
   spam=1;
+*/
   lim_run(e0, exp);
 //  printf("A = %08x\n", scheme1->A);
 //  puts(qsobj_typeof(heap1, scheme1->A));
@@ -799,8 +801,10 @@ START_TEST(test_reader1)
   ck_assert_str_eq(buf, "foobar");
   */
 
+/*
   puts("--END--");
   qs_dump(scheme1);
+*/
 }
 END_TEST
 
