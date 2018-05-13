@@ -1,0 +1,396 @@
+R7RS Small
+
+
+; Directives
+#!fold-case
+#!no-fold-case
+
+; PRIMITIVE EXPRESSION TYPES
+;; Literal Expression
+[quote DATUM]	'DATUM
+;; Procedures
+[OPERATOR OPERAND1 ...]
+[lambda FORMALS BODY]
+;; Conditionals
+[if TEST CONSEQUENT ALTERNATE]		[if TEST CONSEQUENT]
+;; Assignments
+[set! VARAIBLE EXPRESSION]
+;; Inclusion
+[include STRING1 STRING2 ...]
+[include-ci STRING1 STRING2 ...]
+
+; DERIVED EXPRESSION TYPES
+;; Conditionals
+[cond CLAUSE1 CLAUSE2 ...]		else		=>
+[case KEY CLAUSE1 CLAUSE2 ...]		else
+[and TEST1 ...]
+[or TEST1 ...]
+[when TEST EXPR1 EXPR2 ...]
+[unless TEST EXPR1 EXPR2 ...]
+[cond-expand CE-CLAUSE1 CE-CLAUSE2 ...]		else
+;; Binding Constructs
+[let BINDINGS BODY]
+[let* BINDINGS BODY]
+[letrec BINDINGS BODY]
+[letrec* BINDINGS BODY]
+[let-values (MV BINDING SPEC) BODY]
+[let*-values (MV BINDING SPEC) BODY]
+;; Sequencing
+[begin EXPR_OR_DEF ...]			[begin EXPR1 EXPR2 ...]
+;; Iteration
+[do ((VAR1 INIT1 STEP1) ...) (TEST EXPR ...) COMMAND ...]
+[let VARIABLE BINDINGS BODY]	; named let
+;; Delayed Evaluation
+(delay EXPR)		; lib.lazy
+(delay-force EXPR)	; lib.lazy
+(force PROMISE)		; lib.lazy
+(promise? OBJ)		; lib.lazy
+(make-promise OBJ)	; lib.lazy
+;; Dynamic Binding
+(make-parameter INIT)		(make-parameter INIT CONVERTER)
+[parameterize ((PARAM1 VALUE1) ...) BODY]
+;; Exception Handling
+[guard (VAR COND_CLAUSE1 COND_CLAUSE2 ...) BODY]
+;; Quasiquotation
+[quasiquote QQ_TEMPLATE]
+unquote			,
+unquote-splicing	,@
+;; Case-lambda
+[case-lambda CLAUSE ...]	; lib.case-lambda
+
+; MACROS
+;; Binding constructs, syntactic keywords
+[let-syntax BINDINGS BODY]
+[letrec-syntax BINDINGS BODY]
+;; Pattern Language
+[syntax-rules LITERAL]
+[syntax-rules ELLIPSIS (LITERAL ..) SYNTAX_RULE ...]
+;; Errors in macro transformers
+[syntax-error MESSAGE ARGS]
+
+; PROGRAMS
+;; Import declarations
+(import IMPORT_SET ...)
+  LIBRARY_NAME
+  (only IMPORT_SET IDENTIFIER ...)
+  (except IMPORT_SET IDENTIIFER ...)
+  (prefix IMPORT_SET IDENTIFIER)
+  (rename IMPORT_SET (IDENTIFIER1 IDENTIFIER2) ...)
+;; Variable Definitions
+[define VAR EXPRESSION]
+[define (VARIABLE FORMALS) BODY]
+[define (VARIABLE . FORMAL) BODY]
+;; Multiple-values definition
+[define-values FORMALS EXPRESSION]
+;; Syntax definitions
+[define-syntax KEYWORD TRANSFORMER_SPEC]
+;; Record-type definitions
+[define-record-type NAME CONSTRUCTOR FIELD1 ...]
+
+; LIBRARIES
+;; Library syntax
+[define-library LIBRARY_NAME LIBRARY_DECLARATION ...]
+  [export EXPORT_SPEC ...]
+    [rename IDENTIFIER1 IDENTIFIER2]
+  [import IMPORT_SET ...]
+  [begin COMMAND_OR_DEFINITION ...]
+  [include FILENAME1 FILENAME2 ...]
+  [include-ci FILENAME1 FILENAME2 ...]
+  [include-library-declarations FILENAME1 FILENAME2 ...]
+  [cond-expand CE_CLAUSE1 CE_CLAUSE2 ...]
+
+; STANDARD PROCEDURES
+;; Equivalence Predicates
+(eqv? OBJ1 OBJ2)
+(eq? OBJ1 OBJ2)
+(equal? OBJ1 OBJ2)
+;; Numbers
+;;; radix prefices: #b, #o, #d, #x (bin,oct,dec,hex); #e, #i (exact,inexact)
+;;; numeric operations
+(number? OBJ)
+(complex? OBJ)
+(real? OBJ)
+(rational? OBJ)
+(integer? OBJ)
+(exact? Z)
+(inexact? Z)		; lib.inexact
+(exact-integer? Z)	; lib.inexact
+(finite? Z)		; lib.inexact
+(infinite? Z)		; lib.inexact
+(nan? Z)		; lib.inexact
+(= Z1 Z2 ...)
+(< X1 X2 ...)
+(> X1 X2 ...)
+(<= X1 X2 ...)
+(>= X1 X2 ...)
+(zero? Z)
+(positive? X)
+(negative? X)
+(odd? X)
+(even? X)
+(max X1 X2 ...)
+(min X1 X2 ...)
+(+ Z1 ...)
+(* Z1 ...)
+(- Z)
+(- Z1 Z2 ...)
+(/ Z)
+(/ Z1 Z2 ...)
+(abs X)
+(floor/ N1 N2)
+(floor-quotient N1 N2)
+(floor-remainder N1 N2)
+(truncate/ N1 N2)
+(truncate-quotient N1 N2)
+(truncate-remainder N1 N2)
+(quotient N1 N2)
+(remainder N1 N2)
+(modulo N1 N2)
+(gcd N1 ...)
+(lcm N1 ...)
+(numerator Q)
+(denomninator Q)
+(floor X)
+(ceiling X)
+(truncate X)
+(round X)
+(rationalize X Y)
+(expt Z)	; lib.inexact
+(log Z)		; lib.inexact
+(log Z1 Z2)	; lib.inexact
+(sin Z)		; lib.inexact
+(cos Z)		; lib.inexact
+(tan Z)		; lib.inexact
+(asin Z)	; lib.inexact
+(acos Z)	; lib.inexact
+(atan Z)	; lib.inexact
+(atan Y X)	; lib.inexact
+(square Z)
+(sqrt Z)	; lib.inexact
+(exact-integer-sqrt K)
+(expt Z1 Z2)
+(make-rectangular X1 X2)
+(make-polar X3 X4)	; lib.complex
+(real-part Z)	; lib.complex
+(imag-part Z)	; lib.complex
+(magnitude Z)	; lib.complex
+(angle Z)	; lib.complex
+(inexact Z)
+(exact Z)
+;;; numerical input and output
+(number->string Z)		(number->string Z RADIX)
+(string->number STRING)		(string->number STRING RADIX)
+;; Booleans
+(not OBJ)
+(boolean? OBJ)
+(boolean=? BOOL1 BOOL2 ...)
+;; Pairs and Lists
+(pair? OBJ)
+(cons OBJ1 OBJ2)
+(car PAIR)
+(cdr PAIR)
+(set-car! PAIR OBJ)
+(set-cdr! PAIR OBJ)
+;;; (ca<1..4>d<1..4>r PAIR) ; caar, cadr, cdar, cddr, caaar, caaadr, ..., cddddr
+(null? OBJ)
+(list? OBJ)
+(make-list K)		(make-list K FILL)
+(list OBJ ...)
+(length LIST)
+(append LIST ...)
+(reverse LIST ...)
+(list-tail LIST K)
+(list-ref LIST K)
+(list-set! LIST K OBJ)
+(memq OBJ LIST)
+(memv OBJ LIST)
+(member OBJ LIST)
+(member OBJ LIST COMPARE)
+(assq OBJ LIST)
+(assv OBJ LIST)
+(assoc OBJ LIST)
+(assoc OBJ LIST COMPARE)
+(list-copy OBJ)
+;; Symbols
+(symbol? OBJ)
+(symbol=? SYM1 SYM2 ...)
+(symbol->string SYMBOL)
+(string->symbol STRING)
+;; Characters
+;;; required names: #\alarm, backspace, delete, escape, newline, null, return, space, tab
+(char? OBJ)
+(char=? CHAR1 CHAR2 ...)
+(char>? CHAR1 CHAR2 ...)
+(char<? CHAR1 CHAR2 ...)
+(char>=? CHAR1 CHAR2 ...)
+(char<=? CHAR1 CHAR2 ...)
+(char-ci=? CHAR1 CHAR2 ...)	; lib.char
+(char-ci<? CHAR1 CHAR2 ...)	; lib.char
+(char-ci>? CHAR1 CHAR2 ...)	; lib.char
+(char-ci<=? CHAR1 CHAR2 ...)	; lib.char
+(char-ci>=? CHAR1 CHAR2 ...)	; lib.char
+(char-alphabetic? CHAR)		; lib.char
+(char-numeric? CHAR)		; lib.char
+(char-whitespace? CHAR)		; lib.char
+(char-upper-case? CHAR)		; lib.char
+(char-lower-case? CHAR)		; lib.char
+(digit-value CHAR)		; lib.char
+(char->integer CHAR)
+(integer->char N)
+(char-upcase CHAR)		; lib.char
+(char-downcase CHAR)		; lib.char
+(char-foldcase CHAR)		; lib.char
+;; Strings
+;;; escapes: \a, b, t, n, r, ", \, |, intraline (/\\$/), x
+(string? OBJ)
+(make-string K)
+(make-string K CHAR)
+(string CHAR ...)
+(string-length STRING)
+(string-ref STRING K)
+(string-set! STRING K CHAR)
+(string=? STRING1 STRING2 ...)
+(string<? STRING1 STRING2 ...)
+(string>? STRING1 STRING2 ...)
+(string<=? STRING1 STRING2 ...)
+(string>=? STRING1 STRING2 ...)
+(string-ci=? STRING1 STRING2 ...)	; lib.char
+(string-ci<? STRING1 STRING2 ...)	; lib.char
+(string-ci>? STRING1 STRING2 ...)	; lib.char
+(string-ci<=? STRING1 STRING2 ...)	; lib.char
+(string-ci>=? STRING1 STRING2 ...)	; lib.char
+(string-upcase STRING)		; lib.char
+(string-downcase STRING)	; lib.char
+(string-foldcase STRING)	; lib.char
+(substring STRING START END)
+(string-append STRING ...)
+(string->list STRING ?START ?END)
+(list->string LIST)
+(string-copy STRING ?START ?END)
+(string-copy! TO AT FROM ?START ?END)
+(string-fill! STRING FILL ?START ?END)
+;; Vectors
+(vector? OBJ)
+(make-vector K ?FILL)
+(vector OBJ ...)
+(vector-length VECTOR)
+(vector-ref VECTOR K)
+(vector-set! VECTOR K OBJ)
+(vector->list VECTOR ?START ?END)
+(list->vector LIST)
+(vector->string VECTOR ?START ?END)
+(string->vector STRING ?START ?END)
+(vector-copy VECTOR ?START ?END)
+(vector-copy! TO AT FROM ?START ?END)
+(vector-fill! VECTOR FILL ?START ?END)
+;; Bytevector
+(bytevector? OBJ)
+(make-bytevector K ?BYTE)
+(bytevector BYTE ...)
+(bytevector-length BYTEVECTOR)
+(bytevector-u8-ref BYTEVECTOR K)
+(bytevector-u8-set! BYTEVECTOR K BYTE)
+(bytevector-copy BYTEVECTOR ?START ?END)
+(bytevector-copy! TO AT FROM ?START ?END)
+(bytevector-append BYTEVECTOR ...)
+(utf8->string BYTEVECTOR ?START ?END)
+(string->utf8 STRING ?START ?END)
+;; Control Features
+(procedure? OBJ)
+(apply PROC ARG1 ARG2 ...)
+(map PROC LIST1 LIST2 ...)
+(string-map PROC STRING1 STRING2 ...)
+(vector-map PROC VECTOR1 VECTOR2 ...)
+(for-each PROC LIST1 LIST2)
+(string-for-each PROC STRING1 STRING2 ...)
+(vector-for-each PROC VECTOR1 VECTOR2 ...)
+(call-with-current-continuation PROC)		(call/cc PROC)
+(values OBJ ...)
+(call-with-values PRODUCER CONSUMER)
+(dynamic-wind BEFORE THUNK AFTER)
+;; Exceptions
+(with-exception-handler HANDLER THUNK)
+(raise OBJ)
+(raise-continuable OBJ)
+(error MESSAGE OBJ ...)
+(error-object? OBJ)
+(error-object-message ERROR_OBJECT)
+(error-object-irritants ERROR_OBJECT)
+(read-error? OBJ)
+(file-error? OBJ)
+;; Environment and Evaluation
+(environment LIST1 ...)		; lib.eval
+(scheme-report-environment VERSIN)	; lib.eval
+(null-environment VERSION)	; lib.r5rs
+(interaction-environment)	; lib.repl
+(eval EXPR_OR_DEF ENVIRONMENT_SPEC)	; lib.eval
+
+;; Input and Output
+;;; ports: input, output.  Textual||Binary.  Disjointness is impl-dep.
+(call-with-port PORT PROC)
+(call-with-input-file STRING PROC)	; lib.file
+(call-with-output-file STRING PROC)	; lib.file
+(input-port? OBJ)
+(output-port? OBJ)
+(textual-port? OBJ)
+(binary-port? OBJ)
+(port? OBJ)
+(input-port-open? PORT)
+(output-port-open? PORT)
+(current-input-port)
+(current-output-port)
+(current-error-port)
+(with-input-from-file STRING THUNK)	; lib.file
+(with-output-from-file STRING THUNK)	; lib.file
+(open-input-file STRING)	;lib.file
+(open-binary-input-file STRING)	;lib.file
+(open-output-file STRING)	;lib.file
+(open-binary-output-file STRING)	;lib.file
+(close-port PORT)
+(close-input-port PORT)
+(close-output-port PORT)
+(open-input-string STRING)
+(open-output-string)
+(get-output-string PORT)
+(open-input-bytevector BYTEVECTOR)
+(open-output-bytevector BYTEVECTOR)
+(get-output-bytevector PORT)
+;;; Input
+(read ?PORT)
+(read-char ?PORT)
+(peek-char ?PORT)
+(read-line ?PORT)
+(eof-object? OBJ)
+(eof-object)
+(char-read? ?PORT)
+(read-string K ?PORT)
+(read-u8 ?PORT)
+(peek-u8 ?PORT)
+(u8-ready? ?PORT)
+(read-bytevector K ?PORT)
+(read-bytevector! BYTEVECTOR ?PORT ?START ?END)
+;;; Output
+(write OBJ ?PORT)	; lib.write
+(write-shared OBJ ?PORT)	; lib.write
+(write-simple OBJ ?PORT)	; lib.write
+(display OBJ ?PORT)	; lib.write
+(newline ?PORT)
+(write-char CHAR ?PORT)
+(write-string STRING ?PORT ?START ?END)
+(write-u8 BYTE ?PORT)
+(write-bytevector BYTEVECTOR ?PORT ?START ?END)
+(flush-output-port ?PORT)
+;; System Interface
+(load FILENAME ?ENVIRONMENT_SPEC)	; lib.load
+(file-exists? FILENAME)	; lib.file
+(delete-file FILENAME)	; lib.file
+(command-line)	; lib.process-context
+(exit ?OBJ)	; lib.process-context
+(emergency-exit ?OBJ)	; lib.process-context
+(get-environment-variable NAME)	; lib.process-context
+(get-environment-variables)	; lib.process-context
+(current-second)	; lib.time
+(current-jiffy)		; lib.time
+(jiffies-per-second)	; lib.time
+(features)
+
