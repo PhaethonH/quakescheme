@@ -147,39 +147,6 @@ struct qssxparse_s * qssxparse_init (qsheap_t * mem, struct qssxparse_s * parser
   return parser;
 }
 
-#if 0
-static
-qsptr_t qssexpr_parse0_cstr (qsheap_t * mem, const char * srcstr, const char ** endptr)
-{
-  qsptr_t retval = QSBLACKHOLE;
-  int ch = 0;
-  int scan = 0;
-  struct qssxparse_s _parser = { 0, }, *parser = &_parser;
-
-  qssxparse_init(mem, parser, 0);
-  ch = srcstr[scan];
-  while (! parser->complete)
-    {
-      qssxparse_v0_feed(mem, parser, ch, &retval);
-
-      if (srcstr[scan])
-	{
-	  scan++;
-	  ch = srcstr[scan];
-	}
-      else
-	{ /* end of stream, yield \0 */
-	  ch = 0;
-	}
-    }
-  if (endptr)
-    {
-      *endptr = srcstr + scan;
-    }
-  return retval;
-}
-#endif //0
-
 int qssxparse_feed (qsheap_t * mem, struct qssxparse_s * parser, int ch, qsptr_t * out)
 {
   switch (parser->version)
@@ -224,7 +191,8 @@ qsptr_t qssexpr_parse_cstr (qsheap_t * mem, int version, const char * srcstr, co
 	{
 #if 1
 	  wideres = mbrtowc(&widechar, srcstr + scan, srclen - scan + 1, &ps);
-	  if (wideres < 0) return QSERROR_INVALID; /* TODO: error: invalid multibyte sequence. */
+	  /* TODO: error: invalid multibyte sequence. */
+	  if (wideres < 0) return QSERROR_INVALID;
 	  scan += wideres;
 	  ch = widechar;
 #else
