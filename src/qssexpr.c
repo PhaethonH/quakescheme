@@ -218,34 +218,26 @@ qsptr_t qssexpr_parse_cstr (qsheap_t * mem, int version, const char * srcstr, co
   qssxparse_init(mem, parser, version);
   srclen = strlen(srcstr);
 
-#if 1
-  wideres = mbrtowc(&widechar, srcstr + scan, srclen - scan + 1, &ps);
-  if (wideres < 0) return QSERROR_INVALID; /* TODO: error: invalid multibyte sequence. */
-  ch = widechar;
-#else
-  ch = srcstr[scan];
-#endif //wchar
-
   while (! halt)
     {
-      halt = qssxparse_feed(mem, parser, ch, &retval);
-
       if (srcstr[scan])
 	{
 #if 1
-	  scan += wideres;
 	  wideres = mbrtowc(&widechar, srcstr + scan, srclen - scan + 1, &ps);
 	  if (wideres < 0) return QSERROR_INVALID; /* TODO: error: invalid multibyte sequence. */
+	  scan += wideres;
 	  ch = widechar;
 #else
-	  scan++;
 	  ch = srcstr[scan];
-#endif //wchar
+	  scan++;
+#endif //0
 	}
       else
-	{ /* end of stream, yield \0 */
+	{ /* end of stream, yield nul */
 	  ch = 0;
 	}
+
+      halt = qssxparse_feed(mem, parser, ch, &retval);
     }
   if (endptr)
     {
