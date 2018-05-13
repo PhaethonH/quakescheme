@@ -63,10 +63,16 @@ bool is_any (int ch);
 bool is_none (int ch);
 
 /** [0-9]: decimal digit */
-bool is_decimal (int ch);
+bool is_decdigit (int ch);
 /** [0-9a-fA-F]: hexdecimal digit. */
 bool is_hexdigit (int ch);
+/** [0-7]: octal digit */
+bool is_octdigit (int ch);
+/** [01]: binary digit */
+bool is_bindigit (int ch);
 int to_numeric (int ch, int base);
+/** Unit imaginary number.  'i' for pure maths, 'j' in some contexts. */
+bool is_unitimag (int ch);
 /** "\x": (up to) two hexdigit codepoint value */
 bool is_string_escape_x2 (int ch);
 /** "\u": (up to) four hexdigit codepoint value */
@@ -85,6 +91,8 @@ bool is_pseudonumeric (int ch);
 bool is_numeric (int ch);
 /** decimal separator is locale-specific. */
 bool is_decimal_separator (int ch);
+/** "e" */
+bool is_exponent_marker (int ch);
 /** might be improper list marker ("."), symbol (".bond"), flonum (".007") */
 bool is_dot (int ch);
 /** as in QUOTE form, not "'". */
@@ -97,6 +105,21 @@ bool is_unquote_splice (int ch);
 bool is_extend (int ch);
 /** "#(", until ')' */
 bool is_extend_vector (int ch);
+/** "#u", followed by "8" (i.e. "#u8" */
+bool is_extend_bits (int ch);
+bool is_extend_bits_8 (int ch);
+/** "#b" */
+bool is_extend_radix2 (int ch);
+/** "#o" */
+bool is_extend_radix8 (int ch);
+/** "#d" */
+bool is_extend_radix10 (int ch);
+/** "#x" */
+bool is_extend_radix16 (int ch);
+/** "#e" */
+bool is_extend_exact (int ch);
+/** "#i" */
+bool is_extend_inexact (int ch);
 /** "#:" */
 bool is_extend_keyword (int ch);
 /** "#!" */
