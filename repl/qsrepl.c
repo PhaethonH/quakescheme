@@ -18,6 +18,9 @@ int main ()
   qs_init(scheme1, heap1);
   int looping = 1;
 
+  qsptr_t env0 = qsenv_make(heap1, QSNIL);
+  scheme1->E = qsenv_make(heap1, QSNIL);
+
   while (looping)
     {
       printf("> ");
@@ -30,6 +33,7 @@ int main ()
 	{
 	  qsptr_t xt = qssexpr_parse_cstr(heap1, 1, line, NULL);
 	  qs_inject_exp(scheme1, xt);
+	  scheme1->E = env0;
 	  while (!scheme1->halt)
 	    {
 	      qs_step(scheme1);
