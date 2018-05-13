@@ -374,6 +374,7 @@ qsheap_t * qsheap_init (qsheap_t * heap, uint32_t ncells)
 
   heap->wlock = 0;
   heap->cap = ncells;
+  heap->symstore = QSNIL;
 
   uint32_t i;
   for (i = 0; i < ncells; i++)

@@ -60,6 +60,9 @@ START_TEST(test_env1)
   q0 = qsenv_ref(heap1, e0, syms[1]);
   ck_assert_int_eq(q0, QSERROR_INVALID);
 
+  qsenv_crepr(heap1, e0, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(ENV foo:10)");
+
 
   /* Frame 1: check resolving down frames. */
   qsptr_t e1 = qsenv_make(heap1, e0);
@@ -85,6 +88,10 @@ START_TEST(test_env1)
   ck_assert_int_eq(q0, QSINT(10));
 
 
+  qsword cnt = qsenv_length(heap1, e1);
+  ck_assert_int_eq(cnt, 3);
+
+
   /* Frame 2: overload bindings. */
   qsptr_t e2 = qsenv_make(heap1, e1);
   qsenv_setq(heap1, e2, syms[0], QSINT(110));
@@ -95,6 +102,49 @@ START_TEST(test_env1)
   q0 = qsenv_ref(heap1, e0, syms[0]);
   ck_assert_int_eq(q0, QSINT(10));
 
+  qsenv_crepr(heap1, e1, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(ENV lorem_ipsum:13 baz:12 bar:11)");
+}
+END_TEST
+
+START_TEST(test_env2)
+{
+  init();
+
+  qsptr_t e0 = qsenv_make(heap1, QSNIL);
+  ck_assert_int_ne(e0, QSNIL);
+
+  qsptr_t strs[32] = { QSNIL, };
+  strs[0] = qsstr_inject(heap1, "foo", 0);
+  strs[1] = qsstr_inject(heap1, "bar", 0);
+  strs[2] = qsstr_inject(heap1, "baz", 0);
+  strs[3] = qsstr_inject(heap1, "lorem_ipsum", 0);
+
+  qsptr_t syms[32] = { QSNIL, };
+  int i;
+  for (i = 0; i < 4; i++)
+    {
+      qsptr_t y = qssymbol_make(heap1, strs[i]);
+      ck_assert_int_ne(y, QSNIL);
+      syms[i] = y;
+    }
+
+  qsenv_setq(heap1, e0, syms[0], QSINT(10));
+  qsenv_setq(heap1, e0, syms[1], QSINT(20));
+  qsenv_setq(heap1, e0, syms[2], QSINT(30));
+  qsenv_setq(heap1, e0, syms[3], QSINT(40));
+  ck_assert_int_eq(qsenv_length(heap1, e0), 4);
+
+  /* Frame 0. */
+  qsptr_t q0;
+  q0 = qsenv_ref(heap1, e0, syms[0]);
+  ck_assert_int_eq(q0, QSINT(10));
+  q0 = qsenv_ref(heap1, e0, syms[1]);
+  ck_assert_int_eq(q0, QSINT(20));
+  q0 = qsenv_ref(heap1, e0, syms[2]);
+  ck_assert_int_eq(q0, QSINT(30));
+  q0 = qsenv_ref(heap1, e0, syms[3]);
+  ck_assert_int_eq(q0, QSINT(40));
 }
 END_TEST
 
@@ -163,6 +213,7 @@ END_TEST
 
 TESTCASE(closure1,
   TFUNC(test_env1)
+  TFUNC(test_env2)
   TFUNC(test_lambda1)
   TFUNC(test_closure1)
   )

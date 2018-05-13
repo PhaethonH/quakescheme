@@ -109,14 +109,17 @@ typedef union qsbits_u qsbits_t;
 #define TAG_CONST16 0xffff
 
 
-#define QSFLOAT(x) (((qsbits_t)((float)(x))).u | TAG_FLOAT31)
-#define QSINT(x) (((x) << SHIFT_INT30) | TAG_INT30)
-#define QSITER(x) (((x) << SHIFT_ITER28) | TAG_ITER28)
-#define QSOBJ(x) (((x) << SHIFT_HEAP26) | TAG_HEAP26)
-#define QSSYM(x) (((x) << SHIFT_SYM26) | TAG_SYM26)
-#define QSCHAR(x) (((x) << SHIFT_CHAR24) | TAG_CHAR24)
-#define QSERROR(x) (((x) << SHIFT_ERROR16) | TAG_ERROR16)
-#define QSCONST(x) (((x) << SHIFT_CONST16) | TAG_CONST16)
+#define QSFLOAT(x) ((((qsbits_t)((float)(x))).u & ~(TAGMASK_FLOAT31)) | TAG_FLOAT31)
+#define QSINT(x) ((qsword)(((x) << SHIFT_INT30) | TAG_INT30))
+#define QSITER(x) (((qsword)((x) << SHIFT_ITER28) | TAG_ITER28))
+#define QSOBJ(x) ((qsword)(((x) << SHIFT_HEAP26) | TAG_HEAP26))
+#define QSSYM(x) ((qsword)(((x) << SHIFT_SYM26) | TAG_SYM26))
+#define QSCHAR(x) ((qsword)(((x) << SHIFT_CHAR24) | TAG_CHAR24))
+#define QSERROR(x) ((qsword)(((x) << SHIFT_ERROR16) | TAG_ERROR16))
+#define QSCONST(x) ((qsword)(((x) << SHIFT_CONST16) | TAG_CONST16))
+
+#define MAX_INT30 ((int)(~((qsword)0) >> (SHIFT_PTR30 + 1)))
+#define MIN_INT30 ((int)(-MAX_INT30 - 1))
 
 #define ISNIL(x) (x == QSNIL)
 #define ISFLOAT31(x) ((((qsbits_t)(x)).u & TAGMASK_FLOAT31) == TAG_FLOAT31)
@@ -144,6 +147,7 @@ typedef union qsbits_u qsbits_t;
 /* Constants. These values can be considered system-level symbols. */
 #define QSNIL	QSCONST(0)
 #define QSTRUE	QSCONST(1)
+#define QSFALSE	QSCONST(2)
 #define QSBOL	QSCONST(3)  // beginning-of-list, nested immlist.
 #define QSEOL	QSCONST(4)  // end-of-list, for immlist.
 #define QSBLACKHOLE QSCONST(8)  // 'unassigned' value.
@@ -172,6 +176,15 @@ typedef union qsbits_u qsbits_t;
 #define QSNUMTYPE_FLOAT16CM	QSCONST(0x4a)  /* math vec16_t (matrix_4x4_column_major) */
 #define QSNUMTYPE_INF		QSCONST(0x4f)
 typedef qsptr_t qsnumtype_t;
+
+#define QSBOOL(x)	(x ? QSTRUE : QSFALSE)
+#define CBOOL(x)	(x != QSFALSE)
+
+/* Standard (built-in) I/O ports. */
+#define QSIO_IN		QSCONST(0x80)
+#define QSIO_OUT	QSCONST(0x81)
+#define QSIO_ERR	QSCONST(0x82)
+#define QSEOF		QSCONST(0x8f)
 
 
 /* low-level error codes. */
