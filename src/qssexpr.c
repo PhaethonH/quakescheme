@@ -130,6 +130,11 @@ bool is_extend_directive (int ch) { return ch == '!'; }
 bool is_extend_symbol (int ch) { return (ch == '|' || ch == 0xa6); }
 bool is_extend_comment (int ch) { return ch == ';'; }
 
+
+bool is_console_xlist (int ch) { return ch == '/'; }
+bool is_console_sxp (int ch) { return ch == '!'; }
+
+
 struct qssxparse_s * qssxparse_init (qsheap_t * mem, struct qssxparse_s * parser, int version)
 {
   qssexpr_log("parser init");
@@ -156,6 +161,9 @@ int qssxparse_feed (qsheap_t * mem, struct qssxparse_s * parser, int ch, qsptr_t
       break;
     case 1:
       return qssxparse_v1_feed(mem, parser, ch, out);
+      break;
+    case 2:
+      return qssxparse_v2_feed(mem, parser, ch, out);
       break;
     default:
       break;

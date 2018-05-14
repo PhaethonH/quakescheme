@@ -810,7 +810,7 @@ END_TEST
 
 /* TODO: v0 parser. */
 
-START_TEST(test_sexpr1)
+START_TEST(test_sexpr0)
 {
   init();
 
@@ -859,7 +859,7 @@ START_TEST(test_sexpr1)
 }
 END_TEST
 
-START_TEST(test_sexpr2)
+START_TEST(test_sexpr1)
 {
   init();
 
@@ -898,10 +898,25 @@ START_TEST(test_cexp1)
 END_TEST
 
 
+START_TEST(test_sexpr2)
+{
+  init();
+
+  qsptr_t se0 = qssexpr_parse_cstr(heap1, 2, "(foo", NULL);
+  qsptr_crepr(heap1, se0, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(foo)");
+  qs_inject_exp(scheme1, se0);
+  qs_step(scheme1);
+  qs_step(scheme1);
+  ck_assert(ISERROR16(scheme1->A));
+}
+END_TEST
+
+
 TESTCASE(reader1,
   TFUNC(test_reader1)
+  TFUNC(test_sexpr0)
   TFUNC(test_sexpr1)
-  TFUNC(test_sexpr2)
   TFUNC(test_cexp1)
   )
 

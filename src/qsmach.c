@@ -532,6 +532,24 @@ qs_t * qs_step (qs_t * machine)
 
 
 
+qsptr_t qs_get_symbol (qs_t * machine, const char * csymname)
+{
+  qsptr_t symname = qsstr_inject(machine->store, csymname, 0);
+  if (ISNIL(machine->store->symstore))
+    {
+      /* create */
+      machine->store->symstore = qssymstore_make(machine->store);
+    }
+  qsptr_t symobj = qssymstore_assoc(machine->store, machine->store->symstore, symname);
+  if (!qssymbol_p(machine->store, symobj))
+    {
+      symobj = qssymbol_make(machine->store, symname);
+      qssymstore_intern(machine->store, machine->store->symstore, symobj);
+    }
+  return symobj;
+}
+
+
 int qs_intern (qs_t * machine, qsptr_t sym)
 {
   if (ISNIL(machine->store->symstore))

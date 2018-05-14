@@ -35,6 +35,8 @@ qs_t * qs_step (qs_t * machine);
 
 qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp);
 
+qsptr_t qs_get_symbol (qs_t * machine, const char * symbol_name);
+
 
 /* debugging */
 int qs_dump (qs_t * machine);

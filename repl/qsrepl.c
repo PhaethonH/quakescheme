@@ -20,6 +20,8 @@ int main ()
 
   qsptr_t env0 = qsenv_make(heap1, QSNIL);
   scheme1->E = qsenv_make(heap1, QSNIL);
+  qsptr_t sym_toplevel_env = qs_get_symbol(scheme1, "*toplevel-environment*");
+  qsenv_setq(heap1, env0, sym_toplevel_env, env0);
 
   while (looping)
     {
@@ -31,13 +33,14 @@ int main ()
       result = fgets(line, sizeof(line), stdin);
       if (result)
 	{
-	  qsptr_t xt = qssexpr_parse_cstr(heap1, 1, line, NULL);
+	  qsptr_t xt = qssexpr_parse_cstr(heap1, 2, line, NULL);
 	  qs_inject_exp(scheme1, xt);
 	  scheme1->E = env0;
 	  while (!scheme1->halt)
 	    {
 	      qs_step(scheme1);
 	    }
+	  *line = 0;
 	  qsptr_crepr(heap1, scheme1->A, line, sizeof(line));
 	  printf("%s\n", line);
 	}

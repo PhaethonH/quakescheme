@@ -129,6 +129,9 @@ bool is_extend_symbol (int ch);
 /** "#;" - block comment, until ";#" */
 bool is_extend_comment (int ch);
 
+bool is_console_xlist (int ch);
+bool is_console_sxp (int ch);
+
 
 
 /* Declarations for the different parser versions.
@@ -137,5 +140,6 @@ bool is_extend_comment (int ch);
 */
 int qssxparse_v0_feed (qsheap_t * mem, qssxparse_t * parser, int ch, qsptr_t * out);
 int qssxparse_v1_feed (qsheap_t * mem, qssxparse_t * parser, int ch, qsptr_t * out);
+int qssxparse_v2_feed (qsheap_t * mem, qssxparse_t * parser, int ch, qsptr_t * out);
 
 #endif // _QSSEXPR_H_
