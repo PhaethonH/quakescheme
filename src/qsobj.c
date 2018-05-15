@@ -534,10 +534,12 @@ qserror_t qsobj_kmark (qsmem_t * mem, qsptr_t p)
 	  if (multi)
 	    {
 	      /* e.g. qsbytevector */
+	      qsobj_setq_marked(mem, currptr, 1);
 	    }
 	  else
 	    {
 	      /* e.g. qswidenum */
+	      qsobj_setq_marked(mem, currptr, 1);
 	    }
 	}
       else
@@ -1204,7 +1206,6 @@ qsptr_t qstree_find (qsmem_t * mem, qsptr_t t, qsptr_t key, qsptr_t * nearest)
       // TODO: custom comparator
       if (qstree_p(mem, d))
 	{
-	  //probekey = qspair_ref_a(mem, d);
 	  probekey = qstree_ref_data(mem, d);
           /* TODO: qsobj_cmp */
 	  libra = qsobj_cmp(mem, key, probekey);
@@ -1280,7 +1281,6 @@ int qsrbtree_node_crepr (qsmem_t * mem, qsptr_t node, char * buf, int buflen)
     }
   else
     {
-      //n += snprintf(buf+n, buflen-n, "#{%s@%08x}", qsobj_typeof(mem, data), data);
       n += qsptr_crepr(mem, data, buf+n, buflen-n);
     }
 
@@ -1507,7 +1507,9 @@ int qspair_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
 
 
 
-/* List semantics. */
+/* List semantics: pair, vector, immlist, iter.
+   See also qsiter_*
+ */
 qsptr_t qslist (qsmem_t * mem, qsptr_t p)
 {
   if (qsiter_p(mem, p)) return p;
@@ -1527,24 +1529,6 @@ bool qslist_p (qsmem_t * mem, qsptr_t p)
 
 qsword qslist_length (qsmem_t * mem, qsptr_t p)
 {
-#if 0
-  qsword retval = 0;
-  qsptr_t curr = p;
-  while (curr != QSNIL)
-    {
-      retval++;
-      qsptr_t next = qspair_ref_d(mem, curr);
-      if (qspair_p(mem, next))
-	{
-	  curr = next;
-	}
-      else
-	{
-	  curr = QSNIL;
-	}
-    }
-  return retval;
-#else
   qsptr_t it = qslist(mem, p);
   if (ISNIL(it)) return 0;
 
@@ -1557,33 +1541,10 @@ qsword qslist_length (qsmem_t * mem, qsptr_t p)
       len++;
     }
   return len-1;
-#endif //0
 }
 
 qsptr_t qslist_tail (qsmem_t * mem, qsptr_t p, qsword nth)
 {
-#if 0
-  qsptr_t curr = p;
-  qsword ofs = 0;
-  while ((ofs < nth) && (curr != QSNIL))
-    {
-      ofs++;
-      qsptr_t next = qspair_ref_d(mem, curr);
-      if (qspair_p(mem, next))
-	{
-	  curr = next;
-	}
-      else
-	{
-	  curr = QSNIL;
-	}
-    }
-  if (curr)
-    {
-      return curr;
-    }
-  return QSNIL;
-#else
   qsptr_t it = qslist(mem, p);
   if (ISNIL(it)) return QSNIL;
 
@@ -1593,24 +1554,14 @@ qsptr_t qslist_tail (qsmem_t * mem, qsptr_t p, qsword nth)
       nth--;
     }
   return it;
-#endif //0
 }
 
 qsptr_t qslist_ref (qsmem_t * mem, qsptr_t p, qsword k)
 {
-#if 0
-  qsptr_t curr = qslist_tail(mem, p, k);
-  if (curr != QSNIL)
-    {
-      return qspair_ref_a(mem, p);
-    }
-  return QSERROR_INVALID;
-#else
   qsptr_t it = qslist_tail(mem, p, k);
   if (ISNIL(it)) return QSNIL;
   if (ISERROR16(it)) return it;
   return qsiter_item(mem, it);
-#endif //0
 }
 
 int qslist_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen)
@@ -1887,7 +1838,7 @@ qsptr_t qsimmlist_make (qsmem_t * mem, qsword k, qsword fill)
   static const int nptr_per_bay = sizeof(qsbay0_t) / sizeof(qsptr_t);
   qsptr_t retval = QSNIL;
   qsmemaddr_t addr = 0;
-  qsword nbays = 1 + (k / nptr_per_bay)+1;  // always terminate with QSEOL.
+  qsword nbays = 1 + (k / nptr_per_bay)+1;  /* always terminate with QSEOL. */
   if (!ISOBJ26((retval = qsobj_make(mem, nbays, 0, &addr)))) return retval;
 
   qsobj_setq_ptr(mem, retval, 1, QSNIL);    /* len = nil */
@@ -2756,16 +2707,10 @@ int qsconst_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen)
 /* Variable-substrate objects. */
 /*******************************/
 
-/* List:
-   1. linked pair objects
-   2. vector with BOL termination
- */
-// expanded qsiter_*() to accommodate this object.
-
 /* String:
    1. conschar24: pair objects of char24
    2. vecchar24: vector of char24 with BOL termination
-   3. cstr8: bytevector (UTF-8)
+   3. qsutf8: bytevector (UTF-8)
  */
 
 
@@ -2850,12 +2795,13 @@ int qsutf8_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen)
   return n;
 }
 
-uint8_t * qsutf8_cptr (qsmem_t * mem, qsptr_t p)
+const uint8_t * qsutf8_cptr (qsmem_t * mem, qsptr_t p)
 {
   FILTER_ISA(qsutf8_p)    return NULL;
   return qsobj_ref_data(mem, p, NULL);  /* ._d */
 }
 
+/* Create qsutf8 object using contents of C string. */
 qsptr_t qsutf8_inject (qsmem_t * mem, const char * cstr, qsword slen)
 {
   qsptr_t retval;
@@ -2866,7 +2812,10 @@ qsptr_t qsutf8_inject (qsmem_t * mem, const char * cstr, qsword slen)
     }
   retval = qsutf8_make(mem, k);
   if (! ISOBJ26(retval)) return retval;
-  uint8_t * target = qsutf8_cptr(mem, retval);
+  /*
+  uint8_t * target = (uint8_t*)qsutf8_cptr(mem, retval);
+  */
+  uint8_t * target = (uint8_t*)qsobj_ref_data(mem, retval, NULL);
   qsword i = 0;
   for (i = 0; i < k; i++)
     {
@@ -2877,6 +2826,7 @@ qsptr_t qsutf8_inject (qsmem_t * mem, const char * cstr, qsword slen)
   return retval;
 }
 
+/* Copy out C string from qsutf8 object. */
 int qsutf8_extract (qsmem_t * mem, qsptr_t s, char * cstr, qsword slen)
 {
   qsword lim = _qsutf8_hardlimit(mem, s);

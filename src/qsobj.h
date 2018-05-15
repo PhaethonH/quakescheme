@@ -72,27 +72,34 @@ union qsobjform_u {
 #endif //0
 
 
-/* template:
-qsOBJ_t * OBJ (qsmem_t * mem, qsptr_t PTR);
-qsptr_t qsOBJ_get (qsmem_t * mem, qsptr_t PTR);
-qsptr_t qsOBJ_setq (qsmem_t * mem, qsptr_t PTR,  );
-qsptr_t qsOBJ_make (qsmem_t * mem,  )
-int qsOBJ_alloc (qsmem_t * mem, qsptr_t * out_ptr, qsmemaddr_t * out_addr,  )
-int qsOBJ_crepr (qsmem_t * mem, qsptr_t * PTR, char * buf, int buflen)
+/*
+template:
+
+bool qsOBJ_p (qsmem_t * mem, qsptr_t PTR);
+qsword qsOBJ_length (qsmem_t * mem, qsptr_t PTR);
+qsptr_t qsOBJ_ref (qsmem_t * mem, qsptr_t PTR);
+qsptr_t qsOBJ_setq (qsmem_t * mem, qsptr_t PTR, ...);
+qsptr_t qsOBJ_ref_FIELD (qsmem_t * mem, qsptr_t PTR);
+qsptr_t qsOBJ_setq_FIELD (qsmem_t * mem, qsptr_t PTR, ...);
+qsptr_t qsOBJ_make (qsmem_t * mem, ...);
+int qsOBJ_crepr (qsmem_t * mem, qsptr_t * PTR, char * buf, int buflen);
 */
 
 /* Function naming convention:
 
-  object indicators are qsptr_t (usually store + object as qsptr_t)
-    _p (...): predicate
-    _ref... (...): accessor
-    _setq... (...): mutator
+  object indicator are qsptr_t (usually store + object as qsptr_t)
+    _p (...): predicate, returns (int)0 or (int)1.
+    _length (...): length value
+    _ref[_...] (...): accessor, returns qsptr_t
+    _setq[_...] (...): mutator, returns object indicator
 
   object indicators are native-C types (usually pointer to object).
-    _is_... (...): predicate
-    _get_... (...): accessor
+    (...): cast store object into C object pointer.
+    _len (...): length value
+    _is_... (...): predicate, returns (int)0 or (int)1.
+    _get_... (...): accessor, returns native-C type value.
     _fetch_... (..., *): accessor using out-parameter (returns error code).
-    _set_... (...): mutator
+    _set_... (...): mutator, returns object indicator (object pointer).
 */
 
 
@@ -100,22 +107,12 @@ typedef qsheap_t qsmem_t;
 typedef qsheapaddr_t qsmemaddr_t;
 
 
-
-/*
-   bit pattern
-   210
-     l  less-than
-    e   equal-to
-   g    greater-than
-*/
-
 typedef enum cmp_e {
     CMP_NE    = 0,  /* Also for incomparable? */
     CMP_LT    = 1,
     CMP_GT    = 2,
     CMP_EQ    = 3,
 } cmp_t;
-
 
 
 /* deprecated in favor of qsbay */
@@ -489,27 +486,6 @@ qsptr_t qsbytevec_inject (qsmem_t * mem, qsword nbytes, uint8_t * carray);
 
 
 
-/* String variants:
-  * strL: cons list of qschar24
-  * strV: vector of qschar24
-  * strI: immlist of qschar24
-  * strC: bytevector of uint8_t (utf-8)
-  * strW: bytevector of wchar_t (utf-32?)
-*/
-
-#if 0
-qsstrL_t * qsstrL (qsmem_t * mem, qsptr_t s);
-qsword qsstrL_length (qsmem_t * mem, qsptr_t s);
-qsptr_t qsstrL_ref (qsmem_t * mem, qsptr_t s, qsword nth);
-qsptr_t qsstrL_setq (qsmem_t * mem, qsptr_t s, qsword nth, qsword ch);
-qsptr_t qsstrL_append (qsmem_t * mem, qsptr_t s, qsword nth, qsword ch);
-qsptr_t qsstrL_make (qsmem_t * mem);
-int qsstrL_crepr (qsmem_t * mem, qsptr_t v, char * buf, int buflen);
-#endif //0
-
-
-
-
 /* Wide numbers - numbers stored in heap.
 */
 
@@ -582,10 +558,10 @@ cmp_t qsfpair_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 Intended to allow list-style access (CAR, CDR) to array elements (immlist).
 Also usable on vector.
 Numeric value is word-level access to heap.
-iter_next() keeps returning iterator to its next word address until content is EOL (then it returns null pointer).
+iter_next() keeps returning iterator to its next word address until content is EOL (then it returns null pointer, as with cdr on end of list).
 
 
-bug: does not respect weak referencing -- iterator will still exist even if
+TODO: does not respect weak referencing -- iterator will still exist even if
 iterated object is freed.
 */
 
@@ -599,7 +575,7 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it);  // also cdr
 qsptr_t qsiter_make (qsmem_t * mem, qsmemaddr_t addr);
 cmp_t qsiter_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
-
+/* patterned methods for int30 */
 qsptr_t qsint (qsmem_t * mem, qsptr_t i);
 bool qsint_p (qsmem_t * mem, qsptr_t p);
 int32_t qsint_get (qsmem_t * mem, qsptr_t i);
@@ -607,7 +583,7 @@ qsptr_t qsint_make (qsmem_t * mem, int32_t val);
 int qsint_crepr (qsmem_t * mem, qsptr_t i, char * buf, int buflen);
 cmp_t qsint_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
-
+/* patterned methods for float31 */
 qsptr_t qsfloat (qsmem_t * mem, qsptr_t f);
 bool qsfloat_p (qsmem_t * mem, qsptr_t p);
 float qsfloat_get (qsmem_t * mem, qsptr_t f);
@@ -615,7 +591,7 @@ qsptr_t qsfloat_make (qsmem_t * mem, float val);
 int qsfloat_crepr (qsmem_t * mem, qsptr_t f, char * buf, int buflen);
 cmp_t qsfloat_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
-
+/* patterned methods for char24 */
 qsptr_t qschar (qsmem_t * mem, qsptr_t c);
 bool qschar_p (qsmem_t * mem, qsptr_t c);
 int qschar_get (qsmem_t * mem, qsptr_t c);
@@ -623,7 +599,7 @@ qsptr_t qschar_make (qsmem_t * mem, int val);
 int qschar_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
 cmp_t qschar_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
-
+/* patterned methods for error16 */
 qsptr_t qserr (qsmem_t * mem, qsptr_t e);
 bool qserr_p (qsmem_t * mem, qsptr_t e);
 int qserr_get (qsmem_t * mem, qsptr_t e);
@@ -631,7 +607,7 @@ qsptr_t qserr_make (qsmem_t * mem, int errcode);
 int qserr_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);
 cmp_t qserr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
-
+/* patterned methods for const16 */
 qsptr_t qsconst (qsmem_t * mem, qsptr_t n);
 bool qsconst_p (qsmem_t * mem, qsptr_t n);
 int qsconst_get (qsmem_t * mem, qsptr_t n);
@@ -642,6 +618,10 @@ cmp_t qsconst_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
 
 
+/*
+Native string type.
+UTF-8 array of characters compatible with Standard C string funcions: str*()
+*/
 typedef struct qsutf8_s {
     qsptr_t mgmt;
     qsptr_t variant;
@@ -656,11 +636,25 @@ int qsutf8_ref (qsmem_t * mem, qsptr_t p, qsword k);
 qsptr_t qsutf8_setq (qsmem_t * mem, qsptr_t p, qsword k, qsword u8);
 qsptr_t qsutf8_make (qsmem_t * mem, qsword slen);
 int qsutf8_crepr (qsmem_t * mem, qsptr_t p, char * buf, int buflen);
+/* Get pointer to payload region, usable as const char * (str*()).
+   See also qsstr_extract().
+ */
+const uint8_t * qsutf8_cptr (qsmem_t * mem, qsptr_t p);
 cmp_t qsutf8_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
 
+/* String variants:
+  * strL: cons list of qschar24
+  * strV: vector of qschar24
+  * strI: immlist of qschar24
+  * strC: bytevector of uint8_t (utf-8)
+  * strW: bytevector of wchar_t (utf-32?)
+*/
 
-
+/*
+Encapsulated interface to string-like objects.
+See qsutf8 for native string tyep.
+*/
 bool qsstr_p (qsmem_t * mem, qsptr_t p);
 qsword qsstr_length (qsmem_t * mem, qsptr_t p);
 qsword qsstr_ref (qsmem_t * mem, qsptr_t p, qsword nth);
@@ -672,8 +666,6 @@ qsword qsstr_extract (qsmem_t * mem, qsptr_t p, char * cstr, qsword slen);
 qsword qsstr_extract_wchar (qsmem_t * mem, qsptr_t p, wchar_t * ws, qsword wslen);
 cmp_t qsstr_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 int qsstr_crepr (qsmem_t * mem, qsptr_t s, char * buf, int buflen);
-
-
 
 
 /* Symbols */
@@ -701,6 +693,12 @@ qsptr_t qssymbol_make (qsmem_t * mem, qsptr_t name);
 cmp_t qssymbol_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
 
+/* Symbol Store, Symbol Table
+
+Consists of two distinct structures:
+  * an integer-sorted tree to map symbol ID to symbol object (find by id).
+  * a string-sorted tree to map symbol name to symbol object (find by name).
+*/
 typedef struct qssymstore_s {
     qsptr_t mgmt;
     qsptr_t tag;
@@ -715,10 +713,11 @@ qsptr_t qssymstore_ref_tree (qsmem_t * mem, qsptr_t p);
 qsptr_t qssymstore_setq_table (qsmem_t * mem, qsptr_t p, qsptr_t val);
 qsptr_t qssymstore_setq_tree (qsmem_t * mem, qsptr_t p, qsptr_t val);
 qsptr_t qssymstore_intern (qsmem_t * mem, qsptr_t p, qsptr_t y);
+/* Return symbol object given symbol id (find by id). */
 qsptr_t qssymstore_ref (qsmem_t * mem, qsptr_t p, qsptr_t key);
+/* Returns symbol object given name (find by name). */
 qsptr_t qssymstore_assoc (qsmem_t * mem, qsptr_t p, qsptr_t key);
 cmp_t qssymstore_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
-
 
 
 /* Ports */
@@ -734,6 +733,7 @@ qsptr_t qsSTDIO_write_bytevector (qsmem_t * mem, qsptr_t p);
 */
 
 
+/* Convert a C string to a Scheme atom (used by S-Expression reader). */
 qsptr_t qsatom_parse_cstr (qsmem_t * mem, const char * s, int slen);
 
 int qsptr_crepr (qsmem_t * mem, qsptr_t c, char * buf, int buflen);

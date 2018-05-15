@@ -126,11 +126,11 @@ void init ()
   s = qsstr_inject(heap1, "y", 0);
   sym.y = qssymbol_make(heap1, s);
 
-  s = qsstr_inject(heap1, "&i>?", 0);
+  s = qsstr_inject(heap1, "&I>?", 0);
   sym.int_gt_p = qssymbol_make(heap1, s);
-  s = qsstr_inject(heap1, "&i=?", 0);
+  s = qsstr_inject(heap1, "&I=?", 0);
   sym.int_eq_p = qssymbol_make(heap1, s);
-  s = qsstr_inject(heap1, "&c=?", 0);
+  s = qsstr_inject(heap1, "&C=?", 0);
   sym.char_equal_p = qssymbol_make(heap1, s);
   s = qsstr_inject(heap1, "&o*", 0);
   sym.obj_make = qssymbol_make(heap1, s);
@@ -195,10 +195,10 @@ void init ()
 
 
 /*
-(define &c>i char->integer)
+(define &C:I char->integer)
 (define &s# string-length)
 (define &s@ string-ref)
-(define &c=? char=?)
+(define &C=? char=?)
 
 
 (letrec
@@ -215,13 +215,13 @@ void init ()
      (let ((eq (= ofs lim)))
       (if eq #t (> ofs lim))))))
 
-  (dq?  (lambda (ch) (let ((is_dq (&c=? ch #\x22))) is_dq)))
+  (dq?  (lambda (ch) (let ((is_dq (&C=? ch #\x22))) is_dq)))
 
-  (bksl?  (lambda (ch) (let ((is_bksl (&c=? ch #\x5c))) is_bksl)))
+  (bksl?  (lambda (ch) (let ((is_bksl (&C=? ch #\x5c))) is_bksl)))
 
-  (op?  (lambda (ch) (let ((is_op (&c=? ch #\x28))) is_op)))
+  (op?  (lambda (ch) (let ((is_op (&C=? ch #\x28))) is_op)))
 
-  (cl?  (lambda (ch) (let ((is_cl (&c=? ch #\x29))) is_cl)))
+  (cl?  (lambda (ch) (let ((is_cl (&C=? ch #\x29))) is_cl)))
 
   (add-tok
    (lambda (ch pending)
@@ -258,7 +258,7 @@ void init ()
      (let ((nextofs (+ 1 ofs)))
       (let ((ch (&s@ str ofs)))
        (let ((is_ws (ws? ch))) (if is_ws (qstokenize str nextofs root pending)
-        (let ((cp (&c>i ch)))
+        (let ((cp (&C:I ch)))
          (let ((is_op (op? ch))) (if is_op (cons ofs root)
           (let ((is_cl (cl? ch))) (if is_cl (cons ofs root)
            (let ((is_dq (dq? ch))) (if is_dq
@@ -392,13 +392,13 @@ qsptr_t build_eos_p ()
 
 
 /*
-  (dq?  (lambda (ch) (let ((is_dq (&c=? ch #\x22))) is_dq)))
+  (dq?  (lambda (ch) (let ((is_dq (&C=? ch #\x22))) is_dq)))
 
-  (bksl?  (lambda (ch) (let ((is_bksl (&c=? ch #\x5c))) is_bksl)))
+  (bksl?  (lambda (ch) (let ((is_bksl (&C=? ch #\x5c))) is_bksl)))
 
-  (op?  (lambda (ch) (let ((is_op (&c=? ch #\x28))) is_op)))
+  (op?  (lambda (ch) (let ((is_op (&C=? ch #\x28))) is_op)))
 
-  (cl?  (lambda (ch) (let ((is_cl (&c=? ch #\x29))) is_cl)))
+  (cl?  (lambda (ch) (let ((is_cl (&C=? ch #\x29))) is_cl)))
 */
 qsptr_t build_dq_p ()
 {

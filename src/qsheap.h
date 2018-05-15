@@ -179,7 +179,7 @@ int qsbay_ref_allocscale (qsheap_t * mem, qsptr_t p);
    For multibay_oct, 0=mgmt, 1=track, 2=refcount, 3=mutex.
 */
 qsword qsbay_ref_ptr (qsheap_t * mem, qsptr_t p, qsword ofs);
-/* Returns -1 if octet access denied. */
+/* Returns -1 if octet access denied (error). */
 int qsbay_ref_oct (qsheap_t * mem, qsptr_t p, qsword ofs);
 /* Returns pointer to start of arbitrary data space, the address of ->d[0]
    Primarily intended for writing to/from widenum payloads.
@@ -256,6 +256,12 @@ qserror_t qsheap_word (qsheap_t *, qsheapaddr_t word_addr, qsword * out_word);
 
 
 
+/*
+Freelist is a linked list of segments,
+each segment consists of multiple bays.
+Freelist starts at low memory, ends at high memory.
+Allocation preferentially starts consuming from high memory.
+*/
 typedef struct qsfreelist_s {
     qsptr_t mgmt;
     qsptr_t span; // :int30, number of cells available in this segment.

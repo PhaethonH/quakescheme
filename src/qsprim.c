@@ -3,6 +3,48 @@
 
 #include "qsprim.h"
 
+/*
+Prefices for types associated with primitives:
+
+(nul) = machine
+
+B = boolean
+F = float31
+I = int30
+C = char24
+K = const16
+E = error16
+P = portFD16
+
+L = lambda
+O = entire store (direct access to store)
+
+o = object
+p = pair
+s = string
+v = vector
+w = bytevector
+(b = bitvector)
+l = list
+a = immlist (array)
+n = number
+u = utf8 (native string)
+e = env
+c = closure
+k = continuation
+y = symbol
+t = tree
+x = symbol table
+
+
+Symbols for common object operations:
+* = make
+@ = ref (value at ...)
+! = setq ('!' = mutate in place)
+# = length ('#' = number sign; counted number of)
+: = to, conversion (':' type indicator)
+*/
+
 
 #define qspair_car0(mem,p) (ISNIL(p) ? QSNIL : qspair_ref_a(mem,p))
 #define qspair_cdr0(mem,p) (ISNIL(p) ? QSNIL : qspair_ref_d(mem,p))
@@ -257,15 +299,15 @@ qsprimmap_t qsprims [MAX_PRIMS] = {
       { "&o@S",	  qsop_obj_ref_score },
       { "&o!S",	  qsop_obj_setq_score },
 
-      { "&c=?",	  qsop_char_equal_p },
-      { "&c|i",	  qsop_char_to_integer },
+      { "&C=?",	  qsop_char_equal_p },
+      { "&C:I",	  qsop_char_to_integer },
 
-      { "&i=?",	  qsop_int_eq_p },
-      { "&i<?",	  qsop_int_lt_p },
-      { "&i>?",	  qsop_int_gt_p },
-      { "&i+",	  qsop_int_add },
-      { "&i-",	  qsop_int_sub },
-      { "&i*",	  qsop_int_mul },
+      { "&I=?",	  qsop_int_eq_p },
+      { "&I<?",	  qsop_int_lt_p },
+      { "&I>?",	  qsop_int_gt_p },
+      { "&I+",	  qsop_int_add },
+      { "&I-",	  qsop_int_sub },
+      { "&I*",	  qsop_int_mul },
 
       { "&s@",	  qsop_str_ref },
       { "&s#",	  qsop_str_length },

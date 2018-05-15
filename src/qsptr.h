@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 
-/* Bit-tagging schema
+/* Expanding-tag schema
 
  3          2          1
 10987654 32109876 54321098 76543210
@@ -29,31 +29,6 @@
 */
 
 
-/* inline list:
-
-{
-  SYNC29(ptr,allocscale=31),
-  SYM_INLINE_LIST,
-  reserved,
-  reserved,
-
-  EL0,
-  EL1,
-  EL2,
-  EL3,
-
-  EL4,
-  EL5,
-  EL6,
-  EL7,
-
-  ...
-  SYM_END_OF_LIST,
-}
-
-*/
-
-
 typedef uint32_t qsword;
 typedef qsword qsptr_t;
 
@@ -65,7 +40,6 @@ union qsbits_u {
 };
 
 typedef union qsbits_u qsbits_t;
-
 
 
 
@@ -144,6 +118,7 @@ typedef union qsbits_u qsbits_t;
 #define CCONST16(p) ((((qsbits_t)(p)).u & ~TAGMASK_CONST16) >> SHIFT_CONST16)
 
 
+/********/
 /* Constants. These values can be considered system-level symbols. */
 #define QSNIL	QSCONST(0)
 #define QSTRUE	QSCONST(1)
