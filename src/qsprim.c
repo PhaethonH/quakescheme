@@ -327,3 +327,39 @@ qsprim_f qsprim_find (qs_t * machine, const char * opname)
   return NULL;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int qsprim_install (qs_t * machine, const char * opname, qsprim_f opfunc)
+{
+  return 0;
+}
+
+
+int qsprim_install_multi (qs_t * machine, int count, qsprimmap_t * primlist)
+{
+  int i = 0;
+  /* end after 'count', or a NULL entry. */
+  while ((count && i < count) || (primlist[i].f))
+    {
+      const char * opname = primlist[i].name;
+      qsprim_f opfunc = primlist[i].f;
+      qsprim_install(machine, opname, opfunc);
+    }
+  return 0;
+}
+

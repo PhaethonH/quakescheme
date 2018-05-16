@@ -38,4 +38,8 @@ extern struct qsprimmap_s qsprims[MAX_PRIMS];
 qsprim_f qsprim_find (qs_t * machine, const char * opname);
 
 
+int qsprim_install (qs_t * machine, const char * name, qsprim_f f);
+int qsprim_install_multi (qs_t * achine, int count, struct qsprimmap_s[]);
+
+
 #endif // _QSPRIM_H_
