@@ -13,18 +13,7 @@
 
 /* Heap memory. */
 
-//typedef uint32_t qsheapaddr_t;
 typedef uint32_t qsstoreaddr_t;
-
-
-#if 0
-typedef struct qsheapcell_s {
-    qsptr_t mgmt;
-    qsptr_t fields[3];
-    qsptr_t _d[];
-} qsheapcell_t;
-#endif //0
-
 
 /* mgmt word
 
@@ -149,88 +138,6 @@ typedef struct qsstore_s {
 } qsstore_t;
 typedef qsstore_t qsheap_t;
 
-
-#if 0
-qsbay_t * qsbay (qsheap_t * mem, qsptr_t p, qsheapaddr_t * out_addr);
-bool qsbay_used_p (qsheap_t * mem, qsptr_t p);
-bool qsbay_marked_p (qsheap_t * mem, qsptr_t p);
-bool qsbay_octetate_p (qsheap_t * mem, qsptr_t p);
-int qsbay_ref_score (qsheap_t * mem, qsptr_t p);
-int qsbay_ref_parent (qsheap_t * mem, qsptr_t p);
-qsword qsbay_ref_allocsize (qsheap_t * mem, qsptr_t p);
-int qsbay_ref_allocscale (qsheap_t * mem, qsptr_t p);
-/* Arbitrary field access. */
-/* Returns pointer field at offset 'ofs' in object 'p'.
-     [0] => mgmt word
-   Returns QSERROR_* if access denied.
-
-   For unibay_ptr, 0=mgmt, 1=e, 2=a, 3=d
-   For multibay_ptr, 0=mgmt, 1=len, 2=gc_backgrack, 3=gc_iter, 4=data[0], ...
-   For unibay_oct, only 0 (mgmt) and 1 (variant) are valid.
-   For multibay_oct, 0=mgmt, 1=track, 2=refcount, 3=mutex.
-*/
-qsword qsbay_ref_ptr (qsheap_t * mem, qsptr_t p, qsword ofs);
-/* Returns -1 if octet access denied (error). */
-int qsbay_ref_oct (qsheap_t * mem, qsptr_t p, qsword ofs);
-/* Returns pointer to start of arbitrary data space, the address of ->d[0]
-   Primarily intended for writing to/from widenum payloads.
- */
-void * qsbay_ref_data (qsheap_t * mem, qsptr_t p, qsword * len);
-/* Returns object, or QSERROR_* if mutating failed. */
-qsptr_t qsbay_setq_ptr (qsheap_t * mem, qsptr_t p, qsword ofs, qsptr_t val);
-/* Returns object, or QSERROR_* if mutating failed. */
-qsptr_t qsbay_setq_oct (qsheap_t * mem, qsptr_t p, qsword ofs, int val);
-
-qsptr_t qsbay_setq_score (qsheap_t * mem, qsptr_t p, int val);
-qsptr_t qsbay_setq_parent (qsheap_t * mem, qsptr_t p, int val);
-
-/* Mainly for is-a checks. */
-qsunibay_ptr_t * qsunibay_ptr (qsheap_t * mem, qsptr_t p);
-qsmultibay_ptr_t * qsmultibay_ptr (qsheap_t * mem, qsptr_t p);
-qsunibay_oct_t * qsunibay_oct (qsheap_t * mem, qsptr_t p);
-qsmultibay_oct_t * qsmultibay_oct (qsheap_t * mem, qsptr_t p);
-#endif //0
-
-
-
-
-typedef qsbay0_t qsheapcell_t;
-
-#if 0
-/* initialize cell as object or freelist. */
-qsheapcell_t * qsheapcell_init (qsheapcell_t *, int used, int red, int allocscale) __attribute__((deprecated));
-int qsheapcell_is_synced (qsheapcell_t *) __attribute__((deprecated));
-int qsheapcell_is_used (qsheapcell_t *) __attribute__((deprecated));
-qsheapcell_t * qsheapcell_set_used (qsheapcell_t *, int) __attribute__((deprecated));
-int qsheapcell_is_marked (qsheapcell_t *) __attribute__((deprecated));
-qsheapcell_t * qsheapcell_set_marked (qsheapcell_t *, int) __attribute__((deprecated));
-//int qsheapcell_is_grey (qsheapcell_t *);
-//qsheapcell_t qsheapcell_set_grey (qsheapcell_t *, int);
-int qsheapcell_is_octet (qsheapcell_t *) __attribute__((deprecated));
-qsheapcell_t * qsheapcell_set_octet (qsheapcell_t *, int) __attribute__((deprecated));
-int qsheapcell_get_parent (qsheapcell_t *) __attribute__((deprecated));
-qsheapcell_t * qsheapcell_set_parent (qsheapcell_t *, int) __attribute__((deprecated));
-int qsheapcell_get_score (qsheapcell_t *) __attribute__((deprecated));
-qsheapcell_t * qsheapcell_set_score (qsheapcell_t *, int) __attribute__((deprecated));
-int qsheapcell_get_allocscale (qsheapcell_t *) __attribute__((deprecated));
-qsheapcell_t * qsheapcell_set_allocscale (qsheapcell_t *, int) __attribute__((deprecated));
-qsptr_t qsheapcell_get_field (qsheapcell_t *, int) __attribute__((deprecated));
-qsheapcell_t * qsheapcell_set_field (qsheapcell_t *, int, qsptr_t) __attribute__((deprecated));
-#endif //0
-
-
-
-
-
-/*
-typedef union qsheapref_u {
-    qsfreelist_t freelist;
-    qsheapcell_t cell;
-    qsobj_t obj;
-} qsheapref_t;
-*/
-
-
 /* Methods on entirety of memory store. */
 
 qsstore_t * qsstore_init (qsstore_t *, uint32_t ncells);
@@ -282,58 +189,6 @@ bool qstorebay_is_unioct (qsstore_t *, qsstoreaddr_t addr);
 bool qstorebay_is_multioct (qsstore_t *, qsstoreaddr_t addr);
 
 
-
-
-#if 0
-typedef struct qsheap_s {
-    int wlock;			/* write-lock into storage. */
-    uint32_t cap;		/* maximum number of words. */
-    //qsheapaddr_t freelist;	/* start of free list. */
-    qsheapaddr_t end_freelist;	/* end of free list. */
-    qsptr_t symstore;
-    //qsobj_t space[];
-    qsheapcell_t space[];
-} qsheap_t;
-#endif //0
-
-#if 0
-qsheap_t * qsheap_init (qsheap_t *, uint32_t ncells) __attribute__((deprecated));
-qsheap_t * qsheap_destroy (qsheap_t *) __attribute__((deprecated));
-/* length in number of bays. */
-uint32_t qsheap_length (qsheap_t *) __attribute__((deprecated));
-qserror_t qsheap_allocscale (qsheap_t *, qsword allocscale, qsheapaddr_t * out_addr) __attribute__((deprecated));
-qserror_t qsheap_alloc_ncells (qsheap_t *, qsword ncells, qsheapaddr_t * out_addr) __attribute__((deprecated));
-/* Allocate object to occupy 'nbays' total bays. */
-qserror_t qsheap_alloc_nbays (qsheap_t *, qsword nbays, qsheapaddr_t * out_addr) __attribute__((deprecated));
-/* Allocate object to hold 'nptrs' additional pointers (e.g. vectors). */
-qserror_t qsheap_alloc_with_nptrs (qsheap_t *, qsword nptrs, qsheapaddr_t * out_addr) __attribute__((deprecated));
-/* Allocate object to hold 'nbytes' additional bytes (0 for unibay octetate). */
-qserror_t qsheap_alloc_with_nbytes (qsheap_t *, qsword nbytes, qsheapaddr_t * out_addr) __attribute__((deprecated));
-qsheapaddr_t qsheap_free (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-
-int qsheap_is_valid (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-int qsheap_is_synced (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-int qsheap_get_allocscale (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-int qsheap_is_octetate (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-qserror_t qsheap_set_octetate (qsheap_t *, qsheapaddr_t addr, int val) __attribute__((deprecated));
-int qsheap_is_used (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-qserror_t qsheap_set_used (qsheap_t *, qsheapaddr_t addr, int val) __attribute__((deprecated));
-int qsheap_is_marked (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-qserror_t qsheap_set_marked (qsheap_t *, qsheapaddr_t addr, int val) __attribute__((deprecated));
-int qsheap_get_score (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-qserror_t qsheap_set_score (qsheap_t *, qsheapaddr_t addr, int val) __attribute__((deprecated));
-int qsheap_get_parent (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-qserror_t qsheap_set_parent (qsheap_t *, qsheapaddr_t addr, int val) __attribute__((deprecated));
-
-qserror_t qsheap_sweep (qsheap_t *) __attribute__((deprecated));
-//qsobj_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr);
-qsheapcell_t * qsheap_ref (qsheap_t *, qsheapaddr_t addr) __attribute__((deprecated));
-qserror_t qsheap_word (qsheap_t *, qsheapaddr_t word_addr, qsword * out_word) __attribute__((deprecated));
-#endif //0
-
-
-
-
 /*
 Freelist is a linked list of segments,
 each segment consists of multiple bays.
@@ -359,8 +214,6 @@ qserror_t qsfreelist_set_span (qsstore_t *, qsstoreaddr_t cell_addr, qsword val)
 qserror_t qsfreelist_set_prev (qsstore_t *, qsstoreaddr_t cell_addr, qsword val);
 qserror_t qsfreelist_set_next (qsstore_t *, qsstoreaddr_t cell_addr, qsword val);
 int qsfreelist_crepr (qsstore_t *, qsstoreaddr_t cell_addr, char * buf, int buflen);
-
-
 
 
 struct qsstorebay_report_s;

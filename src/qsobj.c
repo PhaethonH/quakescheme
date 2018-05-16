@@ -55,7 +55,7 @@ const char * __p (qsptr_t p)
 
 
 
-#if 1
+
 #define qsbay_is_valid(addr) qsstore_is_valid(mem, addr)
 #define qsbay_get_allocscale(addr) qsstorebay_get_allocscale(mem, addr)
 #define qsbay_is_synced(addr) qsstorebay_is_synced(mem, addr)
@@ -69,21 +69,6 @@ const char * __p (qsptr_t p)
 #define qsbay_set_parent(addr,val) qsstorebay_set_parent(mem, addr, val)
 #define qsbay_get_score(addr) qsstorebay_get_score(mem, addr)
 #define qsbay_set_score(addr,val) qsstorebay_set_score(mem, addr, val)
-#else
-#define qsbay_is_valid(addr) qsheap_is_valid(mem, addr)
-#define qsbay_get_allocscale(addr) qsheap_get_allocscale(mem, addr)
-#define qsbay_is_synced(addr) qsheap_is_synced(mem, addr)
-#define qsbay_is_used(addr) qsheap_is_used(mem, addr)
-#define qsbay_set_used(addr,val) qsheap_set_used(mem, addr, val)
-#define qsbay_is_marked(addr) qsheap_is_marked(mem, addr)
-#define qsbay_set_marked(addr,val) qsheap_set_marked(mem, addr, val)
-#define qsbay_is_octetate(addr) qsheap_is_octetate(mem, addr)
-#define qsbay_set_octetate(addr,val) qsheap_set_octetate(mem, addr, val)
-#define qsbay_get_parent(addr) qsheap_get_parent(mem, addr)
-#define qsbay_set_parent(addr,val) qsheap_set_parent(mem, addr, val)
-#define qsbay_get_score(addr) qsheap_get_score(mem, addr)
-#define qsbay_set_score(addr,val) qsheap_set_score(mem, addr, val)
-#endif
 
 
 
@@ -2329,8 +2314,8 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
     {
       qsword ofs = qsiter_get(mem, it);
       qsptr_t ref = QSERROR_INVALID;
-      bool res = qsstore_fetch_word(mem, ofs, &ref);
-      if (!res)
+      qserror_t res = qsstore_fetch_word(mem, ofs, &ref);
+      if (res != QSERROR_OK)
 	return QSNIL;
       if (ref == QSBOL)
 	{
@@ -2365,20 +2350,21 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
   else if (ISITER28(it))
     {
       qsptr_t peek = QSNIL;
-      bool res = false;
       int depth = 0;
       qsword startofs = qsiter_get(mem, it);
-      res = qsstore_fetch_word(mem, startofs, &peek);
-      if (! res) return QSNIL;
+      qserror_t res = qsstore_fetch_word(mem, startofs, &peek);
+      if (res != QSERROR_OK)
+	return QSNIL;
       if (peek == QSBOL) depth++; // goal: skip to end of nested list.
 
       qsword nextofs = startofs+1;
       res = qsstore_fetch_word(mem, nextofs, &peek);
-      if (! res) return QSNIL;
+      if (res != QSERROR_OK)
+	return QSNIL;
 
       while (depth > 0)
 	{
-	  if (! res)
+	  if (res != QSERROR_OK)
 	    {
 	      // invalid address, treat as end of iterator.
 	      depth = 0;
