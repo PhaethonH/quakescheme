@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #include "qsptr.h"
-#include "qsheap.h"
+#include "qsstore.h"
 
 /* Objects stored in memory/heap */
 

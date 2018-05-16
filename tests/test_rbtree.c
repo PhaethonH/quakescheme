@@ -4,7 +4,7 @@
 
 #include "check_qs.h"
 #include "qsptr.h"
-#include "qsheap.h"
+#include "qsstore.h"
 #include "qsobj.h"
 #include "qsmach.h"
 

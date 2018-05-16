@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "qsheap.h"
+#include "qsstore.h"
 
 
 

@@ -2,8 +2,8 @@ lib_LIBRARIES = libquakescheme.a
 
 libquakescheme_a_SOURCES = \
   qsptr.h \
-  qsheap.h \
-  qsheap.c \
+  qsstore.h \
+  qsstore.c \
   qsobj.h \
   qsobj.c \
   qsprim.h \
