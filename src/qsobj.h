@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #include "qsptr.h"
-#include "qsheap.h"
+#include "qsstore.h"
 
 /* Objects stored in memory/heap */
 
@@ -103,8 +103,8 @@ int qsOBJ_crepr (qsmem_t * mem, qsptr_t * PTR, char * buf, int buflen);
 */
 
 
-typedef qsheap_t qsmem_t;
-typedef qsheapaddr_t qsmemaddr_t;
+typedef qsstore_t qsmem_t;
+typedef qsstoreaddr_t qsmemaddr_t;
 
 
 typedef enum cmp_e {

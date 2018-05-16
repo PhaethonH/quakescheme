@@ -56,13 +56,29 @@ const char * __p (qsptr_t p)
 
 
 
+#define qsbay_is_valid(addr) qsstore_is_valid(mem, addr)
+#define qsbay_get_allocscale(addr) qsstorebay_get_allocscale(mem, addr)
+#define qsbay_is_synced(addr) qsstorebay_is_synced(mem, addr)
+#define qsbay_is_used(addr) qsstorebay_is_used(mem, addr)
+#define qsbay_set_used(addr,val) qsstorebay_set_used(mem, addr, val)
+#define qsbay_is_marked(addr) qsstorebay_is_marked(mem, addr)
+#define qsbay_set_marked(addr,val) qsstorebay_set_marked(mem, addr, val)
+#define qsbay_is_octetate(addr) qsstorebay_is_octetate(mem, addr)
+#define qsbay_set_octetate(addr,val) qsstorebay_set_octetate(mem, addr, val)
+#define qsbay_get_parent(addr) qsstorebay_get_parent(mem, addr)
+#define qsbay_set_parent(addr,val) qsstorebay_set_parent(mem, addr, val)
+#define qsbay_get_score(addr) qsstorebay_get_score(mem, addr)
+#define qsbay_set_score(addr,val) qsstorebay_set_score(mem, addr, val)
+
+
+
 /* Attempt to cast to object (else freelist or data) */
 qsobj_t * qsobj_at (qsmem_t * mem, qsmemaddr_t addr)
 {
-  if (! qsheap_is_valid(mem, addr)) return NULL;
-  qsobj_t * obj = (qsobj_t*)qsheap_ref(mem, addr);
-  if (! qsheap_is_synced(mem, addr)) return NULL;
-  if (! qsheap_is_used(mem, addr)) return NULL;
+  if (! qsbay_is_valid(addr)) return NULL;
+  qsobj_t * obj = (qsobj_t*)qsstore_get(mem, addr);
+  if (! qsbay_is_synced(addr)) return NULL;
+  if (! qsbay_is_used(addr)) return NULL;
   return obj;
 }
 
@@ -82,7 +98,7 @@ int qsobj_used_p (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheap_is_used(mem, addr);
+  return qsbay_is_used(addr);
 }
 
 int qsobj_marked_p (qsmem_t * mem, qsptr_t p)
@@ -90,7 +106,7 @@ int qsobj_marked_p (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheap_is_marked(mem, addr);
+  return qsbay_is_marked(addr);
 }
 
 int qsobj_octetate_p (qsmem_t * mem, qsptr_t p)
@@ -98,7 +114,7 @@ int qsobj_octetate_p (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheap_is_octetate(mem, addr);
+  return qsbay_is_octetate(addr);
 }
 
 int qsobj_ref_parent (qsmem_t * mem, qsptr_t p)
@@ -106,7 +122,7 @@ int qsobj_ref_parent (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheap_get_parent(mem, addr);
+  return qsbay_get_parent(addr);
 }
 
 int qsobj_ref_score (qsmem_t * mem, qsptr_t p)
@@ -114,7 +130,7 @@ int qsobj_ref_score (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  return qsheap_get_score(mem, addr);
+  return qsbay_get_score(addr);
 }
 
 qsword qsobj_ref_nbays (qsmem_t * mem, qsptr_t p)
@@ -122,7 +138,7 @@ qsword qsobj_ref_nbays (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  int allocscale = qsheap_get_allocscale(mem, addr);
+  int allocscale = qsbay_get_allocscale(addr);
   return (1 << allocscale);
 }
 
@@ -131,7 +147,7 @@ qsword qsobj_ref_allocsize (qsmem_t * mem, qsptr_t p)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  int allocscale = qsheap_get_allocscale(mem, addr);
+  int allocscale = qsbay_get_allocscale(addr);
   return (1 << allocscale);
 }
 
@@ -140,7 +156,7 @@ qsptr_t qsobj_setq_marked (qsmem_t * mem, qsptr_t p, qsword val)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return QSERROR_INVALID;
-  qsheap_set_marked(mem, addr, val);
+  qsbay_set_marked(addr, val);
   return p;
 }
 
@@ -149,7 +165,7 @@ qsptr_t qsobj_setq_score (qsmem_t * mem, qsptr_t p, qsword val)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return QSERROR_INVALID;
-  qsheap_set_score(mem, addr, val);
+  qsbay_set_score(addr, val);
   return p;
 }
 
@@ -158,7 +174,7 @@ qsptr_t qsobj_setq_parent (qsmem_t * mem, qsptr_t p, qsword val)
   qsmemaddr_t addr = 0;
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return 0;
-  qsheap_set_parent(mem, addr, val);
+  qsbay_set_parent(addr, val);
   return p;
 }
 
@@ -215,9 +231,9 @@ qsptr_t * qsobj_prepare_ptr (qsmem_t * mem, qsptr_t p, qsword field_idx)
 
   if (field_idx == 0) return &(obj->mgmt); /* shortcut around other checks. */
 
-  int octetate = qsheap_is_octetate(mem, addr);
-  int multi = (qsheap_get_allocscale(mem, addr) > 0);
-  qsword allocscale = qsheap_get_allocscale(mem, addr);
+  int octetate = qsbay_is_octetate(addr);
+  int multi = (qsbay_get_allocscale(addr) > 0);
+  qsword allocscale = qsbay_get_allocscale(addr);
   static const int nptr_scale = 4;  /* ptr-per-bay */
   size_t hardlimit = (1 << allocscale) * nptr_scale;
   if (octetate)
@@ -255,10 +271,10 @@ void * qsobj_ref_data (qsmem_t * mem, qsptr_t p, size_t * len)
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return NULL;
 
-  int octetate = qsheap_is_octetate(mem, addr);
-  int multi = (qsheap_get_allocscale(mem, addr) > 0);
+  int octetate = qsbay_is_octetate(addr);
+  int multi = (qsbay_get_allocscale(addr) > 0);
   static const int noct_scale = 16;
-  qsword allocscale = qsheap_get_allocscale(mem, addr);
+  qsword allocscale = qsbay_get_allocscale(addr);
   size_t all_bytes = (1 << allocscale) * noct_scale;
   if (octetate)
     {
@@ -302,7 +318,7 @@ uint8_t * qsobj_prepare_octet (qsmem_t * mem, qsptr_t p, qsword field_idx)
   qsobj_t * obj = qsobj(mem, p, &addr);
   if (!obj) return NULL;
 
-  int octetate = qsheap_is_octetate(mem, addr);
+  int octetate = qsbay_is_octetate(addr);
   if (!octetate) return NULL;
 
   size_t hardlimit = 0;
@@ -360,11 +376,11 @@ qsptr_t qsobj_make (qsmem_t * mem, qsword k, int octetate, qsmemaddr_t * out_add
 
   if (octetate)
     {
-      retval = qsheap_alloc_with_nbytes(mem, (k>0)?k:0, &addr);
+      retval = qsstore_alloc_with_nbytes(mem, (k>0)?k:0, &addr);
     }
   else
     {
-      retval = qsheap_alloc_nbays(mem, (k>1)?k:1, &addr);
+      retval = qsstore_alloc_nbays(mem, (k>1)?k:1, &addr);
     }
 
   if (retval == QSERROR_OK)
@@ -568,8 +584,8 @@ int qsobj_p (qsmem_t * mem, qsptr_t p)
   if (! ISOBJ26(p)) return 0;
   qsmemaddr_t addr = 0;
   addr = COBJ26(p);
-  if (! qsheap_is_synced(mem, addr)) return 0;
-  if (! qsheap_is_used(mem, addr)) return 0;
+  if (! qsbay_is_synced(addr)) return 0;
+  if (! qsbay_is_used(addr)) return 0;
   return 1;
 }
 
@@ -2298,8 +2314,8 @@ qsptr_t qsiter_item (qsmem_t * mem, qsptr_t it)
     {
       qsword ofs = qsiter_get(mem, it);
       qsptr_t ref = QSERROR_INVALID;
-      qserror_t err = qsheap_word(mem, ofs, &ref);
-      if (err != QSERROR_OK)
+      qserror_t res = qsstore_fetch_word(mem, ofs, &ref);
+      if (res != QSERROR_OK)
 	return QSNIL;
       if (ref == QSBOL)
 	{
@@ -2334,20 +2350,21 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
   else if (ISITER28(it))
     {
       qsptr_t peek = QSNIL;
-      qserror_t err = QSNIL;
       int depth = 0;
       qsword startofs = qsiter_get(mem, it);
-      err = qsheap_word(mem, startofs, &peek);
-      if (err != QSERROR_OK) return QSNIL;
+      qserror_t res = qsstore_fetch_word(mem, startofs, &peek);
+      if (res != QSERROR_OK)
+	return QSNIL;
       if (peek == QSBOL) depth++; // goal: skip to end of nested list.
 
       qsword nextofs = startofs+1;
-      err = qsheap_word(mem, nextofs, &peek);
-      if (err != QSERROR_OK) return QSNIL;
+      res = qsstore_fetch_word(mem, nextofs, &peek);
+      if (res != QSERROR_OK)
+	return QSNIL;
 
       while (depth > 0)
 	{
-	  if (err != QSERROR_OK)
+	  if (res != QSERROR_OK)
 	    {
 	      // invalid address, treat as end of iterator.
 	      depth = 0;
@@ -2372,7 +2389,7 @@ qsptr_t qsiter_next (qsmem_t * mem, qsptr_t it)
 	      break;
 	    }
 	  nextofs++;
-	  err = qsheap_word(mem, nextofs, &peek);
+	  res = qsstore_fetch_word(mem, nextofs, &peek);
 	}
       if (peek != QSEOL)  // did not end on end-of-list marker.
 	return qsiter_make(mem, nextofs);

@@ -4,7 +4,7 @@
 
 #include "check_qs.h"
 #include "qsptr.h"
-#include "qsheap.h"
+#include "qsstore.h"
 #include "qsobj.h"
 #include "qsmach.h"
 
@@ -12,8 +12,8 @@
 
 #define SPACELEN 20000
 
-uint8_t _heap1[sizeof(qsheap_t) + SPACELEN*sizeof(qsobj_t)];
-qsheap_t *heap1 = (qsheap_t*)&_heap1;
+uint8_t _heap1[sizeof(qsstore_t) + SPACELEN*sizeof(qsobj_t)];
+qsstore_t *heap1 = (qsstore_t*)&_heap1;
 
 qs_t _scheme1, *scheme1 = &_scheme1;
 
@@ -22,7 +22,7 @@ char buf[131072];
 
 void init ()
 {
-  qsheap_init(heap1, SPACELEN);
+  qsstore_init(heap1, SPACELEN);
   qs_init(scheme1, heap1);
 
   //heap_dump(heap1, 0);
@@ -48,7 +48,7 @@ START_TEST(test_iter_pairs)
   ck_assert_int_eq(qslist_length(heap1, cells[6]), 7);
 
   qsptr_t root = cells[6];
-  qsheapaddr_t word_addr = COBJ26(root) << 2;
+  qsstoreaddr_t word_addr = COBJ26(root) << 2;
   qsptr_t it1 = qsiter_make(heap1, word_addr);
   int i;
   for (i = 0; i < 7; i++)

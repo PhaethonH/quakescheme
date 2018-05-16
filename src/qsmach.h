@@ -2,7 +2,7 @@
 #define QSMACH_H_
 
 #include "qsptr.h"
-#include "qsheap.h"
+#include "qsstore.h"
 #include "qsobj.h"
 
 /* quakescheme machine.

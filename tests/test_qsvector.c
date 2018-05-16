@@ -4,7 +4,7 @@
 
 #include "check_qs.h"
 #include "qsptr.h"
-#include "qsheap.h"
+#include "qsstore.h"
 #include "qsobj.h"
 #include "qsmach.h"
 
@@ -12,8 +12,8 @@
 
 #define SPACELEN 20000
 
-uint8_t _heap1[sizeof(qsheap_t) + SPACELEN*sizeof(qsobj_t)];
-qsheap_t *heap1 = (qsheap_t*)&_heap1;
+uint8_t _heap1[sizeof(qsstore_t) + SPACELEN*sizeof(qsobj_t)];
+qsstore_t *heap1 = (qsstore_t*)&_heap1;
 
 qs_t _scheme1, *scheme1 = &_scheme1;
 
@@ -22,7 +22,7 @@ char buf[131072];
 
 void init ()
 {
-  qsheap_init(heap1, SPACELEN);
+  qsstore_init(heap1, SPACELEN);
   qs_init(scheme1, heap1);
 
   //heap_dump(heap1, 0);
@@ -58,14 +58,14 @@ START_TEST(test_sweep1)
   ck_assert(MGMT_IS_MARKED(qsobj(heap1,v,NULL)->mgmt));
   ck_assert(qsobj_marked_p(heap1,v));
 
-  qsheap_sweep(heap1);
+  qsstore_sweep(heap1);
   ck_assert(qsvector_p(heap1, v));
   ck_assert(!qsvector_p(heap1, v2));
   ck_assert(!qsvector_p(heap1, v3));
   ck_assert_int_eq(COBJ26(v2), 19998);
   ck_assert_int_eq(heap1->end_freelist, 19998);
 
-  qsheap_sweep(heap1);
+  qsstore_sweep(heap1);
   ck_assert(!qsvector_p(heap1, v));
   ck_assert_int_eq(heap1->end_freelist, 0);
   ck_assert_int_eq(qsfreelist_get_span(heap1,0), 20000);
