@@ -12,8 +12,8 @@
 
 #define SPACELEN 20000
 
-uint8_t _heap1[sizeof(qsheap_t) + SPACELEN*sizeof(qsobj_t)];
-qsheap_t *heap1 = (qsheap_t*)&_heap1;
+uint8_t _heap1[sizeof(qsstore_t) + SPACELEN*sizeof(qsobj_t)];
+qsstore_t *heap1 = (qsstore_t*)&_heap1;
 
 qs_t _scheme1, *scheme1 = &_scheme1;
 
@@ -22,7 +22,7 @@ char buf[131072];
 
 void init ()
 {
-  qsheap_init(heap1, SPACELEN);
+  qsstore_init(heap1, SPACELEN);
   qs_init(scheme1, heap1);
 
   //heap_dump(heap1, 0);
@@ -93,7 +93,7 @@ START_TEST(test_sweep1)
       ck_assert(qsobj_marked_p(heap1, cells[i]));
     }
 
-  qsheap_sweep(heap1);
+  qsstore_sweep(heap1);
 
   // make sure objects still persist.
   for (i = 0; i < 7; i++)

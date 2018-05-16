@@ -12,8 +12,8 @@
 
 #define SPACELEN 20000
 
-uint8_t _heap1[sizeof(qsheap_t) + SPACELEN*sizeof(qsobj_t)];
-qsheap_t *heap1 = (qsheap_t*)&_heap1;
+uint8_t _heap1[sizeof(qsstore_t) + SPACELEN*sizeof(qsobj_t)];
+qsstore_t *heap1 = (qsstore_t*)&_heap1;
 
 qs_t _scheme1, *scheme1 = &_scheme1;
 
@@ -22,7 +22,7 @@ char buf[131072];
 
 void init ()
 {
-  qsheap_init(heap1, SPACELEN);
+  qsstore_init(heap1, SPACELEN);
   qs_init(scheme1, heap1);
 
   //heap_dump(heap1, 0);
@@ -33,10 +33,9 @@ START_TEST(test_address_pedantry)
 {
   init();
 
-//  qsptr_t obj1 = qsheap_allocscale(heap1, 3);
   qsfreelist_t * a = qsfreelist_ref(heap1, 0);
   qsfreelist_t * b = NULL;
-  qsheapaddr_t a0, a1;
+  qsstoreaddr_t a0, a1;
 
   qsword oldspan = CINT30(a->span);
   ck_assert_int_eq(oldspan, 20000);
@@ -47,7 +46,7 @@ START_TEST(test_address_pedantry)
   ck_assert(b);
   ck_assert(b > a);
   ck_assert_int_eq(a1, 19999);
-  ck_assert_int_eq((qsheapcell_t*)b - heap1->space, 19999);
+  ck_assert_int_eq((qsbay0_t*)b - heap1->space, 19999);
   ck_assert(CINT30(b->span) == 1);
   ck_assert_int_lt(CINT30(a->span), oldspan);
 
@@ -59,7 +58,7 @@ START_TEST(test_address_pedantry)
   ck_assert(b);
   ck_assert(b > a);
   ck_assert_int_eq(a1, 19995);
-  ck_assert_int_eq((qsheapcell_t*)b - heap1->space, 19995);
+  ck_assert_int_eq((qsbay0_t*)b - heap1->space, 19995);
   ck_assert(CINT30(b->span) == 4);
   ck_assert_int_lt(CINT30(a->span), oldspan);
 }
@@ -69,22 +68,23 @@ START_TEST(test_alloc_pedantry)
 {
   init();
 
-  qsheapaddr_t held = 0;
+  qsstoreaddr_t held = 0;
   qserror_t err = 0;
 
-  err = qsheap_allocscale(heap1, 4, &held);
+  err = qsstore_allocscale(heap1, 4, &held);
   ck_assert_int_eq(held, 19984 /*SPACELEN-16*/);
 
-  err = qsheap_allocscale(heap1, 2, &held);
+  err = qsstore_allocscale(heap1, 2, &held);
   ck_assert_int_eq(held, 19980 /*SPACELEN-16-4*/);
 
-  err = qsheap_allocscale(heap1, 30, &held);
+  err = qsstore_allocscale(heap1, 30, &held);
   ck_assert_int_eq(err, QSERROR_NOMEM);
+  //ck_assert(! err);
 }
 END_TEST
 
 
-int mark_cells (int ncells, qsheapaddr_t * cells, int * marking)
+int mark_cells (int ncells, qsstoreaddr_t * cells, int * marking)
 {
   /* set marks. */
   int i;
@@ -92,15 +92,15 @@ int mark_cells (int ncells, qsheapaddr_t * cells, int * marking)
     {
       if (marking[i])
 	{
-	  qsheapcell_t * probe = qsheap_ref(heap1, cells[i]);
-	  if (qsheapcell_is_used(probe))
-	    qsheapcell_set_marked(probe, 1);
+	  qsbay0_t * probe = qsstore_get(heap1, cells[i]);
+	  if (qsstorebay_is_used(heap1, cells[i]))
+	    qsstorebay_set_marked(heap1, cells[i], 1);
 	}
     }
   return 0;
 }
 
-int check_used (int ncells, qsheapaddr_t * cells, int * marking)
+int check_used (int ncells, qsstoreaddr_t * cells, int * marking)
 {
   /* check mark-tagged cells are Used. */
   int i;
@@ -108,15 +108,15 @@ int check_used (int ncells, qsheapaddr_t * cells, int * marking)
     {
       if (marking[i])
 	{
-	  qsheapcell_t * probe = qsheap_ref(heap1, cells[i]);
+	  qsbay0_t * probe = qsstore_get(heap1, cells[i]);
 	  ck_assert(probe);
-	  ck_assert(qsheapcell_is_used(probe));
+	  ck_assert(qsstorebay_is_used(heap1, cells[i]));
 	}
     }
   return 0;
 }
 
-int check_marks (int ncells, qsheapaddr_t * cells, int * marking)
+int check_marks (int ncells, qsstoreaddr_t * cells, int * marking)
 {
   /* check markedness. */
   int i;
@@ -124,29 +124,29 @@ int check_marks (int ncells, qsheapaddr_t * cells, int * marking)
     {
       if (marking[i])
 	{
-	  qsheapcell_t * probe = qsheap_ref(heap1, cells[i]);
+	  qsbay0_t * probe = qsstore_get(heap1, cells[i]);
 	  ck_assert(probe);
-	  ck_assert(qsheapcell_is_marked(probe));
+	  ck_assert(qsstorebay_is_marked(heap1, cells[i]));
 	}
     }
   return 0;
 }
 
-int check_unswept (int ncells, qsheapaddr_t * cells, int * marking)
+int check_unswept (int ncells, qsstoreaddr_t * cells, int * marking)
 {
   /* check mark-tagged cells are Used. */
   int i;
   for (i = 0; i < ncells; i++)
     {
-      qsheapcell_t * probe = qsheap_ref(heap1, cells[i]);
+      qsbay0_t * probe = qsstore_get(heap1, cells[i]);
       ck_assert(probe);
       if (marking[i])
 	{
-	  ck_assert(qsheapcell_is_used(probe));
+	  ck_assert(qsstorebay_is_used(heap1, cells[i]));
 	}
       else
 	{
-	  ck_assert(!qsheapcell_is_used(probe));
+	  ck_assert(! qsstorebay_is_used(heap1, cells[i]));
 	}
     }
   return 0;
@@ -156,15 +156,15 @@ START_TEST(test_sweeping)
 {
   init();
 
-  qsheapaddr_t held[16] = { 0, };
+  qsstoreaddr_t held[16] = { 0, };
   qserror_t err = 0;
 
   /* allocate a bunch of 1-cell objects. */
   int i;
   for (i = 0; i < 16; i++)
     {
-      err = qsheap_allocscale(heap1, 0, &(held[i]));
-      ck_assert_int_eq(err, QSERROR_OK);
+      err = qsstore_allocscale(heap1, 0, &(held[i]));
+      ck_assert(err);
       if (i > 0)
 	{
 	  ck_assert_int_lt(held[i], held[i-1]);
@@ -173,10 +173,10 @@ START_TEST(test_sweeping)
 
   for (i = 0; i < 16; i++)
     {
-      qsheapcell_t * probe = qsheap_ref(heap1, held[i]);
+      qsbay0_t * probe = qsstore_get(heap1, held[i]);
       ck_assert(probe);
-      ck_assert(MGMT_IS_USED(probe->mgmt));
-      ck_assert_int_eq(MGMT_GET_ALLOCSCALE(probe->mgmt), 0);
+      ck_assert(qsstorebay_is_used(heap1, held[i]));
+      ck_assert_int_eq(qsstorebay_get_allocscale(heap1, held[i]), 0);
     }
 
   qsfreelist_t * segment = qsfreelist_ref(heap1, heap1->end_freelist);
@@ -190,7 +190,7 @@ START_TEST(test_sweeping)
   check_marks(16, held, marking);
   check_used(16, held, marking);
 
-  qsheap_sweep(heap1);
+  qsstore_sweep(heap1);
 
   check_unswept(16, held, marking);
 
@@ -200,7 +200,7 @@ START_TEST(test_sweeping)
   marking = marking2;
   mark_cells(16, held, marking);
 
-  qsheap_sweep(heap1);
+  qsstore_sweep(heap1);
 
   check_unswept(16, held, marking);
 
@@ -215,7 +215,7 @@ START_TEST(test_sweeping)
   mark_cells(16, held, marking);
   check_marks(16, held, marking);  /* check markedness */
 
-  qsheap_sweep(heap1);
+  qsstore_sweep(heap1);
 
   check_unswept(16, held, marking);
 
@@ -230,7 +230,7 @@ START_TEST(test_sweeping)
   mark_cells(16, held, marking);
   check_marks(16, held, marking);  /* check markedness */
 
-  qsheap_sweep(heap1);
+  qsstore_sweep(heap1);
 
   check_unswept(16, held, marking);
 
@@ -247,7 +247,7 @@ START_TEST(test_sweeping)
   mark_cells(16, held, marking);
   check_marks(16, held, marking);  /* checked markedness */
 
-  qsheap_sweep(heap1);
+  qsstore_sweep(heap1);
 
   check_unswept(16, held, marking);
 
@@ -262,14 +262,14 @@ END_TEST
 
 
 
-TESTCASE(qsheap1,
+TESTCASE(qsstore1,
   TFUNC(test_address_pedantry)
   TFUNC(test_alloc_pedantry)
   TFUNC(test_sweeping)
   )
 
 TESTSUITE(suite1,
-  TCASE(qsheap1)
+  TCASE(qsstore1)
   )
 
 int main ()

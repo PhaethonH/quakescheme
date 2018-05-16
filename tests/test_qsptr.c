@@ -12,8 +12,8 @@
 
 #define SPACELEN 20000
 
-uint8_t _heap1[sizeof(qsheap_t) + SPACELEN*sizeof(qsobj_t)];
-qsheap_t *heap1 = (qsheap_t*)&_heap1;
+uint8_t _heap1[sizeof(qsstore_t) + SPACELEN*sizeof(qsobj_t)];
+qsstore_t *heap1 = (qsstore_t*)&_heap1;
 
 qs_t _scheme1, *scheme1 = &_scheme1;
 
@@ -22,7 +22,7 @@ char buf[131072];
 
 void init ()
 {
-  qsheap_init(heap1, SPACELEN);
+  qsstore_init(heap1, SPACELEN);
   qs_init(scheme1, heap1);
 
   //heap_dump(heap1, 0);
@@ -159,7 +159,7 @@ START_TEST(test_iter)
 
   qsptr_t anchor = QSOBJ(8);
   ck_assert(ISOBJ26(anchor));
-  qsheapcell_t * heapcell = qsheap_ref(heap1, 8);
+  qsbay0_t * heapcell = qsstore_get(heap1, 8);
   qsobj_t * obj = (qsobj_t*)heapcell;
   ck_assert(heapcell - heap1->space == 8);
   obj->mgmt |= (1 << 31);  /* used */
@@ -191,7 +191,7 @@ START_TEST(test_iter)
   ck_assert_int_eq(CITER28(iter1), word_addr);
 
   qsptr_t ref1 = 0;
-  qsheap_word(heap1, word_addr, &ref1);
+  qsstore_fetch_word(heap1, word_addr, &ref1);
   ck_assert(ISINT30(ref1));
 
   qsptr_t itern = iter1;
