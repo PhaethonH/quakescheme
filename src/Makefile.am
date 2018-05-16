@@ -6,8 +6,10 @@ libquakescheme_a_SOURCES = \
   qsstore.c \
   qsobj.h \
   qsobj.c \
-  qsprim.h \
-  qsprim.c \
+  qsprimreg.h \
+  qsprimreg.c \
+  qsprimlib.h \
+  qsprimlib.c \
   qssexpr.h \
   qssexpr.c \
   qssexpr_0.c \

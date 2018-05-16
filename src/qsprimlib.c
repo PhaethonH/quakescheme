@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "qsprim.h"
+#include "qsprimlib.h"
 
 /*
 Prefices for types associated with primitives:
@@ -276,7 +276,7 @@ qsptr_t qsop_str_length (qs_t * machine, qsptr_t args)
 
 
 
-qsprimmap_t qsprims [MAX_PRIMS] = {
+qsprimentry_t qsprims0 [] = {
       { "&&",	  qsprim_crash },
       { "&.",	  qsprim_halt },
 
@@ -315,51 +315,8 @@ qsprimmap_t qsprims [MAX_PRIMS] = {
       { 0, 0 },
 };
 
-qsprim_f qsprim_find (qs_t * machine, const char * opname)
+int qsprimlib_init(qsprimreg_t * qsprims)
 {
-  int i;
-  for (i = 0; qsprims[i].f != NULL; i++)
-    {
-      if (0 == strncmp(opname, qsprims[i].name, MAX_OPNAME_LEN))
-	{
-	  return qsprims[i].f; }
-    }
-  return NULL;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int qsprim_install (qs_t * machine, const char * opname, qsprim_f opfunc)
-{
-  return 0;
-}
-
-
-int qsprim_install_multi (qs_t * machine, int count, qsprimmap_t * primlist)
-{
-  int i = 0;
-  /* end after 'count', or a NULL entry. */
-  while ((count && i < count) || (primlist[i].f))
-    {
-      const char * opname = primlist[i].name;
-      qsprim_f opfunc = primlist[i].f;
-      qsprim_install(machine, opname, opfunc);
-    }
-  return 0;
+  qsprimreg_install_multi(qsprims, 0, qsprims0);
 }
 

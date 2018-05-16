@@ -2,7 +2,8 @@
 #include <string.h>
 
 #include "qsmach.h"
-#include "qsprim.h"
+#include "qsprimreg.h"
+#include "qsprimlib.h"
 
 
 qs_t * qs_init (qs_t * machine, qsheap_t * store)
@@ -13,6 +14,10 @@ qs_t * qs_init (qs_t * machine, qsheap_t * store)
   machine->A = QSNIL;
   machine->store = store;
 //  machine->store->symstore = qssymstore_make(machine->store);
+
+  qsprimreg_init(&(machine->prims));
+  qsprimlib_init(&(machine->prims));
+
   return machine;
 }
 
@@ -241,7 +246,8 @@ qsptr_t qs_atomic_eval (qs_t * machine, qsptr_t aexp)
 		}
 	      else
 		{
-		  oper = qsprim_find(machine, symname);
+//		  oper = qsprim_find(machine, symname);
+		  oper = qsprimreg_find(&(machine->prims), symname);
 		}
 
 	      if (oper != NULL)

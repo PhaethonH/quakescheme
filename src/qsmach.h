@@ -4,6 +4,7 @@
 #include "qsptr.h"
 #include "qsstore.h"
 #include "qsobj.h"
+#include "qsprimreg.h"
 
 /* quakescheme machine.
 CESK, four components:
@@ -17,6 +18,10 @@ CESK, four components:
 /* Component 2: set of machine states. */
 typedef struct qs_s {
     int halt;
+
+    /* Registry of primitives */
+    qsprimreg_t prims;
+
     qsptr_t A;	/* Answer */
 
     qsptr_t C;  /* Code */
