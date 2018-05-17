@@ -850,6 +850,7 @@ qsptr_t qsop_env_setq (qs_t * machine, qsptr_t args)
 /******************************/
 /* Numeric tower in the store */
 /******************************/
+/* Numeric tower, fixnum64 */
 qsptr_t qsop_widenum_p (qs_t * machine, qsptr_t args)
 {
   qsptr_t n = ARG(0);
@@ -1030,10 +1031,162 @@ qsptr_t qsop_long_shr (qs_t * machine, qsptr_t args)
   return qslong_make(machine->store, ca >> cb);
 }
 
+qsptr_t qsop_long_lt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qslong_p(machine->store, a) || !qslong_p(machine->store, b)) return QSINT(0);
+  long ca = qslong_get(machine->store, a);
+  long cb = qslong_p(machine->store, b) ? qslong_get(machine->store, b) : ISINT30(b) ? CINT30(b) : 0;
+  return QSBOOL(ca < cb);
+}
+
+qsptr_t qsop_long_eq_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qslong_p(machine->store, a) || !qslong_p(machine->store, b)) return QSINT(0);
+  long ca = qslong_get(machine->store, a);
+  long cb = qslong_p(machine->store, b) ? qslong_get(machine->store, b) : ISINT30(b) ? CINT30(b) : 0;
+  return QSBOOL(ca == cb);
+}
+
+qsptr_t qsop_long_gt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qslong_p(machine->store, a) || !qslong_p(machine->store, b)) return QSINT(0);
+  long ca = qslong_get(machine->store, a);
+  long cb = qslong_p(machine->store, b) ? qslong_get(machine->store, b) : ISINT30(b) ? CINT30(b) : 0;
+  return QSBOOL(ca > cb);
+}
 
 
+/* Numeric tower, flonum64 */
+qsptr_t qsop_double_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  return QSBOOL(qsdouble_p(machine->store, a));
+}
 
+qsptr_t qsop_double_coerce (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  if (qsdouble_p(machine->store, a)) return a;
+  double ca = 0;
+  if (ISFLOAT31(a)) ca = (double)CFLOAT31(a);
+  else if (ISINT30(a)) ca = (double)CINT30(a);
+  else if (qslong_p(machine->store, a))
+    ca = (double)qslong_get(machine->store, a);
+  else
+    ca = (double)qsop_float_coerce(machine, a);
+  return qsdouble_make(machine->store, ca);
+}
 
+qsptr_t qsop_double_make (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  if (qsdouble_p(machine->store, a)) return a;
+  double ca = 0.;
+  if (ISFLOAT31(a)) ca = CFLOAT31(a);
+  return qsdouble_make(machine->store, ca);
+}
+
+qsptr_t qsop_double_neg (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  if (!qsdouble_p(machine->store, a)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  return qsdouble_make(machine->store, -ca);
+}
+
+qsptr_t qsop_double_abs (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  if (!qsdouble_p(machine->store, a)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  return qsdouble_make(machine->store, fabs(ca));
+}
+
+qsptr_t qsop_double_sign (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  if (!qsdouble_p(machine->store, a)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  if (ca < 0) return QSFLOAT(-1);
+  else if (ca > 0) return QSFLOAT(+1);
+  return QSFLOAT(0);
+}
+
+qsptr_t qsop_double_add (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qsdouble_p(machine->store,a)||!qsdouble_p(machine->store,b)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return qsdouble_make(machine->store, ca+cb);
+}
+
+qsptr_t qsop_double_sub (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qsdouble_p(machine->store,a)||!qsdouble_p(machine->store,b)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return qsdouble_make(machine->store, ca+cb);
+}
+
+qsptr_t qsop_double_mul (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qsdouble_p(machine->store,a)||!qsdouble_p(machine->store,b)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return qsdouble_make(machine->store, ca+cb);
+}
+
+qsptr_t qsop_double_div (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qsdouble_p(machine->store,a)||!qsdouble_p(machine->store,b)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return qsdouble_make(machine->store, ca+cb);
+}
+
+qsptr_t qsop_double_lt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qsdouble_p(machine->store,a)||!qsdouble_p(machine->store,b)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return QSBOOL(ca < cb);
+}
+
+qsptr_t qsop_double_eq_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qsdouble_p(machine->store,a)||!qsdouble_p(machine->store,b)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return QSBOOL(ca == cb);
+}
+
+qsptr_t qsop_double_gt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!qsdouble_p(machine->store,a)||!qsdouble_p(machine->store,b)) return QSFLOAT(0);
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return QSBOOL(ca > cb);
+}
 
 
 
@@ -1155,6 +1308,8 @@ qsprimentry_t qsprims0 [] = {
 
 
       { "&n?",		qsop_widenum_p },
+
+      { "&:nl",		qsop_long_coerce },
       { "&n*l",		qsop_long_make },
       { "&nl?",		qsop_long_p },
       { "&nlneg",	qsop_long_neg },
@@ -1171,6 +1326,24 @@ qsprimentry_t qsprims0 [] = {
       { "&nl^",		qsop_long_bxor },
       { "&nlshl",	qsop_long_shl },
       { "&nlshr",	qsop_long_shr },
+      { "&nl<?",	qsop_long_lt_p },
+      { "&nl=?",	qsop_long_eq_p },
+      { "&nl>?",	qsop_long_gt_p },
+
+      { "&:nd",		qsop_double_coerce },
+      { "&n*d",		qsop_double_make },
+      { "&nd?",		qsop_double_p },
+      { "&ndneg",	qsop_double_neg },
+      { "&ndabs",	qsop_double_abs },
+      { "&ndsig",	qsop_double_sign },
+      { "&nd+",		qsop_double_add },
+      { "&nd-",		qsop_double_sub },
+      { "&nd*",		qsop_double_mul },
+      { "&nd/",		qsop_double_div },
+      { "&nd<?",	qsop_double_lt_p },
+      { "&nd=?",	qsop_double_eq_p },
+      { "&nd>?",	qsop_double_gt_p },
+
 
       { "&s*",		qsop_str_make },
       { "&s#",		qsop_str_length },

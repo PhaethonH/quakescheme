@@ -2203,7 +2203,7 @@ double qsdouble_get (qsmem_t * mem, qsptr_t p)
   FILTER_ISA(qsdouble_p)  return QSERROR_INVALID;
   double retval = 0;
   qserror_t err = qsdouble_fetch(mem, p, &retval);
-  if (err)
+  if (err != QSERROR_OK)
     return 0;
   return retval;
 }
