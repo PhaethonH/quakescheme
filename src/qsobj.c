@@ -2432,6 +2432,7 @@ PREDICATE(qsint)
   return ISINT30(p);
 }
 
+/* Coerce to int30 */
 qsptr_t qsint (qsmem_t * mem, qsptr_t q)
 {
   if (ISINT30(q)) return q;
@@ -2440,13 +2441,17 @@ qsptr_t qsint (qsmem_t * mem, qsptr_t q)
       int casted_int = (int)CFLOAT31(q);
       return QSINT(casted_int);
     }
+  else if (ISCHAR24(q))
+    {
+      return QSINT(CCHAR24(q));
+    }
   else
     {
       // TODO: wide numbers.
       // TODO: exception.
-      return QSNIL;
+      return QSINT(0);
     }
-  return QSNIL;
+  return QSINT(0);
 }
 
 int32_t qsint_get (qsmem_t * mem, qsptr_t q)
@@ -2457,7 +2462,7 @@ int32_t qsint_get (qsmem_t * mem, qsptr_t q)
 
 qsptr_t qsint_make (qsmem_t * mem, int32_t val)
 {
-  if ((val < -0x400000000) || (val > 0x3fffffff))
+  if ((val < MIN_INT30) || (val > MAX_INT30))
     {
       return QSERROR_RANGE;
     }
@@ -2470,6 +2475,79 @@ int qsint_crepr (qsmem_t * mem, qsptr_t i, char * buf, int buflen)
   int val = CINT30(i);
   n = snprintf(buf, buflen, "%d", val);
   return n;
+}
+
+qsptr_t qsint_neg (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsint_p) return QSERROR_INVALID;
+  return qsint_make(mem, -CINT30(p));
+}
+
+qsptr_t qsint_add (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsint_p(mem, p) || !qsint_p(mem, other)) return QSERROR_INVALID;
+  return qsint_make(mem, CINT30(p) + CINT30(other));
+}
+
+qsptr_t qsint_sub (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsint_p(mem, p) || !qsint_p(mem, other)) return QSERROR_INVALID;
+  return qsint_make(mem, CINT30(p) - CINT30(other));
+}
+
+qsptr_t qsint_mul (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsint_p(mem, p) || !qsint_p(mem, other)) return QSERROR_INVALID;
+  return qsint_make(mem, CINT30(p) * CINT30(other));
+}
+
+qsptr_t qsint_div (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsint_p(mem, p) || !qsint_p(mem, other)) return QSERROR_INVALID;
+  return qsint_make(mem, CINT30(p) / CINT30(other));
+}
+
+qsptr_t qsint_mod (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsint_p(mem, p) || !qsint_p(mem, other)) return QSERROR_INVALID;
+  return qsint_make(mem, CINT30(p) % CINT30(other));
+}
+
+qsptr_t qsint_bnot (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsint_p) return QSERROR_INVALID;
+  return qsint_make(mem, ~CINT30(p));
+}
+
+qsptr_t qsint_bor (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsint_p(mem, p) || !qsint_p(mem, other)) return QSERROR_INVALID;
+  return qsint_make(mem, CINT30(p) | CINT30(other));
+}
+
+qsptr_t qsint_band (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsint_p(mem, p) || !qsint_p(mem, other)) return QSERROR_INVALID;
+  return qsint_make(mem, CINT30(p) & CINT30(other));
+}
+
+qsptr_t qsint_bxor (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsint_p(mem, p) || !qsint_p(mem, other)) return QSERROR_INVALID;
+  return qsint_make(mem, CINT30(p) ^ CINT30(other));
+}
+
+qsptr_t qsint_sign (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsint_p) return QSERROR_INVALID;
+  int a = CINT30(p);
+  return (a < 0) ? QSINT(-1) : (a > 0) ? QSINT(1) : QSINT(0);
+}
+
+qsptr_t qsint_zero_p (qsmem_t * mem, qsptr_t p)
+{
+  FILTER_ISA(qsint_p) return QSERROR_INVALID;
+  return QSBOOL(CINT30(p) == 0);
 }
 
 
@@ -2518,12 +2596,46 @@ int qsfloat_crepr (qsmem_t * mem, qsptr_t f, char * buf, int buflen)
 }
 
 
+qsptr_t qsfloat_neg (qsmem_t * mem, qsptr_t p)
+{
+  if (!qsfloat_p(mem, p)) return QSERROR_INVALID;
+  return QSFLOAT(-CFLOAT31(p));
+}
+
+qsptr_t qsfloat_add (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsfloat_p(mem, p) || !qsfloat_p(mem, other)) return QSERROR_INVALID;
+  return QSFLOAT(CFLOAT31(p) + CFLOAT31(other));
+}
+qsptr_t qsfloat_sub (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsfloat_p(mem, p) || !qsfloat_p(mem, other)) return QSERROR_INVALID;
+  return QSFLOAT(CFLOAT31(p) - CFLOAT31(other));
+}
+qsptr_t qsfloat_mul (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsfloat_p(mem, p) || !qsfloat_p(mem, other)) return QSERROR_INVALID;
+  return QSFLOAT(CFLOAT31(p) * CFLOAT31(other));
+}
+qsptr_t qsfloat_div (qsmem_t * mem, qsptr_t p, qsptr_t other)
+{
+  if (!qsfloat_p(mem, p) || !qsfloat_p(mem, other)) return QSERROR_INVALID;
+  return QSFLOAT(CFLOAT31(p) / CFLOAT31(other));
+}
+qsptr_t qsfloat_zero_p (qsmem_t * mem, qsptr_t p)
+{
+  if (!qsfloat_p(mem, p) || !qsfloat_p(mem, other)) return QSERROR_INVALID;
+  return QSBOOL(CFLOAT31(p) == 0.);
+}
+
+
 
 
 qsptr_t qschar (qsmem_t * mem, qsptr_t q)
 {
   if (ISCHAR24(q)) return q;
-  return QSNIL;
+  if (ISINT30(q)) return QSCHAR(CINT30(q));
+  return QSCHAR(0);
 }
 
 bool qschar_p (qsmem_t * mem, qsptr_t p)

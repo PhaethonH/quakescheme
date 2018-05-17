@@ -583,6 +583,20 @@ qsptr_t qsint_make (qsmem_t * mem, int32_t val);
 int qsint_crepr (qsmem_t * mem, qsptr_t i, char * buf, int buflen);
 cmp_t qsint_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
 
+/* integer operations. */
+qsptr_t qsint_neg (qsmem_t * mem, qsptr_t p);
+qsptr_t qsint_add (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_sub (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_mul (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_div (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_mod (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_bnot (qsmem_t * mem, qsptr_t p);
+qsptr_t qsint_bor (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_band (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_bxor (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_sign (qsmem_t * mem, qsptr_t p);
+qsptr_t qsint_zero_p (qsmem_t * mem, qsptr_t p);
+
 /* patterned methods for float31 */
 qsptr_t qsfloat (qsmem_t * mem, qsptr_t f);
 bool qsfloat_p (qsmem_t * mem, qsptr_t p);
