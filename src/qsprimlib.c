@@ -15,6 +15,7 @@ C = char24
 K = const16
 E = error16
 P = portFD16
+J = iter28
 
 L = lambda
 O = entire store (direct access to store)
@@ -254,7 +255,62 @@ qsptr_t qsop_int_mul (qs_t * machine, qsptr_t args)
   return QSINT(CINT30(a) * CINT30(b));
 }
 
+qsptr_t qsop_int_div (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  return QSINT(CINT30(a) / CINT30(b));
+}
 
+qsptr_t qsop_int_mod (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  return QSINT(CINT30(a) % CINT30(b));
+}
+
+
+
+qsptr_t qsop_vector_make (qs_t * machine, qsptr_t args)
+{
+  qsword k = qsint_get(machine->store, ARG(0));
+  qsptr_t fill = ARG(1);
+
+  return qsvector_make(machine->store, k, fill);
+}
+
+qsptr_t qsop_vector_length (qs_t * machine, qsptr_t args)
+{
+  qsptr_t v = ARG(0);
+  return qsvector_length(machine->store, v);
+}
+
+qsptr_t qsop_vector_ref (qs_t * machine, qsptr_t args)
+{
+  qsptr_t v = ARG(0);
+  qsptr_t ptrofs = ARG(1);
+  qsword ofs = qsint_get(machine->store, ptrofs);
+  return qsvector_ref(machine->store, v, ofs);
+}
+
+qsptr_t qsop_vector_setq (qs_t * machine, qsptr_t args)
+{
+  qsptr_t v = ARG(0);
+  qsptr_t ptrofs = ARG(1);
+  qsptr_t ptrval = ARG(2);
+  qsword ofs = qsint_get(machine->store, ptrofs);
+  return qsvector_setq(machine->store, v, ofs, ptrval);
+}
+
+
+
+qsptr_t qsop_str_make (qs_t * machine, qsptr_t args)
+{
+  qsword k = qsint_get(machine->store, ARG(0));
+  qsptr_t ptrfill = ARG(1);
+  qsword codepoint = ISNIL(ptrfill) ? 0 : qschar_get(machine->store, ptrfill);
+  return qsstr_make(machine->store, k, codepoint);
+}
 
 qsptr_t qsop_str_ref (qs_t * machine, qsptr_t args)
 {
@@ -301,6 +357,7 @@ qsprimentry_t qsprims0 [] = {
 
       { "&C=?",	  qsop_char_equal_p },
       { "&C:I",	  qsop_char_to_integer },
+      { "&I:C",   qsop_integer_to_char },
 
       { "&I=?",	  qsop_int_eq_p },
       { "&I<?",	  qsop_int_lt_p },
@@ -308,7 +365,15 @@ qsprimentry_t qsprims0 [] = {
       { "&I+",	  qsop_int_add },
       { "&I-",	  qsop_int_sub },
       { "&I*",	  qsop_int_mul },
+      { "&I/",	  qsop_int_div },
+      { "&I%",	  qsop_int_mod },
 
+      { "&v*",	  qsop_vector_make },
+      { "&v#",	  qsop_vector_length },
+      { "&v@",	  qsop_vector_ref },
+      { "&v#",	  qsop_vector_setq },
+
+      { "&s*",	  qsop_str_make },
       { "&s@",	  qsop_str_ref },
       { "&s#",	  qsop_str_length },
 
