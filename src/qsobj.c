@@ -2218,7 +2218,7 @@ qsptr_t qsdouble_make (qsmem_t * mem, double val)
 int qsdouble_crepr (qsmem_t * mem, qsptr_t d, char * buf, int buflen)
 {
   int n = 0;
-  n += snprintf(buf+n, buflen-n, "%g", qsdouble_get(mem, d));
+  n += snprintf(buf+n, buflen-n, "%.8f", qsdouble_get(mem, d));
   return n;
 }
 

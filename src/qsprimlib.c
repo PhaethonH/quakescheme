@@ -149,7 +149,15 @@ qsptr_t qsop_int_gt_p (qs_t * machine, qsptr_t args)
 qsptr_t qsop_int_coerce (qs_t * machine, qsptr_t args)
 {
   qsptr_t a = ARG(0);
-  return qsint(machine->store, a);
+  if (ISINT30(a)) return a;
+  int ca = 0;
+  if (ISCHAR24(a)) ca = CCHAR24(a);
+  else if (ISFLOAT31(a)) ca = (int)CFLOAT31(a);
+  else if (qslong_p(machine->store, a)) ca = qslong_get(machine->store, a);
+  else if (qsdouble_p(machine->store, a))
+    ca = (int)(qsdouble_get(machine->store, a));
+  else ca = 0;
+  return qsint_make(machine->store, ca);
 }
 
 qsptr_t qsop_int_neg (qs_t * machine, qsptr_t args)
@@ -283,7 +291,15 @@ qsptr_t qsop_float_p (qs_t * machine, qsptr_t args)
 qsptr_t qsop_float_coerce (qs_t * machine, qsptr_t args)
 {
   qsptr_t a = ARG(0);
-  return qsfloat(machine->store, a);
+  if (ISFLOAT31(a)) return a;
+  float ca = 0.;
+  if (ISCHAR24(a)) ca = (float)CCHAR24(a);
+  else if (ISINT30(a)) ca = (float)CINT30(a);
+  else if (qslong_p(machine->store, a))
+    ca = (float)qslong_get(machine->store, a);
+  else if (qsdouble_p(machine->store, a))
+    ca = (float)qsdouble_get(machine->store, a);
+  return qsfloat_make(machine->store, ca);
 }
 
 qsptr_t qsop_float_lt_p (qs_t * machine, qsptr_t args)
@@ -871,10 +887,9 @@ qsptr_t qsop_long_coerce (qs_t * machine, qsptr_t args)
   long ca = 0L;
   if (ISINT30(a)) ca = CINT30(a);
   if (ISFLOAT31(a)) ca = (long)CFLOAT31(a);
+  else if (ISCHAR24(a)) ca = (long)CCHAR24(a);
   else if (qsdouble_p(machine->store, a)) 
     ca = (long)qsdouble_get(machine->store, a);
-  else
-    ca = (long)qsop_int_coerce(machine, a);
   return qslong_make(machine->store, ca);
 }
 
@@ -1078,8 +1093,6 @@ qsptr_t qsop_double_coerce (qs_t * machine, qsptr_t args)
   else if (ISINT30(a)) ca = (double)CINT30(a);
   else if (qslong_p(machine->store, a))
     ca = (double)qslong_get(machine->store, a);
-  else
-    ca = (double)qsop_float_coerce(machine, a);
   return qsdouble_make(machine->store, ca);
 }
 
