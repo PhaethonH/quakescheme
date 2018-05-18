@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <fenv.h>
 
 #include "qsprimlib.h"
 
@@ -30,6 +31,10 @@ w = bytevector
 l = list
 a = immlist (array)
 n = number
+ nl = long (fixnum64)
+ nd = double (flonum64-inexact)
+ nr = rational
+ nc = complex
 u = utf8 (native string)
 e = env
 c = closure
@@ -277,6 +282,34 @@ qsptr_t qsop_int_zero_p (qs_t * machine, qsptr_t args)
 }
 
 
+/* Macros to wrap libm (C math library) functions .*/
+/* TODO: error checking */
+#define LIBM_WRAP1(scmtype, scmname, ctype, cname, failval) \
+qsptr_t qsop_##scmtype##_##scmname (qs_t * machine, qsptr_t args) \
+{ \
+  qsptr_t a = ARG(0); \
+  if (! qs##scmtype##_p(machine->store, a)) return (failval); \
+  ctype ca = qs##scmtype##_get(machine->store, a); \
+  ctype res = cname(ca); \
+  feclearexcept(0); \
+  qsptr_t retval = qs##scmtype##_make(machine->store, res); \
+  if (fetestexcept(FE_INEXACT | FE_UNDERFLOW | FE_OVERFLOW | FE_DIVBYZERO | FE_INVALID)) return failval; \
+  return retval; \
+}
+#define LIBM_WRAP2(scmtype, scmname, ctype, cname, failval) \
+qsptr_t qsop_##scmtype##_##scmname (qs_t * machine, qsptr_t args) \
+{ \
+  qsptr_t a = ARG(0); \
+  qsptr_t b = ARG(1); \
+  if (! qs##scmtype##_p(machine->store, a)) return (failval); \
+  if (! qs##scmtype##_p(machine->store, b)) return (failval); \
+  ctype ca = qs##scmtype##_get(machine->store, a); \
+  ctype cb = qs##scmtype##_get(machine->store, b); \
+  ctype res = cname(ca, cb); \
+  qsptr_t retval = qs##scmtype##_make(machine->store, res); \
+  return retval; \
+}
+
 
 /***************/
 /* Quark Float */
@@ -455,6 +488,14 @@ qsptr_t qsop_iter_p (qs_t * machine, qsptr_t args)
 {
   qsptr_t j = ARG(0);
   return QSBOOL(ISITER28(j));
+}
+
+qsptr_t qsop_iter_eq_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (!ISITER28(a) || !ISITER28(b)) return QSFALSE;
+  return QSBOOL(a == b);
 }
 
 qsptr_t qsop_iter_coerce (qs_t * machine, qsptr_t args)
@@ -853,6 +894,111 @@ qsptr_t qsop_env_setq (qs_t * machine, qsptr_t args)
 }
 
 
+/************************/
+/* object: continuation */
+/************************/
+qsptr_t qsop_kont_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  return QSBOOL(qskont_p(machine->store, a));
+}
+
+qsptr_t qsop_kont_make (qs_t * machine, qsptr_t args)
+{
+  qsptr_t v = ARG(0);
+  qsptr_t k = ARG(1);
+  qsptr_t e = ARG(2);
+  qsptr_t c = ARG(3);
+  qsptr_t o = ARG(4);
+  if (ISNIL(v))
+    {
+      return qskont_make(machine->store,
+			 QSKONT_LETK,
+			 machine->K,
+			 machine->E,
+			 machine->C,
+			 QSNIL);
+    }
+  else
+    {
+      return qskont_make(machine->store, v, k, e, c, o);
+    }
+}
+
+qsptr_t qsop_kont_make_current (qs_t * machine, qsptr_t args)
+{
+  return qskont_make(machine->store,
+		     QSKONT_LETK,
+		     machine->K,
+		     machine->E,
+		     machine->C,
+		     QSNIL);
+}
+
+qsptr_t qsop_kont_make_halt (qs_t * machine, qsptr_t args)
+{
+  return qskont_make(machine->store, QSKONT_HALT, QSNIL, QSNIL, QSNIL, QSNIL);
+}
+
+qsptr_t qsop_kont_make_letk (qs_t * machine, qsptr_t args)
+{
+  qsptr_t v = ARG(0);
+  qsptr_t c = ARG(1);
+  qsptr_t e = ARG(2);
+  qsptr_t k = ARG(3);
+  return qskont_make(machine->store, QSKONT_LETK, k, e, c, v);
+}
+
+qsptr_t qsop_kont_ref_code (qs_t * machine, qsptr_t args)
+{
+  return qskont_ref_code(machine->store, ARG(0));
+}
+
+qsptr_t qsop_kont_ref_env (qs_t * machine, qsptr_t args)
+{
+  return qskont_ref_env(machine->store, ARG(0));
+}
+
+qsptr_t qsop_kont_ref_kont (qs_t * machine, qsptr_t args)
+{
+  return qskont_ref_kont(machine->store, ARG(0));
+}
+
+qsptr_t qsop_kont_ref_other (qs_t * machine, qsptr_t args)
+{
+  return qskont_ref_other(machine->store, ARG(0));
+}
+
+
+qsptr_t qsop_kont_setq_code (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t v = ARG(1);
+  return qskont_setq_code(machine->store, a, v);
+}
+
+qsptr_t qsop_kont_setq_env (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t v = ARG(1);
+  return qskont_setq_env(machine->store, a, v);
+}
+
+qsptr_t qsop_kont_setq_kont (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t v = ARG(1);
+  return qskont_setq_kont(machine->store, a, v);
+}
+
+qsptr_t qsop_kont_setq_other (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t v = ARG(1);
+  return qskont_setq_other(machine->store, a, v);
+}
+
+
 
 
 
@@ -1113,6 +1259,7 @@ qsptr_t qsop_double_neg (qs_t * machine, qsptr_t args)
   return qsdouble_make(machine->store, -ca);
 }
 
+/*
 qsptr_t qsop_double_abs (qs_t * machine, qsptr_t args)
 {
   qsptr_t a = ARG(0);
@@ -1120,6 +1267,7 @@ qsptr_t qsop_double_abs (qs_t * machine, qsptr_t args)
   double ca = qsdouble_get(machine->store, a);
   return qsdouble_make(machine->store, fabs(ca));
 }
+*/
 
 qsptr_t qsop_double_sign (qs_t * machine, qsptr_t args)
 {
@@ -1202,6 +1350,109 @@ qsptr_t qsop_double_gt_p (qs_t * machine, qsptr_t args)
 }
 
 
+/* maths functions */
+LIBM_WRAP1(double, abs, double, abs, QSFLOAT(0));
+LIBM_WRAP1(double, round, double, round, QSFLOAT(0));
+LIBM_WRAP1(double, floor, double, floor, QSFLOAT(0));
+LIBM_WRAP1(double, ceil, double, ceil, QSFLOAT(0));
+LIBM_WRAP1(double, trunc, double, trunc, QSFLOAT(0));
+
+
+/* (exp z) */
+LIBM_WRAP1(float, exp, float, expf, QSFLOAT(0));
+LIBM_WRAP1(double, exp, double, exp, QSFLOAT(0));
+/* (log z) */ /* (log z1 z2) ? */
+LIBM_WRAP1(float, log, float, logf, QSFLOAT(0));
+LIBM_WRAP1(double, log, double, log, QSFLOAT(0));
+/* (sin z) */
+LIBM_WRAP1(float, sin, float, sinf, QSFLOAT(0));
+LIBM_WRAP1(double, sin, double, sin, QSFLOAT(0));
+/* (cos z) */
+LIBM_WRAP1(float, cos, float, cosf, QSFLOAT(0));
+LIBM_WRAP1(double, cos, double, cos, QSFLOAT(0));
+/* (tan z) */
+LIBM_WRAP1(float, tan, float, tanf, QSFLOAT(0));
+LIBM_WRAP1(double, tan, double, tan, QSFLOAT(0));
+/* (asin z) */
+LIBM_WRAP1(float, asin, float, asinf, QSFLOAT(0));
+LIBM_WRAP1(double, asin, double, asin, QSFLOAT(0));
+/* (acos z) */
+LIBM_WRAP1(float, acos, float, acosf, QSFLOAT(0));
+LIBM_WRAP1(double, acos, double, acos, QSFLOAT(0));
+/* (atan z) (atan y x) */
+LIBM_WRAP1(float, atan, float, atanf, QSFLOAT(0));
+LIBM_WRAP1(double, atan, double, atan, QSFLOAT(0));
+LIBM_WRAP2(float, atan2, float, atan2f, QSFLOAT(0));
+LIBM_WRAP2(double, atan2, double, atan2, QSFLOAT(0));
+/* (sqrt z) */
+LIBM_WRAP1(float, sqrt, float, sqrtf, QSFLOAT(0));
+LIBM_WRAP1(double, sqrt, double, sqrt, QSFLOAT(0));
+
+
+/* exceptions-less comparison. */
+qsptr_t qsop_float_noexc_lt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (! qsfloat_p(machine->store, a)) return QSFALSE;
+  if (! qsfloat_p(machine->store, b)) return QSFALSE;
+  float ca = qsfloat_get(machine->store, a);
+  float cb = qsfloat_get(machine->store, b);
+  return QSBOOL( isless(ca, cb) );
+}
+qsptr_t qsop_float_noexc_gt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (! qsfloat_p(machine->store, a)) return QSFALSE;
+  if (! qsfloat_p(machine->store, b)) return QSFALSE;
+  float ca = qsfloat_get(machine->store, a);
+  float cb = qsfloat_get(machine->store, b);
+  return QSBOOL( isgreater(ca, cb) );
+}
+qsptr_t qsop_float_noexc_eq_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (! qsfloat_p(machine->store, a)) return QSFALSE;
+  if (! qsfloat_p(machine->store, b)) return QSFALSE;
+  float ca = qsfloat_get(machine->store, a);
+  float cb = qsfloat_get(machine->store, b);
+  return QSBOOL( islessequal(ca, cb) && isgreaterequal(ca,cb) );
+}
+
+qsptr_t qsop_double_noexc_lt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (! qsdouble_p(machine->store, a)) return QSFALSE;
+  if (! qsdouble_p(machine->store, b)) return QSFALSE;
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return QSBOOL( isless(ca, cb) );
+}
+qsptr_t qsop_double_noexc_gt_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (! qsdouble_p(machine->store, a)) return QSFALSE;
+  if (! qsdouble_p(machine->store, b)) return QSFALSE;
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return QSBOOL( isgreater(ca, cb) );
+}
+qsptr_t qsop_double_noexc_eq_p (qs_t * machine, qsptr_t args)
+{
+  qsptr_t a = ARG(0);
+  qsptr_t b = ARG(1);
+  if (! qsdouble_p(machine->store, a)) return QSFALSE;
+  if (! qsdouble_p(machine->store, b)) return QSFALSE;
+  double ca = qsdouble_get(machine->store, a);
+  double cb = qsdouble_get(machine->store, b);
+  return QSBOOL( islessequal(ca, cb) && isgreaterequal(ca,cb) );
+}
+
+
 
 
 qsprimentry_t qsprims0 [] = {
@@ -1212,32 +1463,36 @@ qsprimentry_t qsprims0 [] = {
       { "&-",		qsop_int_sub },
       { "&*",		qsop_int_mul },
 
+      /* quark, integer-30 */
       { "&:I",		qsop_int_coerce },
       { "&I?",		qsop_int_p },
-      { "&I=?",		qsop_int_eq_p },
-      { "&I<?",		qsop_int_lt_p },
-      { "&I>?",		qsop_int_gt_p },
+      /*  int30 - unary operators. */
+      { "&Ineg",	qsop_int_neg },
+      { "&Iabs",	qsop_int_abs },
+      { "&Isign",	qsop_int_sign },
+      /*  int30 - binary operator */
       { "&I+",		qsop_int_add },
       { "&I-",		qsop_int_sub },
       { "&I*",		qsop_int_mul },
       { "&I/",		qsop_int_div },
       { "&I%",		qsop_int_mod },
+      /*  int30 - bitwise and logical operators */
       { "&I~",		qsop_int_bnot },
       { "&I|",		qsop_int_bor },
       { "&I&",		qsop_int_band },
       { "&I^",		qsop_int_bxor },
       { "&Ishl",	qsop_int_bshl },
       { "&Ishr",	qsop_int_bshr },
-      { "&Ineg",	qsop_int_neg },
-      { "&Iabs",	qsop_int_abs },
-      { "&Isign",	qsop_int_sign },
+      /*  int30 - comparison */
       { "&I0?",		qsop_int_zero_p },
+      { "&I=?",		qsop_int_eq_p },
+      { "&I<?",		qsop_int_lt_p },
+      { "&I>?",		qsop_int_gt_p },
 
+      /* quark, float-31 */
       { "&:F",		qsop_float_coerce },
       { "&F?",		qsop_float_p },
-      { "&F<?",		qsop_float_lt_p },
-      { "&F>?",		qsop_float_gt_p },
-      { "&F=?",		qsop_float_eq_p },
+      /*  float31 - unary operator */
       { "&Fneg",	qsop_float_neg },
       { "&Fsign",	qsop_float_sign },
       { "&Fabs",	qsop_float_abs },
@@ -1245,30 +1500,44 @@ qsprimentry_t qsprims0 [] = {
       { "&Ffloor",	qsop_float_floor },
       { "&Fceil",	qsop_float_ceil },
       { "&Ftrunc",	qsop_float_trunc },
+      /*  float31 - binary operator */
       { "&F+",		qsop_float_add },
       { "&F-",		qsop_float_sub },
       { "&F*",		qsop_float_mul },
       { "&F/",		qsop_float_div },
       { "&F0?",		qsop_float_zero_p },
-
+      /*  float31 - comparison */
+      /*
+      { "&F<?",		qsop_float_lt_p },
+      { "&F>?",		qsop_float_gt_p },
+      { "&F=?",		qsop_float_eq_p },
+      */
+      { "&F<?",		qsop_float_noexc_lt_p },
+      { "&F>?",		qsop_float_noexc_gt_p },
+      { "&F=?",		qsop_float_noexc_eq_p },
+      /*  NAN-31 */
       { "&Fnan*",	qsop_nan_make },
       { "&Fnan?",	qsop_nan_p },
-
+      /*  INFINITY-31 */
       { "&Finf*",	qsop_inf_make },
       { "&Finf?",	qsop_inf_p },
 
+      /* quark, character-24 */
       { "&:C",		qsop_char_coerce },
       { "&C?",		qsop_char_p },
       { "&C=?",		qsop_char_equal_p },
-      { "&C:I",		qsop_char_to_integer },
-      { "&I:C",		qsop_integer_to_char },
+      { "&C:I",		qsop_char_to_integer },	// TODO: redundant?
+      { "&I:C",		qsop_integer_to_char }, // TODO: redundant?
 
+      /* quark, iterator-28 */
       { "&:J",		qsop_iter_coerce },
       { "&J?",		qsop_iter_p },
+      { "&J=?",		qsop_iter_eq_p },
       { "&J@a",		qsop_iter_item },
       { "&J@d",		qsop_iter_next },
 
 
+      /* object, generic, pointer-26 */
       { "&o?",		qsop_obj_p },
       { "&o*",		qsop_obj_make },
       { "&o@p",		qsop_obj_ref_ptr },
@@ -1284,18 +1553,21 @@ qsprimentry_t qsprims0 [] = {
       { "&o@S",		qsop_obj_ref_score },
       { "&o!S",		qsop_obj_setq_score },
 
+      /* object, vector */
       { "&v*",		qsop_vector_make },
       { "&v?",		qsop_vector_p },
       { "&v#",		qsop_vector_length },
       { "&v@",		qsop_vector_ref },
       { "&v!",		qsop_vector_setq },
 
+      /* object, utf8 string */
       { "&u*",		qsop_utf8_make },
       { "&u?",		qsop_utf8_p },
       { "&u#",		qsop_utf8_length },
       { "&u@",		qsop_utf8_ref },
       { "&u!",		qsop_utf8_setq },
 
+      /* object, pair */
       { "&p*",		qsop_pair_make },
       { "&p?",		qsop_pair_p },
       { "&p@a",		qsop_pair_car },
@@ -1303,59 +1575,114 @@ qsprimentry_t qsprims0 [] = {
       { "&p!a",		qsop_pair_setcarq },
       { "&p!d",		qsop_pair_setcdrq },
 
+      /* object, lambda */
       { "&L*",		qsop_lambda_make },
       { "&L?",		qsop_lambda_p },
       { "&L@p",		qsop_lambda_ref_param },
       { "&L@b",		qsop_lambda_ref_body },
 
+      /* object, closure */
       { "&c*",		qsop_closure_make },
       { "&c?",		qsop_closure_p },
       { "&c@e",		qsop_closure_ref_env },
       { "&c@l",		qsop_closure_ref_lambda },
 
+      /* object, environment */
       { "&e*",		qsop_env_make },
       { "&e?",		qsop_env_p },
       { "&e@",		qsop_env_ref },
       { "&e!",		qsop_env_setq },
 
+      /* object, continuation */
+      { "&k*",		qsop_kont_make },
+      { "&k?",		qsop_kont_p },
+      { "&k@c",		qsop_kont_ref_code },
+      { "&k@e",		qsop_kont_ref_env },
+      { "&k@k",		qsop_kont_ref_kont },
+      { "&k@o",		qsop_kont_ref_other },
+      { "&k!c",		qsop_kont_setq_code },
+      { "&k!e",		qsop_kont_setq_env },
+      { "&k!k",		qsop_kont_setq_kont },
+      { "&k!o",		qsop_kont_setq_other },
 
 
+      /* object, widenum */
       { "&n?",		qsop_widenum_p },
 
+      /* object, widenum, long-64 */
       { "&:nl",		qsop_long_coerce },
       { "&n*l",		qsop_long_make },
       { "&nl?",		qsop_long_p },
+      /*  long64 - unary operator */
       { "&nlneg",	qsop_long_neg },
       { "&nlabs",	qsop_long_abs },
       { "&nl~",		qsop_long_bnot },
       { "&nlsig",	qsop_long_sign },
+      /*  long64 - binary operator */
       { "&nl+",		qsop_long_add },
       { "&nl-",		qsop_long_sub },
       { "&nl*",		qsop_long_mul },
       { "&nl/",		qsop_long_div },
       { "&nl%",		qsop_long_mod },
+      /*  long64 - bitwise and logical operators */
       { "&nl|",		qsop_long_bor },
       { "&nl&",		qsop_long_band },
       { "&nl^",		qsop_long_bxor },
       { "&nlshl",	qsop_long_shl },
       { "&nlshr",	qsop_long_shr },
+      /*  long64 - comparison */
       { "&nl<?",	qsop_long_lt_p },
       { "&nl=?",	qsop_long_eq_p },
       { "&nl>?",	qsop_long_gt_p },
 
+      /* object, widenum, double-64 */
       { "&:nd",		qsop_double_coerce },
       { "&n*d",		qsop_double_make },
       { "&nd?",		qsop_double_p },
       { "&ndneg",	qsop_double_neg },
+      /*  double64 - unary operator */
       { "&ndabs",	qsop_double_abs },
       { "&ndsig",	qsop_double_sign },
+      { "&ndabs",	qsop_double_abs },
+      { "&ndround",	qsop_double_round },
+      { "&ndceil",	qsop_double_ceil },
+      { "&ndfloor",	qsop_double_floor },
+      { "&ndtrunc",	qsop_double_trunc },
+      /*  double64 - binary operator */
       { "&nd+",		qsop_double_add },
       { "&nd-",		qsop_double_sub },
       { "&nd*",		qsop_double_mul },
       { "&nd/",		qsop_double_div },
+      /* TODO: modulo - returns pair (whole portion, fractional portion) */
+      /*  double64 - comparison */
       { "&nd<?",	qsop_double_lt_p },
       { "&nd=?",	qsop_double_eq_p },
       { "&nd>?",	qsop_double_gt_p },
+
+
+      /* Transcendental functions - float31 */
+      { "&F.exp",	qsop_float_exp },
+      { "&F.log",	qsop_float_log },
+      { "&F.sin",	qsop_float_sin },
+      { "&F.cos",	qsop_float_cos },
+      { "&F.tan",	qsop_float_tan },
+      { "&F.asin",	qsop_float_asin },
+      { "&F.acos",	qsop_float_acos },
+      { "&F.atan",	qsop_float_atan },
+      { "&F.atan2",	qsop_float_atan2 },
+      { "&F.sqrt",	qsop_float_sqrt },
+
+      /* Transcendental functions - double64 */
+      { "&nd.exp",	qsop_double_exp },
+      { "&nd.log",	qsop_double_log },
+      { "&nd.sin",	qsop_double_sin },
+      { "&nd.cos",	qsop_double_cos },
+      { "&nd.tan",	qsop_double_tan },
+      { "&nd.asin",	qsop_double_asin },
+      { "&nd.acos",	qsop_double_acos },
+      { "&nd.atan",	qsop_double_atan },
+      { "&nd.atan2",	qsop_double_atan2 },
+      { "&nd.sqrt",	qsop_double_sqrt },
 
 
       { "&s*",		qsop_str_make },
