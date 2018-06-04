@@ -15,6 +15,7 @@ TESTS = test_qsptr \
   test_qsstdio \
   test_qsmach \
   test_symbols \
+  test_prims \
   test_read1
 
 

@@ -3,7 +3,7 @@ bin_PROGRAMS = qsrepl
 qsrepl_SOURCES = \
   qsrepl.c
 
-qsrepl_LDADD = $(top_builddir)/src/libquakescheme.a
+qsrepl_LDADD = $(top_builddir)/src/libquakescheme.a -lm
 
 qsrepl_CFLAGS = -I$(top_srcdir)/src $(AM_CFLAGS)
 

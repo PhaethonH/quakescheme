@@ -244,10 +244,26 @@ int qsrbtree_crepr (qsmem_t * mem, qsptr_t rbtree, char * buf, int buflen);
 
 
 
-/* Indexed-binary tree. */
+/* Indexed-binary tree.
+
+At any given node, if the remaining path is 1, node is found.
+Else if remaining path is greater than 1, use least significant bit for path selector:
+ 0 = go left
+ 1 = go right
+and then recurse with path logical-shifted right.
+
+                             0001=1
+                         /            \
+               0010=2                      0011=3
+              /      \                    /      \
+        0100=4        0110=6        0101=5        0111=7
+         /   \         /   \         /   \         /   \
+    1000=8 1100=c 1010=a 1110=e 1001=9 1101=d 1011=b 1111=f
+   ....
+*/
 typedef struct qsibtree_s {
     qsptr_t mgmt;
-    qsptr_t filled; /* :int30 */
+    qsptr_t filled; /* :int30, number of elements ostensibly used. */
     qsptr_t idx0;   /* [0] is special case. */
     qsptr_t ones;   /* everything else. */
 } qsibtree_t;
@@ -261,8 +277,6 @@ qsptr_t qsibtree_setq_idx0 (qsmem_t * mem, qsptr_t p, qsptr_t val);
 qsptr_t qsibtree_setq_ones (qsmem_t * mem, qsptr_t p, qsptr_t val);
 
 qsptr_t qsibnode_find (qsmem_t * mem, qsptr_t p, qsword path);
-
-qsptr_t qsibtree_find (qsmem_t * mem, qsptr_t p, qsword idx);
 
 /* Main entry points: (ibtree-ref IBTREE NTH), (ibtree-set! IBTREE NTH VALUE) */
 qsword qsibtree_length (qsmem_t * mem, qsptr_t p);
@@ -582,6 +596,20 @@ int32_t qsint_get (qsmem_t * mem, qsptr_t i);
 qsptr_t qsint_make (qsmem_t * mem, int32_t val);
 int qsint_crepr (qsmem_t * mem, qsptr_t i, char * buf, int buflen);
 cmp_t qsint_cmp (qsmem_t * mem, qsptr_t a, qsptr_t b);
+
+/* integer operations. */
+qsptr_t qsint_neg (qsmem_t * mem, qsptr_t p);
+qsptr_t qsint_add (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_sub (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_mul (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_div (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_mod (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_bnot (qsmem_t * mem, qsptr_t p);
+qsptr_t qsint_bor (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_band (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_bxor (qsmem_t * mem, qsptr_t p, qsptr_t other);
+qsptr_t qsint_sign (qsmem_t * mem, qsptr_t p);
+qsptr_t qsint_zero_p (qsmem_t * mem, qsptr_t p);
 
 /* patterned methods for float31 */
 qsptr_t qsfloat (qsmem_t * mem, qsptr_t f);
