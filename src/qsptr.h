@@ -152,8 +152,9 @@ Word-Pointer expanding-tag encoding
   
 /* Enumeration for space Err20 */
 #define QSERR_OK        QSERR(0)
-#define QSERR_NOMEM     QSERR(1)
-#define QSERR_UNBOUND   QSERR(2)
+#define QSERR_NOMEM     QSERR(1)	/* Memory exhausted. */
+#define QSERR_UNBOUND   QSERR(2)	/* Unbound free variable. */
+#define QSERR_FAULT     QSERR(3)	/* Memory access fault. */
 
 
 

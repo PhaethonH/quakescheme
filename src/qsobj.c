@@ -190,7 +190,7 @@ qsptr qspvec_setq (qspvec_t * pvec, qsword k, qsptr val)
   if (k < lim)
     pvec->elt[k] = val;
   else
-    return QSNIL;  /* TODO: out of bounds exception. */
+    return QSERR_FAULT;  /* Out Of Bounds. */
   return QSERR_OK;
 }
 
@@ -284,9 +284,12 @@ qserr qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val)
   if (k < lim)
     {
       ovec->elt[k] = val;
-      return val;
+      return QSERR_OK;
     }
-  return QSERR_OK;
+  else
+    {
+      return QSERR_FAULT;   /* Out Of Bounds. */
+    }
 }
 
 /* TODO: implement. */
