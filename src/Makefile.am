@@ -4,6 +4,8 @@ libquakescheme_a_SOURCES = \
   qsptr.h \
   qsstore.h \
   qsstore.c \
+  qsobj.h \
+  qsobj.c \
   qsmach.h \
   qsmach.c
 

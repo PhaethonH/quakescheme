@@ -127,21 +127,24 @@ Word-Pointer expanding-tag encoding
 /*  Blackhole - value to indicate variable not yet bound. */
 #define QSBLACKHOLE     QSCONST(3)
 
-/* Infinities, positive and negative. */
+/*  Infinities, positive and negative. */
 #define QSINF           QSCONST(10)
 #define QSNINF          QSCONST(11)
-/* Not-A-Number.  Ignore difference between signaling and non-signaling. */
+/*  Not-A-Number.  Ignore difference between signaling and non-signaling. */
 #define QSNAN           QSCONST(12)
 #define QSNNAN          QSCONST(13)
 
-/* Numeric tower types, for type coercion. */
-#define QSNUM_INT       QSCONST(1000)  /* word, int30 */
-#define QSNUM_FLOAT     QSCONST(1001)  /* word, float31 */
-#define QSNUM_LONG      QSCONST(1002)  /* Wideword, int64 */
-#define QSNUM_DOUBLE    QSCONST(1003)  /* Wideword, double64 */
-#define QSNUM_RATIONAL  QSCONST(1004)  /* Wideword, rational, pair of int32 */
-#define QSNUM_COMPLEX   QSCONST(1005)  /* Wideword, complex, pair of float32 */
-#define QSNUM_BIGNUM    QSCONST(1006)  /* Octetvector, bignum */
+/*  Numeric tower types, for type coercion. */
+#define QSNUM_INT       QSCONST(1000)   /* word, int30 */
+#define QSNUM_FLOAT     QSCONST(1001)   /* word, float31 */
+#define QSNUM_LONG      QSCONST(1002)   /* Wideword, int64 */
+#define QSNUM_DOUBLE    QSCONST(1003)   /* Wideword, double64 */
+#define QSNUM_RATIONAL  QSCONST(1004)   /* Wideword, rational, pair of int32 */
+#define QSNUM_COMPLEX   QSCONST(1005)   /* Wideword, complex, pair of float32 */
+#define QSNUM_BIGNUM    QSCONST(1006)   /* Octetvector, bignum */
+/*  other enums for wideword */
+#define QSWIDE_CPTR     QSCONST(1010)   /* C pointer (void*) */
+#define QSWIDE_FILE     QSCONST(1010)   /* C File Pointer (FILE). */
 
 
   
