@@ -33,6 +33,8 @@ qsbyte qsstore_get_byte (const qsstore_t *, qsword addr);
 qsword qsstore_get_word (const qsstore_t *, qsword addr);
 /* Accessor, copy contents to buffer, return successful copy count. */
 qsword qsstore_fetch_words (const qsstore_t *, qsword addr, qsword * dest, qsword count);
+/* Accessor, pointer into memory region. */
+const qsword * qsstore_word_at_const (const qsstore_t *, qsword addr);
 
 /* Mutator, blindly set content byte. */
 void qsstore_set_byte (qsstore_t *, qsword addr, qsbyte val);
@@ -40,6 +42,8 @@ void qsstore_set_byte (qsstore_t *, qsword addr, qsbyte val);
 void qsstore_set_word (qsstore_t *, qsword addr, qsword val);
 /* Mutator, copy into memory, return successful copy count. */
 qsword qsstore_put_words (qsstore_t *, qsword addr, qsword * src, qsword count);
+/* Mutable, pointer into memory region. */
+qsword * qsstore_word_at (qsstore_t *, qsword addr);
 
 
 #endif /* QSSTORE_H_ */

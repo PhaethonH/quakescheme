@@ -1,7 +1,8 @@
 # Tests to run.
 TESTS = test_qsptr \
  test_qsstore \
- test_qsobj
+ test_qsobj \
+ test_qsval
 
 
 

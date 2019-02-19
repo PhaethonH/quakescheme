@@ -105,18 +105,22 @@ Word-Pointer expanding-tag encoding
 #define CERR20(x)       (((union qsbits_u)(x)).w >> SHIFT_TAG20)
 #define CFD20(x)        (((union qsbits_u)(x)).w >> SHIFT_TAG20)
 
+#define CBOOL(x)	(!(x == QSFALSE))
+
 
 /* Conversions to word-pointers. */
 #define QSFLOAT(f)      (((union qsbits_u)((float)(f))).w & ~MASK_TAG31)
 #define QSINT(i)        (((union qsbits_u)(i * (1 << SHIFT_TAG30))).w | TAG_INT30)
-#define QSITER(a)       (((union qsbits_u)(a << SHIFT_TAG28)).w | TAG_ITER28)
-#define QSOBJ(a)        (((union qsbits_u)(a << SHIFT_TAG26)).w | TAG_OBJ26)
-#define QSSYM(a)        (((union qsbits_u)(a << SHIFT_TAG26)).w | TAG_SYM26)
-#define QSCHAR(c)       (((union qsbits_u)(c << SHIFT_TAG24)).w | TAG_CHAR24)
-#define QSCONST(k)      (((union qsbits_u)(k << SHIFT_TAG20)).w | TAG_CONST20)
-#define QSPRIM(p)       (((union qsbits_u)(p << SHIFT_TAG20)).w | TAG_PRIM20)
-#define QSERR(e)        (((union qsbits_u)(e << SHIFT_TAG20)).w | TAG_ERR20)
-#define QSFD(n)         (((union qsbits_u)(n << SHIFT_TAG20)).w | TAG_FD20)
+#define QSITER(a)       ((a << SHIFT_TAG28) | TAG_ITER28)
+#define QSOBJ(a)        ((a << SHIFT_TAG26) | TAG_OBJ26)
+#define QSSYM(a)        ((a << SHIFT_TAG26) | TAG_SYM26)
+#define QSCHAR(c)       ((c << SHIFT_TAG24) | TAG_CHAR24)
+#define QSCONST(k)      ((k << SHIFT_TAG20) | TAG_CONST20)
+#define QSPRIM(p)       ((p << SHIFT_TAG20) | TAG_PRIM20)
+#define QSERR(e)        ((e << SHIFT_TAG20) | TAG_ERR20)
+#define QSFD(n)         ((n << SHIFT_TAG20) | TAG_FD20)
+
+#define QSBOOL(b)	(b ? QSTRUE : QSFALSE)
 
 
 /* Enumeration for space Const20 */

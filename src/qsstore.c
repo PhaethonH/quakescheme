@@ -97,6 +97,16 @@ qsword qsstore_fetch_words (const qsstore_t * store, qsword addr, qsword * dest,
   return 0;
 }
 
+const qsword * qsstore_word_at_const (const qsstore_t * store, qsword addr)
+{
+  addr &= ~(0x3);  /* floor to word boundary. */
+  const qsmem_t * mem = _qsstore_get_mem_const(store, addr);
+  if (mem != NULL)
+    {
+      return qsmem_word_at(store, addr);
+    }
+}
+
 
 void qsstore_set_byte (qsstore_t * store, qsword addr, qsbyte val)
 {
@@ -122,5 +132,15 @@ void qsstore_set_word (qsstore_t * store, qsword addr, qsword val)
 qsword qsstore_put_words (qsstore_t * store, qsword addr, qsword * src, qsword count)
 {
   return 0;
+}
+
+qsword * qsstore_word_at (qsstore_t * store, qsword addr)
+{
+  addr &= ~(0x3);  /* floor to word boundary. */
+  qsmem_t * mem = _qsstore_get_mem(store, addr);
+  if (mem != NULL)
+    {
+      return qsmem_word_at(store, addr);
+    }
 }
 

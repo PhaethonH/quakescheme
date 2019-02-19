@@ -6,6 +6,8 @@ libquakescheme_a_SOURCES = \
   qsstore.c \
   qsobj.h \
   qsobj.c \
+  qsval.h \
+  qsval.c \
   qsmach.h \
   qsmach.c
 

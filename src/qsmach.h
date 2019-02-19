@@ -6,7 +6,7 @@
 
 /* Scheme Machine, CESK. */
 
-typedef struct machine_s {
+typedef struct qsmachine_s {
     qsptr C;
     qsptr E;
     qsptr K;
@@ -14,15 +14,15 @@ typedef struct machine_s {
     qsstore_t S;
 
     qsptr A;  /* result from most recent evaluation, "Answer" */
-} machine_t;
+} qsmachine_t;
 
 
-machine_t * machine_init (machine_t *);
-machine_t * machine_destroy (machine_t *);
+qsmachine_t * qsmachine_init (qsmachine_t *);
+qsmachine_t * qsmachine_destroy (qsmachine_t *);
 
-int machine_step (machine_t *);
-int machine_load (machine_t *, qsptr C, qsptr E, qsptr K);
-int machine_applykont (machine_t *, qsptr kont, qsptr value);
-int machine_applyproc (machine_t *, qsptr clo, qsptr values);
+int qsmachine_step (qsmachine_t *);
+int qsmachine_load (qsmachine_t *, qsptr C, qsptr E, qsptr K);
+int qsmachine_applykont (qsmachine_t *, qsptr kont, qsptr value);
+int qsmachine_applyproc (qsmachine_t *, qsptr clo, qsptr values);
 
 #endif /* QSMACHINE_H_ */

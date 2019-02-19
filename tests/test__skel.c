@@ -10,22 +10,12 @@
 
 /* Unit test  skeleton */
 
-#define SPACELEN 20000
-
-uint8_t _heap1[sizeof(qsstore_t) + SPACELEN*sizeof(qsobj_t)];
-qsstore_t *heap1 = (qsstore_t*)&_heap1;
-
-qs_t _scheme1, *scheme1 = &_scheme1;
-
-char buf[131072];
+qsstore_t _store, *store=&_store;
 
 
 void init ()
 {
-  qsstore_init(heap1, SPACELEN);
-  qs_init(scheme1, heap1);
-
-  //heap_dump(heap1, 0);
+  qsstore_init(store);
 }
 
 
