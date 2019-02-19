@@ -93,7 +93,7 @@ Word-Pointer expanding-tag encoding
 
 /* Conversions from word-pointers. */
 #define CFLOAT31(x)     ((union qsbits_u)(x)).f
-#define CINT30(x)       (((union qsbits_u)(x)).i / (1 << SHIFT_TAG30))
+#define CINT30(x)       (((union qsbits_u)(x & ~(MASK_TAG30))).i / (1 << SHIFT_TAG30))
 #define CITER28(x)      (((union qsbits_u)(x)).w >> SHIFT_TAG28)
 #define COBJ26(x)       (((union qsbits_u)(x)).w >> SHIFT_TAG26)
 #define CSYM26(x)       (((union qsbits_u)(x)).w >> SHIFT_TAG26)
@@ -105,8 +105,8 @@ Word-Pointer expanding-tag encoding
 
 
 /* Conversions to word-pointers. */
-#define QSFLOAT(f)      (((union qsbits_u)(float(f))).w & ~MASK_TAG31)
-#define QSINT(i)        (((union qsbits_u)(i << SHIFT_TAG30)).w | TAG_INT30)
+#define QSFLOAT(f)      (((union qsbits_u)((float)(f))).w & ~MASK_TAG31)
+#define QSINT(i)        (((union qsbits_u)(i * (1 << SHIFT_TAG30))).w | TAG_INT30)
 #define QSITER(a)       (((union qsbits_u)(a << SHIFT_TAG28)).w | TAG_ITER28)
 #define QSOBJ(a)        (((union qsbits_u)(a << SHIFT_TAG26)).w | TAG_OBJ26)
 #define QSSYM(a)        (((union qsbits_u)(a << SHIFT_TAG26)).w | TAG_SYM26)
@@ -118,10 +118,10 @@ Word-Pointer expanding-tag encoding
 
 
 /* Enumeration for space Const20 */
-/*  Single-valued space Null. */
-#define QSNULL	        QSCONST(0)
+/*  Single-valued space Nil. */
+#define QSNIL           QSCONST(0)
 /*  Two-valued space Boolean. */
-#define QSTRUE	        QSCONST(1)
+#define QSTRUE          QSCONST(1)
 #define QSFALSE         QSCONST(2)
 /*  other values in space Const. */
 /*  Blackhole - value to indicate variable not yet bound. */

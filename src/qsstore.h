@@ -14,7 +14,7 @@ typedef struct qsmem_s {
     qsbyte space[SMEM_SIZE];  /* variable-length array. */
 } qsmem_t;
 
-qsmem_t * qsmem_init (qsmem_t *);
+qsmem_t * qsmem_init (qsmem_t *, qsword baseaddr, qsword cap);
 qsmem_t * qsmem_destroy (qsmem_t *);
 
 
