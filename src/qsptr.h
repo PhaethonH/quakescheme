@@ -11,6 +11,8 @@ typedef uint32_t qsword;
 typedef uint8_t qsbyte;
 /* Alias to indicate word content is tagged pointer. */
 typedef qsword qsptr;
+/* Alias to indicate return value is one of Err20 (mainly object mutators). */
+typedef qsword qserr;
 
 /* C union to manipulate bit patterns across types (type-punning). */
 union qsbits_u {

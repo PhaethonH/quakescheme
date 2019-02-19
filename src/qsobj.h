@@ -83,9 +83,9 @@ qstriplet_t * qstriplet_init (qstriplet_t * triplet, qsptr first, qsptr second, 
 qsptr qstriplet_ref_first (const qstriplet_t * triplet);
 qsptr qstriplet_ref_second (const qstriplet_t * triplet);
 qsptr qstriplet_ref_third (const qstriplet_t * triplet);
-qsptr qstriplet_setq_first (qstriplet_t * triplet, qsptr val);
-qsptr qstriplet_setq_second (qstriplet_t * triplet, qsptr val);
-qsptr qstriplet_setq_third (qstriplet_t * triplet, qsptr val);
+qserr qstriplet_setq_first (qstriplet_t * triplet, qsptr val);
+qserr qstriplet_setq_second (qstriplet_t * triplet, qsptr val);
+qserr qstriplet_setq_third (qstriplet_t * triplet, qsptr val);
 
 
 /* Prototype 2: Cross-bounds pointer-content (PointerVector). */
@@ -100,8 +100,8 @@ typedef struct qspvec_s {
 qspvec_t * qspvec_init (qspvec_t * pvec, int allocscale, qsptr len);
 qsptr qspvec_ref_length (const qspvec_t * pvec);
 qsptr qspvec_ref (const qspvec_t * pvec, qsword k);
-qsptr qspvec_setq_length (qspvec_t * pvec, qsptr len);
-qsptr qspvec_setq (qspvec_t * pvec, qsword k, qsptr val);
+qserr qspvec_setq_length (qspvec_t * pvec, qsptr len);
+qserr qspvec_setq (qspvec_t * pvec, qsword k, qsptr val);
 
 
 /* Prototype 3: Single-bounds octet content (WideWord). */
@@ -128,7 +128,7 @@ qswideword_t * qswideword_init (qswideword_t * wideword, qsptr subtype, union qs
 qsptr qswideword_ref_subtype (const qswideword_t * wideword);
 const union qswidepayload_u * qswideword_at_const (const qswideword_t * wideword);
 int qswideword_fetch_payload (const qswideword_t * wideword, union qswidepayload_u * buf);
-qsptr qswideword_setq_subtype (qswideword_t * wideword, qsptr subtype);
+qserr qswideword_setq_subtype (qswideword_t * wideword, qsptr subtype);
 union qswidepayload_u * qswideword_at (qswideword_t * wideword);
 int qswideword_put_payload (qswideword_t * wideword, const union qswidepayload_u * buf);
 
@@ -146,10 +146,10 @@ qsovec_t * qsovec_init (qsovec_t * ovec, int allocscale, qsptr len);
 qsptr qsovec_ref_length (const qsovec_t * ovec);
 qsword qsovec_get_refcount (const qsovec_t * ovec);
 qsbyte qsovec_ref (const qsovec_t * ovec, qsword k);
-qsptr qsovec_setq_length (qsovec_t * ovec, qsptr len);
-qsbyte qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val);
-qsword qsovec_incr_refcount (qsovec_t * ovec);
-qsword qsovec_decr_refcount (qsovec_t * ovec);
+qserr qsovec_setq_length (qsovec_t * ovec, qsptr len);
+qserr qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val);
+qserr qsovec_incr_refcount (qsovec_t * ovec);
+qserr qsovec_decr_refcount (qsovec_t * ovec);
 
 
 #endif /* QSOBJ_H_ */

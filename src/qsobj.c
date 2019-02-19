@@ -137,19 +137,19 @@ qsptr qstriplet_ref_third (const qstriplet_t * triplet)
   return triplet->third;
 }
 
-qsptr qstriplet_setq_first (qstriplet_t * triplet, qsptr val)
+qserr qstriplet_setq_first (qstriplet_t * triplet, qsptr val)
 {
   triplet->first = val;
   return QSERR_OK;
 }
 
-qsptr qstriplet_setq_second (qstriplet_t * triplet, qsptr val)
+qserr qstriplet_setq_second (qstriplet_t * triplet, qsptr val)
 {
   triplet->second = val;
   return QSERR_OK;
 }
 
-qsptr qstriplet_setq_third (qstriplet_t * triplet, qsptr val)
+qserr qstriplet_setq_third (qstriplet_t * triplet, qsptr val)
 {
   triplet->third = val;
   return QSERR_OK;
@@ -178,7 +178,7 @@ qsptr qspvec_ref (const qspvec_t * pvec, qsword k)
     return QSNIL;  /* TODO: out of bounds exception. */
 }
 
-qsptr qspvec_setq_length (qspvec_t * pvec, qsptr len)
+qserr qspvec_setq_length (qspvec_t * pvec, qsptr len)
 {
   pvec->length = len;
   return QSERR_OK;
@@ -224,7 +224,7 @@ int qswideword_fetch_payload (const qswideword_t * wideword, union qswidepayload
   return 1;
 }
 
-qsptr qswideword_setq_subtype (qswideword_t * wideword, qsptr subtype)
+qserr qswideword_setq_subtype (qswideword_t * wideword, qsptr subtype)
 {
   wideword->subtype = subtype;
   return QSERR_OK;
@@ -272,13 +272,13 @@ qsbyte qsovec_ref (const qsovec_t * ovec, qsword k)
   return 0;
 }
 
-qsptr qsovec_setq_length (qsovec_t * ovec, qsptr len)
+qserr qsovec_setq_length (qsovec_t * ovec, qsptr len)
 {
   ovec->length = len;
   return QSERR_OK;
 }
 
-qsbyte qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val)
+qserr qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val)
 {
   qsword lim = (1 << qsobj_get_allocscale((qsobj_t*)ovec));
   if (k < lim)
@@ -286,18 +286,18 @@ qsbyte qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val)
       ovec->elt[k] = val;
       return val;
     }
-  return 0;
+  return QSERR_OK;
 }
 
 /* TODO: implement. */
-qsword qsovec_incr_refcount (qsovec_t * ovec)
+qserr qsovec_incr_refcount (qsovec_t * ovec)
 {
-  return 0;
+  return QSERR_OK;
 }
 
 /* TODO: implement. */
-qsword qsovec_decr_refcount (qsovec_t * ovec)
+qserr qsovec_decr_refcount (qsovec_t * ovec)
 {
-  return 0;
+  return QSERR_OK;
 }
 
