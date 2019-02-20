@@ -4,29 +4,29 @@
 
 /* memory segment. */
 
-qsmem_t * qsmem_init (qsmem_t * mem, qsword baseaddr, qsword cap)
+qssegment_t * qssegment_init (qssegment_t * segment, qsword baseaddr, qsword cap)
 {
-  memset(mem, 0, sizeof(qsmem_t));
-  mem->baseaddr = baseaddr;
+  memset(segment, 0, sizeof(qssegment_t));
+  segment->baseaddr = baseaddr;
   if (cap == 0)
     {
-      mem->cap = SMEM_SIZE;
+      segment->cap = SMEM_SIZE;
     }
   else
     {
-      mem->cap = cap;
+      segment->cap = cap;
       /* write zeroes in units of qsword. */
-      for (int i = 0; i < (mem->cap / sizeof(qsword)); mem++)
+      for (int i = 0; i < (segment->cap / sizeof(qsword)); segment++)
 	{
-	  ((qsword*)(mem->space))[i] = 0;
+	  ((qsword*)(segment->space))[i] = 0;
 	}
     }
-  return mem;
+  return segment;
 }
 
-qsmem_t * qsmem_destroy (qsmem_t * mem)
+qssegment_t * qssegment_destroy (qssegment_t * segment)
 {
-  return mem;
+  return segment;
 }
 
 
@@ -35,7 +35,7 @@ qsmem_t * qsmem_destroy (qsmem_t * mem)
 qsstore_t * qsstore_init (qsstore_t * store)
 {
   memset(store, 0, sizeof(qsstore_t));
-  qsmem_init(&(store->smem), 0, SMEM_SIZE);
+  qssegment_init(&(store->smem), 0, SMEM_SIZE);
   return store;
 }
 
@@ -45,102 +45,135 @@ qsstore_t * qsstore_destroy (qsstore_t * store)
 }
 
 
-qsmem_t * _qsstore_get_mem (qsstore_t * store, qsword addr)
+qssegment_t * _qsstore_get_mem (qsstore_t * store, qsword addr)
 {
   if ((store->smem.baseaddr <= addr)
       && (addr < store->smem.baseaddr + store->smem.cap))
     return &(store->smem);
-  if ((store->wmem->baseaddr <= addr)
+  if (store->wmem
+      && (store->wmem->baseaddr <= addr)
       && (addr < store->wmem->baseaddr + store->wmem->cap))
     return store->wmem;
   return NULL;
 }
 
-const qsmem_t * _qsstore_get_mem_const (const qsstore_t * store, qsword addr)
+const qssegment_t * _qsstore_get_mem_const (const qsstore_t * store, qsword addr)
 {
   if ((store->smem.baseaddr <= addr)
       && (addr < store->smem.baseaddr + store->smem.cap))
     return &(store->smem);
-  if ((store->wmem->baseaddr <= addr)
+  if (store->wmem
+      && (store->wmem->baseaddr <= addr)
       && (addr < store->wmem->baseaddr + store->wmem->cap))
     return store->wmem;
-  if ((store->rmem->baseaddr <= addr)
+  if (store->rmem
+      && (store->rmem->baseaddr <= addr)
       && (addr < store->rmem->baseaddr + store->rmem->cap))
     return store->rmem;
   return NULL;
 }
 
 
-#define qsmem_byte_at(store,addr)  ((qsbyte*)(mem->space + addr))
-#define qsmem_word_at(store,addr)  ((qsword*)(mem->space + addr))
+#define qssegment_byte_at(store,addr)  ((qsbyte*)(segment->space + addr))
+#define qssegment_word_at(store,addr)  ((qsword*)(segment->space + addr))
 
 
 qsbyte qsstore_get_byte (const qsstore_t * store, qsword addr)
 {
-  const qsmem_t * mem = _qsstore_get_mem_const(store, addr);
-  if (! mem)
+  const qssegment_t * segment = _qsstore_get_mem_const(store, addr);
+  if (! segment)
     return 0;
-  return *(qsmem_byte_at(mem, addr));
+  return *(qssegment_byte_at(segment, addr));
 }
 
 qsword qsstore_get_word (const qsstore_t * store, qsword addr)
 {
   addr &= ~(0x3);  /* floor to word boundary. */
-  const qsmem_t * mem = _qsstore_get_mem_const(store, addr);
-  if (! mem)
+  const qssegment_t * segment = _qsstore_get_mem_const(store, addr);
+  if (! segment)
     return 0;
-  return *(qsmem_word_at(mem,addr));
+  return *(qssegment_word_at(segment,addr));
 }
 
 qsword qsstore_fetch_words (const qsstore_t * store, qsword addr, qsword * dest, qsword word_count)
 {
+  /* TODO */
   return 0;
 }
 
 const qsword * qsstore_word_at_const (const qsstore_t * store, qsword addr)
 {
   addr &= ~(0x3);  /* floor to word boundary. */
-  const qsmem_t * mem = _qsstore_get_mem_const(store, addr);
-  if (mem != NULL)
+  const qssegment_t * segment = _qsstore_get_mem_const(store, addr);
+  if (segment != NULL)
     {
-      return qsmem_word_at(store, addr);
+      return qssegment_word_at(store, addr);
     }
+  return NULL;
 }
 
 
-void qsstore_set_byte (qsstore_t * store, qsword addr, qsbyte val)
+qserr qsstore_set_byte (qsstore_t * store, qsword addr, qsbyte val)
 {
-  qsmem_t * mem = _qsstore_get_mem(store, addr);
-  if (mem != NULL)
+  qssegment_t * segment = _qsstore_get_mem(store, addr);
+  if (segment != NULL)
     {
-      *(qsmem_byte_at(store, addr)) = val;
+      *(qssegment_byte_at(store, addr)) = val;
+      return QSERR_OK;
     }
-  return;
+  return QSERR_FAULT;
 }
 
-void qsstore_set_word (qsstore_t * store, qsword addr, qsword val)
+qserr qsstore_set_word (qsstore_t * store, qsword addr, qsword val)
 {
   addr &= ~(0x3);  /* floor to word boundary. */
-  qsmem_t * mem = _qsstore_get_mem(store, addr);
-  if (mem != NULL)
+  qssegment_t * segment = _qsstore_get_mem(store, addr);
+  if (segment != NULL)
     {
-      *(qsmem_word_at(store, addr)) = val;
+      *(qssegment_word_at(store, addr)) = val;
+      return QSERR_OK;
     }
-  return;
+  return QSERR_FAULT;
 }
 
 qsword qsstore_put_words (qsstore_t * store, qsword addr, qsword * src, qsword count)
 {
+  /* TODO */
   return 0;
 }
 
 qsword * qsstore_word_at (qsstore_t * store, qsword addr)
 {
   addr &= ~(0x3);  /* floor to word boundary. */
-  qsmem_t * mem = _qsstore_get_mem(store, addr);
-  if (mem != NULL)
+  qssegment_t * segment = _qsstore_get_mem(store, addr);
+  if (segment != NULL)
     {
-      return qsmem_word_at(store, addr);
+      return qssegment_word_at(store, addr);
     }
+  return NULL;
+}
+
+
+/* Memory allocation. */
+/* Preferentially allocate in working memory, fallback to start memory. */
+
+qserr qsstore_alloc (qsstore_t * store, qsword allocscale, qsword * out_addr)
+{
+  return 0;
+}
+
+qserr qsstore_alloc_nbounds (qsstore_t * store, qsword nbounds, qsword * out_addr)
+{
+  return 0;
+}
+
+qserr qsstore_alloc_nwords (qsstore_t * store, qsword nwords, qsword * out_addr)
+{
+  return 0;
+}
+
+qserr qsstore_alloc_nbytes (qsstore_t * store, qsword nbytes, qsword * out_addr)
+{
+  return 0;
 }
 

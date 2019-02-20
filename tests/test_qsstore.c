@@ -36,8 +36,8 @@ START_TEST(test_store1)
   /* initialize with 4MB working memory. */
   store = qsstore_init(&_store);
   size_t wmem_size = 4 * (1 << 20);
-  qsmem_t * wmem = (qsmem_t*)calloc(wmem_size, 1);
-  qsmem_init(wmem, 0x10000, wmem_size - 16);
+  qssegment_t * wmem = (qssegment_t*)calloc(wmem_size, 1);
+  qssegment_init(wmem, 0x10000, wmem_size - 16);
   store->wmem = wmem;
 
   ck_assert_int_eq(store->smem.baseaddr, 0);
@@ -59,10 +59,17 @@ START_TEST(test_store2)
 {
   init();
 
+  qserr err = QSERR_OK;
   qsptr val = QSINT(1024);
-  qsstore_set_word(store, 0x0004, val);
+  err = qsstore_set_word(store, 0x0004, val);
+  ck_assert_int_eq(err, QSERR_OK);
   qsword w = qsstore_get_word(store, 0x0004);
   ck_assert_int_eq(w, val);
+
+  err = qsstore_set_word(store, 0x00010000, val);
+  ck_assert_int_eq(err, QSERR_FAULT);
+  w = qsstore_get_word(store, 0x00010000);
+  ck_assert_int_eq(w, 0);
 }
 END_TEST
 

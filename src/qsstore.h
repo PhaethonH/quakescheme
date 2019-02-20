@@ -6,23 +6,23 @@
 #define SMEM_SIZE   (1 << 16)
 
 /* memory segment. */
-typedef struct qsmem_s {
+typedef struct qssegment_s {
     qsword baseaddr;   /* Base address for address mapping. */
     qsword cap;	  /* Total bytes available in space. */
     qsword reserved2;  /* reserved words to align 'space' on 128b boundary. */
     qsword reserved3;
     qsbyte space[SMEM_SIZE];  /* variable-length array. */
-} qsmem_t;
+} qssegment_t;
 
-qsmem_t * qsmem_init (qsmem_t *, qsword baseaddr, qsword cap);
-qsmem_t * qsmem_destroy (qsmem_t *);
+qssegment_t * qssegment_init (qssegment_t *, qsword baseaddr, qsword cap);
+qssegment_t * qssegment_destroy (qssegment_t *);
 
 
 /* Scheme Store. */
 typedef struct qsstore_s {
-    struct qsmem_s smem;  /* Start Memory, statically allocated. */
-    struct qsmem_s * wmem;  /* Working Memory, dynamically allocated. */
-    const struct qsmem_s * rmem;  /* Read (Only) Memory. */
+    struct qssegment_s smem;  /* Start Memory, statically allocated. */
+    struct qssegment_s * wmem;  /* Working Memory, dynamically allocated. */
+    const struct qssegment_s * rmem;  /* Read (Only) Memory. */
 } qsstore_t;
 
 qsstore_t * qsstore_init (qsstore_t *);
@@ -37,13 +37,20 @@ qsword qsstore_fetch_words (const qsstore_t *, qsword addr, qsword * dest, qswor
 const qsword * qsstore_word_at_const (const qsstore_t *, qsword addr);
 
 /* Mutator, blindly set content byte. */
-void qsstore_set_byte (qsstore_t *, qsword addr, qsbyte val);
+qserr qsstore_set_byte (qsstore_t *, qsword addr, qsbyte val);
 /* Mutator, blindly set content word. */
-void qsstore_set_word (qsstore_t *, qsword addr, qsword val);
+qserr qsstore_set_word (qsstore_t *, qsword addr, qsword val);
 /* Mutator, copy into memory, return successful copy count. */
 qsword qsstore_put_words (qsstore_t *, qsword addr, qsword * src, qsword count);
 /* Mutable, pointer into memory region. */
 qsword * qsstore_word_at (qsstore_t *, qsword addr);
+
+
+/* Memory allocation. */
+qserr qsstore_alloc (qsstore_t *, qsword allocscale, qsword * out_addr);
+qserr qsstore_alloc_nbounds (qsstore_t *, qsword nbounds, qsword * out_addr);
+qserr qsstore_alloc_nwords (qsstore_t *, qsword nwords, qsword * out_addr);
+qserr qsstore_alloc_nbytes (qsstore_t *, qsword nbytes, qsword * out_addr);
 
 
 #endif /* QSSTORE_H_ */
