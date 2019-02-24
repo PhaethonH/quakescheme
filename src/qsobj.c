@@ -304,3 +304,34 @@ qserr qsovec_decr_refcount (qsovec_t * ovec)
   return QSERR_OK;
 }
 
+
+
+qsfreelist_t * qsfreelist_init (qsfreelist_t * freelist, qsword length, qsaddr prev, qsaddr next)
+{
+  freelist->mgmt = (TAG_SYNC29);  /* not-Used. */
+  freelist->length = length;
+  freelist->prev = prev;
+  freelist->next = next;
+  return freelist;
+}
+
+qsfreelist_t * qsfreelist_destroy (qsfreelist_t * freelist)
+{
+  return freelist;
+}
+
+qsword qsfreelist_length (qsfreelist_t * freelist)
+{
+  return freelist->length;
+}
+
+qsaddr qsfreelist_prev (qsfreelist_t * freelist)
+{
+  return freelist->prev;
+}
+
+qsaddr qsfreelist_next (qsfreelist_t * freelist)
+{
+  return freelist->next;
+}
+

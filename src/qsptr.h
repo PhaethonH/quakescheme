@@ -13,6 +13,8 @@ typedef uint8_t qsbyte;
 typedef qsword qsptr;
 /* Alias to indicate return value is one of Err20 (mainly object mutators). */
 typedef qsword qserr;
+/* Alias to indicate return value is a byte address into Scheme store. */
+typedef qsword qsaddr;
 
 /* C union to manipulate bit patterns across types (type-punning). */
 union qsbits_u {

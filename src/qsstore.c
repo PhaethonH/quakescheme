@@ -29,6 +29,18 @@ qssegment_t * qssegment_destroy (qssegment_t * segment)
   return segment;
 }
 
+qssegment_t * qssegment_clear (qssegment_t * segment)
+{
+}
+
+int qssegment_split (qssegment_t * segmetn, qsaddr addr, qsword nth_boundary)
+{
+}
+
+int qssegment_fit (qssegment_t * segment, qsaddr addr)
+{
+}
+
 
 
 
@@ -45,7 +57,7 @@ qsstore_t * qsstore_destroy (qsstore_t * store)
 }
 
 
-qssegment_t * _qsstore_get_mem (qsstore_t * store, qsword addr)
+qssegment_t * _qsstore_get_mem (qsstore_t * store, qsaddr addr)
 {
   if ((store->smem.baseaddr <= addr)
       && (addr < store->smem.baseaddr + store->smem.cap))
@@ -57,7 +69,7 @@ qssegment_t * _qsstore_get_mem (qsstore_t * store, qsword addr)
   return NULL;
 }
 
-const qssegment_t * _qsstore_get_mem_const (const qsstore_t * store, qsword addr)
+const qssegment_t * _qsstore_get_mem_const (const qsstore_t * store, qsaddr addr)
 {
   if ((store->smem.baseaddr <= addr)
       && (addr < store->smem.baseaddr + store->smem.cap))
@@ -78,7 +90,7 @@ const qssegment_t * _qsstore_get_mem_const (const qsstore_t * store, qsword addr
 #define qssegment_word_at(store,addr)  ((qsword*)(segment->space + addr))
 
 
-qsbyte qsstore_get_byte (const qsstore_t * store, qsword addr)
+qsbyte qsstore_get_byte (const qsstore_t * store, qsaddr addr)
 {
   const qssegment_t * segment = _qsstore_get_mem_const(store, addr);
   if (! segment)
@@ -86,7 +98,7 @@ qsbyte qsstore_get_byte (const qsstore_t * store, qsword addr)
   return *(qssegment_byte_at(segment, addr));
 }
 
-qsword qsstore_get_word (const qsstore_t * store, qsword addr)
+qsword qsstore_get_word (const qsstore_t * store, qsaddr addr)
 {
   addr &= ~(0x3);  /* floor to word boundary. */
   const qssegment_t * segment = _qsstore_get_mem_const(store, addr);
@@ -95,13 +107,13 @@ qsword qsstore_get_word (const qsstore_t * store, qsword addr)
   return *(qssegment_word_at(segment,addr));
 }
 
-qsword qsstore_fetch_words (const qsstore_t * store, qsword addr, qsword * dest, qsword word_count)
+qsword qsstore_fetch_words (const qsstore_t * store, qsaddr addr, qsword * dest, qsword word_count)
 {
   /* TODO */
   return 0;
 }
 
-const qsword * qsstore_word_at_const (const qsstore_t * store, qsword addr)
+const qsword * qsstore_word_at_const (const qsstore_t * store, qsaddr addr)
 {
   addr &= ~(0x3);  /* floor to word boundary. */
   const qssegment_t * segment = _qsstore_get_mem_const(store, addr);
@@ -113,7 +125,7 @@ const qsword * qsstore_word_at_const (const qsstore_t * store, qsword addr)
 }
 
 
-qserr qsstore_set_byte (qsstore_t * store, qsword addr, qsbyte val)
+qserr qsstore_set_byte (qsstore_t * store, qsaddr addr, qsbyte val)
 {
   qssegment_t * segment = _qsstore_get_mem(store, addr);
   if (segment != NULL)
@@ -124,7 +136,7 @@ qserr qsstore_set_byte (qsstore_t * store, qsword addr, qsbyte val)
   return QSERR_FAULT;
 }
 
-qserr qsstore_set_word (qsstore_t * store, qsword addr, qsword val)
+qserr qsstore_set_word (qsstore_t * store, qsaddr addr, qsword val)
 {
   addr &= ~(0x3);  /* floor to word boundary. */
   qssegment_t * segment = _qsstore_get_mem(store, addr);
@@ -136,13 +148,13 @@ qserr qsstore_set_word (qsstore_t * store, qsword addr, qsword val)
   return QSERR_FAULT;
 }
 
-qsword qsstore_put_words (qsstore_t * store, qsword addr, qsword * src, qsword count)
+qsword qsstore_put_words (qsstore_t * store, qsaddr addr, qsword * src, qsword count)
 {
   /* TODO */
   return 0;
 }
 
-qsword * qsstore_word_at (qsstore_t * store, qsword addr)
+qsword * qsstore_word_at (qsstore_t * store, qsaddr addr)
 {
   addr &= ~(0x3);  /* floor to word boundary. */
   qssegment_t * segment = _qsstore_get_mem(store, addr);
@@ -157,22 +169,30 @@ qsword * qsstore_word_at (qsstore_t * store, qsword addr)
 /* Memory allocation. */
 /* Preferentially allocate in working memory, fallback to start memory. */
 
-qserr qsstore_alloc (qsstore_t * store, qsword allocscale, qsword * out_addr)
+/* Allocate by power-of-two boundaries. */
+/*
+  0 = single-boundary (16o) region
+  1 = 2-boundary (32o) region
+  2 = 4-boundary (64o) region
+  3 = 8-boudnary (128o) region
+   etc.
+*/
+qserr qsstore_alloc (qsstore_t * store, qsword allocscale, qsaddr * out_addr)
 {
   return 0;
 }
 
-qserr qsstore_alloc_nbounds (qsstore_t * store, qsword nbounds, qsword * out_addr)
+qserr qsstore_alloc_nbounds (qsstore_t * store, qsword nbounds, qsaddr * out_addr)
 {
   return 0;
 }
 
-qserr qsstore_alloc_nwords (qsstore_t * store, qsword nwords, qsword * out_addr)
+qserr qsstore_alloc_nwords (qsstore_t * store, qsword nwords, qsaddr * out_addr)
 {
   return 0;
 }
 
-qserr qsstore_alloc_nbytes (qsstore_t * store, qsword nbytes, qsword * out_addr)
+qserr qsstore_alloc_nbytes (qsstore_t * store, qsword nbytes, qsaddr * out_addr)
 {
   return 0;
 }

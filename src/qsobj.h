@@ -71,6 +71,23 @@ void qsobj_set_allocscale (qsobj_t * obj, int val);
 
 
 
+/* Prototype 0: Free list. */
+#define QSFREE_SENTINEL (0x3fffffff)
+typedef struct qsfreelist_s {
+    qsword mgmt;
+    qsword length;
+    /* double-linked list. */
+    qsaddr prev;
+    qsaddr next;
+} qsfreelist_t;
+
+qsfreelist_t * qsfreelist_init (qsfreelist_t *, qsword length, qsaddr prev, qsaddr next);
+qsfreelist_t * qsfreelist_destroy (qsfreelist_t *);
+qsword qsfreelist_get_length (qsfreelist_t *);
+qsaddr qsfreelist_get_prev (qsfreelist_t *);
+qsaddr qsfreelist_get_next (qsfreelist_t *);
+
+
 /* Prototype 1: Single-bounds pointer-content (Triplet). */
 typedef struct qstriplet_s {
     qsword mgmt;
