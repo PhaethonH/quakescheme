@@ -2,6 +2,7 @@
 #define QSSTORE_H_
 
 #include "qsptr.h"
+#include "qsobj.h"
 
 #define SMEM_SIZE   (1 << 16)
 
@@ -9,13 +10,20 @@
 typedef struct qssegment_s {
     qsword baseaddr;   /* Base address for address mapping. */
     qsword cap;	  /* Total bytes available in space. */
-    qsword reserved2;  /* reserved words to align 'space' on 128b boundary. */
-    qsword reserved3;
+    qsaddr freelist;   /* Start of freelist. */
+    qsword reserved3;  /* reserved words to align 'space' on 128b boundary. */
     qsbyte space[SMEM_SIZE];  /* variable-length array. */
 } qssegment_t;
 
 qssegment_t * qssegment_init (qssegment_t *, qsword baseaddr, qsword cap);
 qssegment_t * qssegment_destroy (qssegment_t *);
+qssegment_t * qssegment_clear (qssegment_t *);
+#ifdef DEBUG_QSSEGMENT
+/* only expose for debug and unit-testing. */
+int _qssegment_unfree (qssegment_t *, qsaddr local_addr);
+qsaddr _qssegment_split (qssegment_t *, qsaddr local_addr, qsword nth_boundary);
+qsaddr _qssegment_fit (qssegment_t *, qsword spanbounds);
+#endif /* DEBUG_QSSEGMENT */
 
 
 /* Scheme Store. */
@@ -35,6 +43,11 @@ qsword qsstore_get_word (const qsstore_t *, qsaddr addr);
 qsword qsstore_fetch_words (const qsstore_t *, qsaddr addr, qsword * dest, qsword count);
 /* Accessor, pointer into memory region. */
 const qsword * qsstore_word_at_const (const qsstore_t *, qsaddr addr);
+
+/* Mutator, attach working memory. */
+qserr qsstore_attach_wmem (qsstore_t *, qssegment_t * wmem, qsaddr baseaddr);
+/* Mutator, attach readonly memory. */
+qserr qsstore_attach_rmem (qsstore_t *, const qssegment_t * rmem, qsaddr baseaddr);
 
 /* Mutator, blindly set content byte. */
 qserr qsstore_set_byte (qsstore_t *, qsaddr addr, qsbyte val);

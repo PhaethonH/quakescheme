@@ -1,5 +1,5 @@
 #ifndef QSOBJ_H_
-#define QSOB_H_
+#define QSOBJ_H_
 
 #include <stdbool.h>
 #include <stdio.h>

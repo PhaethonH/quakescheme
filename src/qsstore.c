@@ -6,7 +6,6 @@
 
 qssegment_t * qssegment_init (qssegment_t * segment, qsword baseaddr, qsword cap)
 {
-  memset(segment, 0, sizeof(qssegment_t));
   segment->baseaddr = baseaddr;
   if (cap == 0)
     {
@@ -15,12 +14,8 @@ qssegment_t * qssegment_init (qssegment_t * segment, qsword baseaddr, qsword cap
   else
     {
       segment->cap = cap;
-      /* write zeroes in units of qsword. */
-      for (int i = 0; i < (segment->cap / sizeof(qsword)); segment++)
-	{
-	  ((qsword*)(segment->space))[i] = 0;
-	}
     }
+  qssegment_clear(segment);
   return segment;
 }
 
@@ -31,14 +26,95 @@ qssegment_t * qssegment_destroy (qssegment_t * segment)
 
 qssegment_t * qssegment_clear (qssegment_t * segment)
 {
+  /* write zeroes in units of qsword. */
+  for (int i = 0; i < (segment->cap / sizeof(qsword)); i++)
+    {
+      ((qsword*)(segment->space))[i] = 0;
+    }
+
+  segment->freelist = 0;
+  qsfreelist_t * freelist = (qsfreelist_t*)(segment->space + segment->freelist);
+  freelist->prev = QSFREE_SENTINEL;
+  freelist->next = QSFREE_SENTINEL;
+  freelist->length = segment->cap;
+
+  return segment;
 }
 
-int qssegment_split (qssegment_t * segmetn, qsaddr addr, qsword nth_boundary)
+/* Convert freelist node into an allocated object. */
+int _qssegment_unfree (qssegment_t * segment, qsaddr local_addr)
 {
+  /* prev's next points to my next, and next's prev points to my prev. */
+  qsfreelist_t *prevnode = NULL, *currnode = NULL, *nextnode = NULL;
+  currnode = (qsfreelist_t*)(segment->space + local_addr);
+  if (currnode->mgmt & MGMT_MASK_USED)  /* validity check. */
+    return -1;
+
+  /* Establish previous and next nodes. */
+  if (currnode->prev != QSFREE_SENTINEL)
+    prevnode = (qsfreelist_t*)(segment->space + currnode->prev);
+  if (currnode->next != QSFREE_SENTINEL)
+    nextnode = (qsfreelist_t*)(segment->space + currnode->next);
+
+  if (prevnode)
+    prevnode->next = currnode->next; /* skip unfreed node. */
+  else
+    segment->freelist = currnode->next; /* update start of freelist. */
+
+  if (nextnode)
+    nextnode->prev = currnode->prev;  /* skip unfreed node. */
+
+  /* Mark not freelist. */
+  currnode->mgmt |= MGMT_MASK_USED;
+  return 0;
 }
 
-int qssegment_fit (qssegment_t * segment, qsaddr addr)
+/* Split freelist node into two nodes, at the specified boundary.
+   Returns second node address (unmapped address).
+
+   One of these segments expected to be subjected to qssegment_unfree().
+ */
+qsaddr _qssegment_split (qssegment_t * segment, qsaddr local_addr, qsword nth_boundary)
 {
+  qsfreelist_t * nextnode = NULL;
+  qsfreelist_t * currnode = (qsfreelist_t*)(segment->space + local_addr);
+  /* TODO: validity check? */
+
+  qsword spanbytes = (nth_boundary * sizeof(qsobj_t));
+  /* TODO: bounds check? */
+  if (spanbytes > currnode->length)
+    return QSFREE_SENTINEL;
+
+  nextnode = currnode + nth_boundary;
+  nextnode->next = currnode->next;
+  nextnode->prev = local_addr;
+  nextnode->length = currnode->length - spanbytes;
+  currnode->length = spanbytes;
+  currnode->next = local_addr + spanbytes;
+
+  qsaddr retval = currnode->next;
+  return retval;
+}
+
+/* find suitable freelist node that can fit the requested number of bounds.
+   Returns address of the candidate note (unmapped address).
+
+   Expected to be subjected to qssegment_split() immediately after.
+ */
+qsaddr _qssegment_fit (qssegment_t * segment, qsword spanbounds)
+{
+  qsfreelist_t * scannode = NULL;
+  qsaddr scan = segment->freelist;
+  while (scan != QSFREE_SENTINEL)
+    {
+      /* TODO: check bounds of 'scan'? */
+      scannode = (qsfreelist_t*)(segment->space + scan);
+      qsword nbounds = scannode->length / sizeof(qsobj_t);
+      if (spanbounds <= nbounds)
+	return scan;
+      scan = scannode->next;
+    }
+  return QSFREE_SENTINEL;
 }
 
 
@@ -125,6 +201,19 @@ const qsword * qsstore_word_at_const (const qsstore_t * store, qsaddr addr)
 }
 
 
+qserr qsstore_attach_wmem (qsstore_t * store, qssegment_t * wmem, qsaddr baseaddr)
+{
+  store->wmem = wmem;
+  return QSERR_OK;
+}
+
+qserr qsstore_attach_rmem (qsstore_t * store, const qssegment_t * rmem, qsaddr baseaddr)
+{
+  store->rmem = rmem;
+  return QSERR_OK;
+}
+
+
 qserr qsstore_set_byte (qsstore_t * store, qsaddr addr, qsbyte val)
 {
   qssegment_t * segment = _qsstore_get_mem(store, addr);
@@ -179,21 +268,61 @@ qsword * qsstore_word_at (qsstore_t * store, qsaddr addr)
 */
 qserr qsstore_alloc (qsstore_t * store, qsword allocscale, qsaddr * out_addr)
 {
-  return 0;
+  qsword allocsize = 1 << allocscale;
+  qssegment_t * segment = NULL;
+  qsaddr fit = QSFREE_SENTINEL;
+
+  /* Try wmem, fall back to smem. */
+  segment = store->wmem;
+  fit = segment ? _qssegment_fit(segment, allocsize) : QSFREE_SENTINEL;
+  if (fit == QSFREE_SENTINEL)
+    segment = &(store->smem);
+  fit = segment ? _qssegment_fit(segment, allocsize) : QSFREE_SENTINEL;
+  if (fit == QSFREE_SENTINEL)
+    return QSERR_NOMEM;
+
+  /* split up freelist and claim memory. */
+  qsaddr other = _qssegment_split(segment, fit, allocsize);
+  if (other == QSFREE_SENTINEL)
+    return QSERR_NOMEM;
+  int res = _qssegment_unfree(segment, fit);
+  if (res != 0)
+    return QSERR_NOMEM;
+
+  /* update mgmt word. */
+  qsobj_t * obj = (qsobj_t*)(segment->space + fit);
+  MGMT_SET_ALLOC(obj->mgmt, allocscale);
+
+  /* TODO: disallow loss of handle to allocated memory? */
+  if (out_addr)
+    *out_addr = fit + segment->baseaddr;
+
+  return QSERR_OK;
 }
 
 qserr qsstore_alloc_nbounds (qsstore_t * store, qsword nbounds, qsaddr * out_addr)
 {
-  return 0;
+  int nbits = 0;
+  if (nbounds > 0) nbounds--;
+  while (nbounds > 0)
+    {
+      nbits++;
+      nbounds >>= 1;
+    }
+  return qsstore_alloc(store, nbits, out_addr);
 }
 
 qserr qsstore_alloc_nwords (qsstore_t * store, qsword nwords, qsaddr * out_addr)
 {
-  return 0;
+  int words_per_bounds = sizeof(qsobj_t) / sizeof(qsword);
+  int nbounds = (nwords > 0) ? ((nwords - 1) / words_per_bounds) + 1 : 0;
+  return qsstore_alloc_nbounds(store, nbounds, out_addr);
 }
 
 qserr qsstore_alloc_nbytes (qsstore_t * store, qsword nbytes, qsaddr * out_addr)
 {
-  return 0;
+  int bytes_per_bounds = sizeof(qsobj_t) / sizeof(qsbyte);
+  int nbounds = (nbytes > 0) ? ((nbytes - 1) / bytes_per_bounds) + 1 : 0;
+  return qsstore_alloc_nbounds(store, nbounds, out_addr);
 }
 

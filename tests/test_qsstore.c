@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define DEBUG_QSSEGMENT
+
 #include "check_qs.h"
 #include "qsptr.h"
 #include "qsstore.h"
@@ -9,6 +11,7 @@
 /* Unit test  qsstore */
 
 qsstore_t _store, *store = &_store;
+char wmem[65536];
 
 
 void init ()
@@ -51,6 +54,9 @@ START_TEST(test_store1)
 
   ck_assert_ptr_ne(store->wmem, NULL);
   ck_assert_ptr_eq(store->rmem, NULL);
+
+  store->wmem = NULL;
+  free(store->wmem);
 }
 END_TEST
 
@@ -73,10 +79,124 @@ START_TEST(test_store2)
 }
 END_TEST
 
+/* test allocation strategy, low-level calls. */
+START_TEST(test_lowalloc)
+{
+  init();
+
+  qssegment_t * segment = &(store->smem);
+
+  ck_assert_int_eq(segment->freelist, 0);
+  ck_assert_int_eq(((qsfreelist_t*)(segment->space))->next, QSFREE_SENTINEL);
+  ck_assert_int_eq(((qsfreelist_t*)(segment->space))->prev, QSFREE_SENTINEL);
+
+  /* allocate one boundary. */
+  qsword allocsize = 1;
+  qsaddr fit0 = _qssegment_fit(segment, allocsize);
+  ck_assert_int_eq(fit0, 0);
+  qsaddr region2 = _qssegment_split(segment, fit0, allocsize);
+  ck_assert_int_ne(region2, 0);
+  int res = _qssegment_unfree(segment, fit0);
+  ck_assert_int_eq(res, 0);
+  ck_assert_int_eq(segment->freelist, region2);
+
+  /* allocate sixteen boundaries. */
+  allocsize = 16;
+  qsaddr fit1 = _qssegment_fit(segment, allocsize);
+  ck_assert_int_gt(fit1, 1);
+  region2 = _qssegment_split(segment, fit1, allocsize);
+  ck_assert_int_gt(region2, 1);
+  res = _qssegment_unfree(segment, fit1);
+  ck_assert_int_eq(res, 0);
+  ck_assert_int_eq(segment->freelist, region2);
+
+  /* allocate too large. */
+  allocsize = 99999;
+  qsaddr fit99 = _qssegment_fit(segment, allocsize);
+  ck_assert_int_eq(fit99, QSFREE_SENTINEL);
+}
+END_TEST
+
+/* test allocation strategy, high-level calls. */
+START_TEST(test_highalloc)
+{
+  init();
+
+  size_t wmem_size = (1 << 10);
+  qssegment_t * wmem = (qssegment_t*)calloc(wmem_size, 1);
+  qssegment_init(wmem, 0x10000, wmem_size - 16);
+  store->wmem = wmem;
+
+  qsaddr addr = 0;
+  qserr err = QSERR_OK;
+
+  /* allocate one boundary (no-crossing). */
+  err = qsstore_alloc_nbounds(store, 0, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, 0x10000 + 0);
+
+  /* allocate another boundary (no-crossing). */
+  err = qsstore_alloc_nbounds(store, 0, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, 0x10000 + 16);
+
+  /* allocate sixteen boundaries (15 crossings). */
+  err = qsstore_alloc_nbounds(store, 15, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, 0x10000 + 32);
+
+  /* allocate one more boundary (no-crossing). */
+  err = qsstore_alloc_nbounds(store, 0, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16);
+
+
+  /* allocate seven words. */
+  err = qsstore_alloc_nwords(store, 7, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 16);
+
+  /* allocate one words (check alignment from previous). */
+  err = qsstore_alloc_nwords(store, 1, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 48);
+
+  /* allocate 69 bytes. */
+  err = qsstore_alloc_nbytes(store, 69, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 64);
+
+  /* gobble up 500 bytes. */
+  err = qsstore_alloc_nbytes(store, 500, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 64 + (4+4)*16);
+
+
+  /* check allocation in smem. */
+  err = qsstore_alloc_nbytes(store, 700, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, 0);
+  err = qsstore_alloc_nbytes(store, 700, &addr);
+  ck_assert_int_eq(err, QSERR_OK);
+  ck_assert_int_eq(addr, (1 << 6) * 16);
+
+
+  /* exhaustion. */
+  err = qsstore_alloc_nbytes(store, 80000, &addr);
+  ck_assert_int_eq(err, QSERR_NOMEM);
+
+
+  store->wmem = NULL;
+  free(store->wmem);
+}
+END_TEST
+
 
 TESTCASE(case_store1,
   TFUNC(test_store1)
   TFUNC(test_store2)
+  TFUNC(test_lowalloc)
+  TFUNC(test_highalloc)
   )
 
 TESTSUITE(suite_store1,
