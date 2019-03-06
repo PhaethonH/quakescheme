@@ -94,6 +94,9 @@ int qssymbol_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsstring_make (qsmachine_t *, qsword len, int fill);
 bool qsstring_p (const qsmachine_t *, qsptr p);
+qsword qsstring_length (const qsmachine_t *, qsptr p);
+int qsstring_ref (const qsmachine_t *, qsptr p, qsword k);
+qsptr qsstring_setq (qsmachine_t *, qsptr p, qsword k, int ch);
 int qsstring_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsbytevec_make (qsmachine_t *, qsword len, qsbyte fill);

@@ -877,13 +877,16 @@ int qssymbol_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 /* Heaped object: String
    * prototype = ovec
-   * .length ... ?
+   * .score = 8
+   * .length isa integer
  */
 
 const qsovec_t * qsstring_const (const qsmachine_t * mach, qsptr p)
 {
   const qsovec_t * s = qsovec_const(mach, p);
   if (! s) return NULL;
+  if (! ISINT30(s->length)) return NULL;
+  if (qsobj_get_score((qsobj_t*)s) != 8) return NULL;
   return s;
 }
 
@@ -898,21 +901,61 @@ qsovec_t * qsstring (qsmachine_t * mach, qsptr p)
 
 qsptr qsstring_make (qsmachine_t * mach, qsword len, int fill)
 {
+  qsptr p = qsovec_make(mach, QSINT(len), fill);
+  qsobj_t * obj = qsobj(mach, p);
+  qsobj_set_score(obj, 8);
+  return p;
 }
 
 bool qsstring_p (const qsmachine_t * mach, qsptr p)
 {
+  return (qsstring_const(mach, p) != NULL);
+}
+
+qsword qsstring_length (const qsmachine_t * mach, qsptr p)
+{
+  const qsovec_t * s = qsovec_const(mach, p);
+  if (! s) return 0;
+  return CINT30(s->length);
+}
+
+int qsstring_ref (const qsmachine_t * mach, qsptr p, qsword k)
+{
+  const qsovec_t * s = qsovec_const(mach, p);
+  if (! s) return 0;
+  /* TODO: multi-byte character */
+  return s->elt[k];
+}
+
+qsptr qsstring_setq (qsmachine_t * mach, qsptr p, qsword k, int ch)
+{
+  qsovec_t * s = qsovec(mach, p);
+  if (! s) return QSERR_FAULT;
+  /* TODO: multi-byte character. */
+
+  s->elt[k] = ch;
+
+  return p;
 }
 
 int qsstring_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
+  const qsovec_t * s = qsovec_const(mach, p);
+  if (! s)
+    {
+      n += qs_snprintf(buf+n, buflen-n, "\"\"");
+      return n;
+    }
+  qsword m = qsstring_length(mach, p);
+  n += qs_snprintf(buf+n, buflen-n-m, "\"%s\"", s->elt);
   return n;
 }
 
 
 /* Heaped object: Bytevector
    * prototype = ovec
+   * .score = 0
    * .length isa integer
  */
 const qsovec_t * qsbytevec_const (const qsmachine_t * mach, qsptr p)
@@ -935,6 +978,8 @@ qsovec_t * qsbytevec (qsmachine_t * mach, qsptr p)
 qsptr qsbytevec_make (qsmachine_t * mach, qsword len, qsbyte fill)
 {
   qsptr p = qsovec_make(mach, QSINT(len), fill);
+  qsobj_t * obj = qsobj(mach, p);
+  qsobj_set_score(obj, 0);
   return p;
 }
 
