@@ -159,17 +159,17 @@ START_TEST(test_highalloc)
   /* allocate one words (check alignment from previous). */
   err = qsstore_alloc_nwords(store, 1, &addr);
   ck_assert_int_eq(err, QSERR_OK);
-  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 48);
+  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 16 + 4*16);
 
   /* allocate 69 bytes. */
   err = qsstore_alloc_nbytes(store, 69, &addr);
   ck_assert_int_eq(err, QSERR_OK);
-  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 64);
+  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 16 + 4*16 + 2*16);
 
-  /* gobble up 500 bytes. */
-  err = qsstore_alloc_nbytes(store, 500, &addr);
+  /* gobble up 200 bytes. */
+  err = qsstore_alloc_nbytes(store, 200, &addr);
   ck_assert_int_eq(err, QSERR_OK);
-  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 64 + (4+4)*16);
+  ck_assert_int_eq(addr, 0x10000 + 32 + 16*16 + 16 + 4*16 + 2*16 + 8*16);
 
 
   /* check allocation in smem. */

@@ -317,6 +317,7 @@ qserr qsstore_alloc_nwords (qsstore_t * store, qsword nwords, qsaddr * out_addr)
 {
   int words_per_bounds = sizeof(qsobj_t) / sizeof(qsword);
   int nbounds = (nwords > 0) ? ((nwords - 1) / words_per_bounds) + 1 : 0;
+  nbounds += 1;  /* header */
   return qsstore_alloc_nbounds(store, nbounds, out_addr);
 }
 
@@ -324,6 +325,7 @@ qserr qsstore_alloc_nbytes (qsstore_t * store, qsword nbytes, qsaddr * out_addr)
 {
   int bytes_per_bounds = sizeof(qsobj_t) / sizeof(qsbyte);
   int nbounds = (nbytes > 0) ? ((nbytes - 1) / bytes_per_bounds) + 1 : 0;
+  nbounds += 1;  /* header */
   return qsstore_alloc_nbounds(store, nbounds, out_addr);
 }
 

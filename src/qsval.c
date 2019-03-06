@@ -351,6 +351,7 @@ int qssym_crepr (qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 /* Heaped object */
 
+/* Heaped prototype: Triplet. */
 const qstriplet_t * qstriplet_const (const qsmachine_t * mach, qsptr p)
 {
   if (! ISOBJ26(p)) return NULL;
@@ -376,7 +377,7 @@ qsptr qstriplet_make (qsmachine_t * mach, qsptr first, qsptr second, qsptr third
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at(&(mach->S), mapped_addr));
-  qsobj_init(obj, false, 0);
+  qsobj_init(obj, 0, false);
   qstriplet_t * triplet = (qstriplet_t*)obj;
   triplet->first = first;
   triplet->second = second;
@@ -386,6 +387,7 @@ qsptr qstriplet_make (qsmachine_t * mach, qsptr first, qsptr second, qsptr third
 }
 
 
+/* Heaped prototype: WideWord. */
 const qswideword_t * qswideword_const (const qsmachine_t * mach, qsptr p)
 {
   if (! ISOBJ26(p)) return NULL;
@@ -411,12 +413,13 @@ qswideword_t * qswideword_make (qsmachine_t * mach, qsptr p, qsaddr * out_addr)
   if (err != QSERR_OK)
     return NULL;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at(&(mach->S), mapped_addr));
-  qsobj_init(obj, false, 0);
+  qsobj_init(obj, 0, false);
   if (out_addr) *out_addr = mapped_addr;
   return (qswideword_t*)obj;
 }
 
 
+/* Heaped prototype: Pointer Vector. */
 const qspvec_t * qspvec_const (const qsmachine_t * mach, qsptr p)
 {
   if (! ISOBJ26(p)) return NULL;
@@ -435,19 +438,30 @@ qspvec_t * qspvec (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qspvec_t * qspvec_make (qsmachine_t * mach, qsptr p, qsaddr * out_addr)
+qsptr qspvec_make (qsmachine_t * mach, qsptr len, qsptr fillval)
 {
   qsaddr mapped_addr = 0;
-  qserr err = qsstore_alloc(&(mach->S), 0, &mapped_addr);
+  qserr err = qsstore_alloc_nwords(&(mach->S), len, &mapped_addr);
   if (err != QSERR_OK)
-    return NULL;
+    return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at(&(mach->S), mapped_addr));
-  qsobj_set_octetate(obj, 1);
-  if (out_addr) *out_addr = mapped_addr;
-  return (qspvec_t*)obj;
+  int a = MGMT_GET_ALLOC(obj->mgmt);
+  qsobj_init(obj, a, false);
+  qspvec_t * pvec = (qspvec_t*)obj;
+  pvec->length = QSINT(len);
+  pvec->gcback = QSNIL;
+  pvec->gciter = QSNIL;
+  qsword i;
+  for (i = 0; i < len; i++)
+    {
+      pvec->elt[i] = fillval;
+    }
+  qsptr retval = qsptr_make(mach, mapped_addr);
+  return retval;
 }
 
 
+/* Heaped prototype: Octet Vector. */
 const qsovec_t * qsovec_const (const qsmachine_t * mach, qsptr p)
 {
   if (! ISOBJ26(p)) return NULL;
@@ -467,7 +481,10 @@ qsovec_t * qsovec (qsmachine_t * mach, qsptr p)
 }
 
 
-/* helper function. */
+/* Heaped object: Pair
+   * prototype = qstriplet
+   * .first is nil
+ */
 
 const qstriplet_t * qspair_const (const qsmachine_t * mach, qsptr p)
 {
@@ -509,18 +526,20 @@ qsptr qspair_ref_tail (const qsmachine_t * mach, qsptr p)
   return pair->third;
 }
 
-qserr qspair_setq_head (qsmachine_t * mach, qsptr p, qsptr a)
+qsptr qspair_setq_head (qsmachine_t * mach, qsptr p, qsptr a)
 {
   qstriplet_t * pair = qspair(mach, p);
+  if (! pair) return QSERR_FAULT;
   pair->second = a;
-  return QSERR_OK;
+  return p;
 }
 
-qserr qspair_setq_tail (qsmachine_t * mach, qsptr p, qsptr d)
+qsptr qspair_setq_tail (qsmachine_t * mach, qsptr p, qsptr d)
 {
   qstriplet_t * pair = qspair(mach, p);
+  if (! pair) return QSERR_FAULT;
   pair->third = d;
-  return QSERR_OK;
+  return p;
 }
 
 int qspair_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
@@ -566,8 +585,10 @@ int qspair_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-
-/* Vector: prototype 'qspvec', 'length' is an integer. */
+/* Heaped object: Vector
+   * prototype = qspvec
+   * .length isa integer
+ */
 
 const qspvec_t * qsvector_const (const qsmachine_t * mach, qsptr p)
 {
@@ -586,43 +607,56 @@ qspvec_t * qsvector (qsmachine_t * mach, qsptr p)
 
 qsptr qsvector_make (qsmachine_t * mach, qsword len, qsptr fill)
 {
-  qsaddr mapped_addr = QSFREE_SENTINEL;
-  qserr err = QSERR_OK;
-  err = qsstore_alloc_nwords(&(mach->S), len, &mapped_addr);
-  if (err != QSERR_OK)
-    return err;
-  qspvec_t * vec = (qspvec_t*)qsstore_word_at(&(mach->S), mapped_addr);
-  if (!vec)
-    return QSERR_FAULT;
-  vec->length = QSINT(len);
-  qsword i;
-  for (i = 0; i < len; i++)
-    {
-      vec->elt[i] = fill;
-    }
-  qsptr retval = qsptr_make(mach, mapped_addr);
-  return retval;
+  qsptr p = qspvec_make(mach, len, fill);
+  return p;
 }
 
 bool qsvector_p (const qsmachine_t * mach, qsptr p)
 {
+  return (qspvec_const(mach, p) != NULL);
 }
 
-qsptr qsvector_length (const qsmachine_t * mach, qsptr p)
+qsword qsvector_length (const qsmachine_t * mach, qsptr p)
 {
+  const qspvec_t * pvec = qspvec_const(mach, p);
+  if (! pvec) return QSERR_FAULT;
+  return CINT30(pvec->length);
 }
 
 qsptr qsvector_ref (const qsmachine_t * mach, qsptr p, qsword k)
 {
+  const qspvec_t * pvec = qspvec_const(mach, p);
+  if (! pvec) return QSERR_FAULT;
+  if ((k < 0) || (k >= qsvector_length(mach, p))) return QSERR_FAULT;
+  return pvec->elt[k];
 }
 
 qsptr qsvector_setq (qsmachine_t * mach, qsptr p, qsword k, qsptr val)
 {
+  qspvec_t * pvec = qspvec(mach, p);
+  if (! pvec) return QSERR_FAULT;
+  if ((k < 0) || (k >= qsvector_length(mach, p))) return QSERR_FAULT;
+  pvec->elt[k] = val;
+  return p;
 }
 
 int qsvector_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
+  qsword i;
+
+  n += qs_snprintf(buf+n, buflen-n, "%s", "#(");
+
+  for (i = 0; i < qsvector_length(mach, p); i++)
+    {
+      qsptr x = qsvector_ref(mach, p, i);
+      if (i > 0)
+	n += qs_snprintf(buf+n, buflen-n, " ");
+      n += qsptr_crepr(mach, x, buf+n, buflen-n);
+    }
+
+  n += qs_snprintf(buf+n, buflen-n, "%s", ")");
+
   return n;
 }
 

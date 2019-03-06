@@ -54,8 +54,8 @@ qsptr qspair_make (qsmachine_t *, qsptr a, qsptr d);
 bool qspair_p (const qsmachine_t *, qsptr p);
 qsptr qspair_ref_head (const qsmachine_t *, qsptr p);
 qsptr qspair_ref_tail (const qsmachine_t *, qsptr p);
-qserr qspair_setq_head (qsmachine_t *, qsptr p, qsptr a);
-qserr qspair_setq_tail (qsmachine_t *, qsptr p, qsptr d);
+qsptr qspair_setq_head (qsmachine_t *, qsptr p, qsptr a);
+qsptr qspair_setq_tail (qsmachine_t *, qsptr p, qsptr d);
 #define qspair_car qspair_ref_head
 #define qspair_cdr qspair_ref_tail
 #define qspair_setcarq qspair_setq_head
@@ -64,7 +64,7 @@ int qspair_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsvector_make (qsmachine_t *, qsword len, qsptr fill);
 bool qsvector_p (const qsmachine_t *, qsptr p);
-qsptr qsvector_length (const qsmachine_t *, qsptr p);
+qsword qsvector_length (const qsmachine_t *, qsptr p);
 qsptr qsvector_ref (const qsmachine_t *, qsptr p, qsword k);
 qsptr qsvector_setq (qsmachine_t *, qsptr p, qsword k, qsptr val);
 int qsvector_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
