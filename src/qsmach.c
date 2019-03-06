@@ -2,12 +2,18 @@
 
 qsmachine_t * qsmachine_init (qsmachine_t * mach)
 {
+  qsstore_init(&(mach->S));
   return mach;
 }
 
 qsmachine_t * qsmachine_destroy (qsmachine_t * mach)
 {
   return mach;
+}
+
+qsstore_t * qsmachine_get_store (qsmachine_t * mach)
+{
+  return &(mach->S);
 }
 
 int qsmachine_step (qsmachine_t * mach)

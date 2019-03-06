@@ -20,6 +20,8 @@ typedef struct qsmachine_s {
 qsmachine_t * qsmachine_init (qsmachine_t *);
 qsmachine_t * qsmachine_destroy (qsmachine_t *);
 
+qsstore_t * qsmachine_get_store (qsmachine_t *);
+
 int qsmachine_step (qsmachine_t *);
 int qsmachine_load (qsmachine_t *, qsptr C, qsptr E, qsptr K);
 int qsmachine_applykont (qsmachine_t *, qsptr kont, qsptr value);

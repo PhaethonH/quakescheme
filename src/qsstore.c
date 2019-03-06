@@ -326,3 +326,85 @@ qserr qsstore_alloc_nbytes (qsstore_t * store, qsword nbytes, qsaddr * out_addr)
   return qsstore_alloc_nbounds(store, nbounds, out_addr);
 }
 
+
+
+/* Garbage collection. */
+
+qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
+{
+  if (root == QSFREE_SENTINEL)
+    return QSERR_OK;
+
+  qsobj_t * obj = NULL;
+  qsaddr curr = root;
+  qsaddr prev = QSFREE_SENTINEL;
+
+  while (curr != QSFREE_SENTINEL)
+    {
+      if (_qsstore_get_mem_const(store, curr) == store->rmem)
+	{
+	  /* immutable memory, no garbage possible; backtrack. */
+	  curr = QSFREE_SENTINEL;
+	  obj = NULL;
+	}
+      else
+	{
+	  obj = (qsobj_t*)(qsstore_word_at(store, curr));
+	}
+
+      if (obj)
+	{
+	  if (MGMT_IS_MARK(obj->mgmt))
+	    {
+	      /* already marked, start backtracking. */
+	      curr = QSFREE_SENTINEL;
+	      obj = NULL;
+	    }
+	  else if (! MGMT_IS_USED(obj->mgmt))
+	    {
+	      /* free list, backtrack. */
+	      curr = QSFREE_SENTINEL;
+	      obj = NULL;
+	    }
+	  else if (MGMT_GET_ALLOC(obj->mgmt) == 0)
+	    {
+	      /* single-bounded. */
+	      if (MGMT_IS_OCT(obj->mgmt))
+		{
+		  /* trace wide-word. */
+		  curr = QSFREE_SENTINEL;
+		  obj = NULL;
+		}
+	      else
+		{
+		  /* trace treenode. */
+		  int reverse = MGMT_GET_REVERS(obj->mgmt);
+		  switch (reverse)
+		    {
+		    case 0: /* left ... */
+		      break;
+		    case 1: /* center ... */
+		      break;
+		    case 2: /* right ... */
+		      break;
+		    }
+		}
+	    }
+	  else if (MGMT_GET_ALLOC(obj->mgmt) > 0)
+	    {
+	      /* cross-boundary. */
+	      if (MGMT_IS_OCT(obj->mgmt))
+		{
+		  /* trace word-vector. */
+		}
+	      else
+		{
+		  /* trace byte-vector. */
+		}
+	    }
+	}
+
+    }
+}
+
+

@@ -66,4 +66,9 @@ qserr qsstore_alloc_nwords (qsstore_t *, qsword nwords, qsaddr * out_addr);
 qserr qsstore_alloc_nbytes (qsstore_t *, qsword nbytes, qsaddr * out_addr);
 
 
+/* Memory allocation. */
+qserr qsstore_trace (qsstore_t *, qsaddr root, int mark);
+qserr qsstore_sweep (qsstore_t *);
+
+
 #endif /* QSSTORE_H_ */

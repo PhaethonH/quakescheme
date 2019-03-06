@@ -2,7 +2,8 @@
 TESTS = test_qsptr \
  test_qsstore \
  test_qsobj \
- test_qsval
+ test_qsval \
+ test_qsmach
 
 
 

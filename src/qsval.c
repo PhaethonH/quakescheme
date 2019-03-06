@@ -46,7 +46,7 @@ bool qsbool_p (const qsmachine_t * mach, qsptr p)
   return (p == QSTRUE) || (p == QSFALSE);
 }
 
-int qsbool_print (const qsmachine_t * mach, qsptr p, char *buf, int buflen)
+int qsbool_crepr (const qsmachine_t * mach, qsptr p, char *buf, int buflen)
 {
   int n = 0;
 
@@ -78,7 +78,7 @@ float qsfloat_get (const qsmachine_t * mach, qsptr p)
   return fval;
 }
 
-int qsfloat_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsfloat_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   float fval = CFLOAT31(p);
@@ -104,7 +104,7 @@ int32_t qsint_get (const qsmachine_t * mach, qsptr p)
   return ival;
 }
 
-int qsint_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsint_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   int ival = CINT30(p);
@@ -130,7 +130,7 @@ int qschar_get (const qsmachine_t * mach, qsptr p)
   return chval;
 }
 
-int qschar_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qschar_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   int chval = CCHAR24(p);
@@ -151,11 +151,11 @@ int qschar_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
     }
   if (special != NULL)
     {
-      n += qs_snprintf(buf+n, buflen-n, "\\%s", special);
+      n += qs_snprintf(buf+n, buflen-n, "#\\%s", special);
     }
   else
     {
-      n += qs_snprintf(buf+n, buflen-n, "\\%c", chval);
+      n += qs_snprintf(buf+n, buflen-n, "#\\%c", chval);
     }
   return n;
 }
@@ -176,7 +176,7 @@ int qsconst_id (const qsmachine_t * mach, qsptr p)
   return CCONST20(p);
 }
 
-int qsconst_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsconst_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   int constval = CCONST20(p);
@@ -224,7 +224,7 @@ bool qsfd_p (const qsmachine_t * mach, qsptr p)
   return ISFD20(p);
 }
 
-int qsfd_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsfd_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   int fdval = CFD20(p);
@@ -245,7 +245,7 @@ bool qsprim_p (const qsmachine_t * mach, qsptr p)
   return ISPRIM20(p);
 }
 
-int qsprim_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsprim_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   int primid = CPRIM20(p);
@@ -271,7 +271,7 @@ qsword qserr_id (const qsmachine_t * mach, qsptr p)
   return CERR20(p);
 }
 
-int qserr_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qserr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   qsword err_id = CERR20(p);
@@ -321,7 +321,7 @@ qsword qssym_id (const qsmachine_t * mach, qsptr p)
   return CSYM26(p);
 }
 
-int qssym_print (qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qssym_crepr (qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -355,7 +355,7 @@ qserr qspair_setq_tail (qsmachine_t * mach, qsptr p, qsptr d)
 {
 }
 
-int qspair_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qspair_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -382,7 +382,7 @@ qsptr qsvector_setq (qsmachine_t * mach, qsptr p, qsword k, qsptr val)
 {
 }
 
-int qsvector_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsvector_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -405,7 +405,7 @@ int qsctpr_fetch (const qsmachine_t * mach, qsptr p, void * out)
 {
 }
 
-int qscptr_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qscptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -428,7 +428,7 @@ int qslong_fetch (const qsmachine_t * mach, qsptr p, int64_t * out)
 {
 }
 
-int qslong_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qslong_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -451,7 +451,7 @@ int qsdouble_fetch (const qsmachine_t * mach, qsptr p, double * out)
 {
 }
 
-int qsdouble_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsdouble_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -466,7 +466,7 @@ bool qssymbol_p (const qsmachine_t * mach, qsptr p)
 {
 }
 
-int qssymbol_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qssymbol_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -481,7 +481,7 @@ bool qsstring_p (const qsmachine_t * mach, qsptr p)
 {
 }
 
-int qsstring_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsstring_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -496,7 +496,7 @@ bool qsbytevec_p (const qsmachine_t * mach, qsptr p)
 {
 }
 
-int qsbytevec_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsbytevec_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -511,7 +511,7 @@ qsptr qsenv_insert (qsmachine_t * mach, qsptr variable, qsptr binding)
 {
 }
 
-int qsenv_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsenv_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
@@ -526,7 +526,7 @@ bool qskont_p (const qsmachine_t * mach, qsptr p)
 {
 }
 
-int qskont_print (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qskont_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
