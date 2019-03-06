@@ -705,23 +705,44 @@ qswideword_t * qscptr (qsmachine_t * mach, qsptr p)
 
 qsptr qscptr_make (qsmachine_t * mach, void * val)
 {
+  qsptr p = qswideword_make(mach, QSWIDE_CPTR);
+  qswideword_t * cptr = qswideword(mach, p);
+  cptr->payload.ptr = val;
+  return p;
 }
 
 bool qscptr_p (const qsmachine_t * mach, qsptr p)
 {
+  return (qscptr_const(mach, p) != NULL);
 }
 
-void * qsctpr_get (const qsmachine_t * mach, qsptr p)
+void * qscptr_get (const qsmachine_t * mach, qsptr p)
 {
+  const qswideword_t * cptr = qscptr_const(mach, p);
+  if (! cptr) return NULL;
+  return cptr->payload.ptr;
 }
 
-int qsctpr_fetch (const qsmachine_t * mach, qsptr p, void * out)
+int qscptr_fetch (const qsmachine_t * mach, qsptr p, void ** out)
 {
+  const qswideword_t * cptr = qscptr_const(mach, p);
+  if (! cptr) return 0;
+  if (out) *out = cptr->payload.ptr;
+  return 1;
 }
 
 int qscptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
+  const qswideword_t * cptr = qscptr_const(mach, p);
+  if (! cptr)
+    {
+      n += qs_snprintf(buf+n, buflen-n, "#<(void*)%08x>", 0);
+      return n;
+    }
+
+  n += qs_snprintf(buf+n, buflen-n, "#<(void*)%08x>", cptr->payload.ptr);
+
   return n;
 }
 
@@ -774,7 +795,7 @@ int qslong_fetch (const qsmachine_t * mach, qsptr p, int64_t * out)
 {
   const qswideword_t * l = qswideword_const(mach, p);
   if (! l) return 0;
-  *out = l->payload.l;
+  if (out) *out = l->payload.l;
   return 1;
 }
 
@@ -838,7 +859,7 @@ int qsdouble_fetch (const qsmachine_t * mach, qsptr p, double * out)
 {
   const qswideword_t * d = qswideword_const(mach, p);
   if (! d) return 0;
-  *out = d->payload.d;
+  if (out) *out = d->payload.d;
   return 1;
 }
 

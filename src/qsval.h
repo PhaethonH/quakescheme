@@ -69,10 +69,12 @@ qsptr qsvector_ref (const qsmachine_t *, qsptr p, qsword k);
 qsptr qsvector_setq (qsmachine_t *, qsptr p, qsword k, qsptr val);
 int qsvector_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
+/* C pointers (void pointers). */
+/* Considered dangerous, as a mix of dereferencing C pointers and arbitrarily modifying memory may break sandbox. */
 qsptr qscptr_make (qsmachine_t *, void * val);
 bool qscptr_p (const qsmachine_t *, qsptr p);
-void * qsctpr_get (const qsmachine_t *, qsptr p);
-int qsctpr_fetch (const qsmachine_t *, qsptr p, void * out);
+void * qscptr_get (const qsmachine_t *, qsptr p);
+int qscptr_fetch (const qsmachine_t *, qsptr p, void ** out);
 int qscptr_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qslong_make (qsmachine_t *, int64_t val);

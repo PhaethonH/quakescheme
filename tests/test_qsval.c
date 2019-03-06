@@ -240,6 +240,40 @@ START_TEST(test_widenums)
 }
 END_TEST
 
+START_TEST(test_voidptrs)
+{
+  init();
+
+  qsptr p;
+  qserr err;
+  int n;
+  int b;
+
+  /* C pointers (void pointers). */
+  void * q = NULL;
+  p = qscptr_make(machine, NULL);
+  ck_assert(qscptr_p(machine, p));
+  q = qscptr_get(machine, p);
+  ck_assert(q == NULL);
+  q = NULL;
+  n = qscptr_fetch(machine, p, &q);
+  ck_assert(q == NULL);
+  n = qscptr_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "#<(void*)00000000>");
+
+  void * nn = &n;
+  p = qscptr_make(machine, nn);
+  ck_assert(qscptr_p(machine, p));
+  q = qscptr_get(machine, p);
+  ck_assert(q == nn);
+  q = NULL;
+  n = qscptr_fetch(machine, p, &q);
+  ck_assert(q == nn);
+  n = qscptr_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_ne(buf, "#<(void*)00000000>");
+}
+END_TEST
+
 START_TEST(test_bytevecs)
 {
   init();
@@ -273,6 +307,7 @@ TESTCASE(case1,
   TFUNC(test_pairs)
   TFUNC(test_vectors)
   TFUNC(test_widenums)
+  TFUNC(test_voidptrs)
   TFUNC(test_bytevecs)
   TFUNC(test_test2)
   )
