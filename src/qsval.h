@@ -90,7 +90,9 @@ int qsdouble_fetch (const qsmachine_t *, qsptr p, double * out);
 int qsdouble_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 /* symbol object links symbol id (qsint) to symbol name (qsstring) */
-qsptr qssymbol_make (qsmachine_t *, qsptr name);
+//qsptr qssymbol_make (qsmachine_t *, qsptr name);
+qsptr qssymbol_bless (qsmachine_t *, qsptr s);
+qsptr qssymbol_import (qsmachine_t *, const char * cstr);
 bool qssymbol_p (const qsmachine_t *, qsptr p);
 int qssymbol_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 

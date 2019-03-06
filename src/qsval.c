@@ -487,7 +487,7 @@ qsovec_t * qsovec (qsmachine_t * mach, qsptr p)
 qsptr qsovec_make (qsmachine_t * mach, qsptr len, qsbyte fillval)
 {
   qsaddr mapped_addr = 0;
-  qserr err = qsstore_alloc_nbytes(&(mach->S), len, &mapped_addr);
+  qserr err = qsstore_alloc_nbytes(&(mach->S), len+1, &mapped_addr);
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at_const(&(mach->S), mapped_addr));
@@ -879,18 +879,68 @@ int qsdouble_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 /* QsSymbol: symbol name.  See qssym for comparing symbols by object id. */
 /* Heaped object: Symbol
+   * prototype = ovec
+   * .length isa char24
  */
-qsptr qssymbol_make (qsmachine_t * mach, qsptr name)
+const qsovec_t * qssymbol_const (const qsmachine_t * mach, qsptr p)
 {
+  const qsovec_t * y = qsovec_const(mach, p);
+  if (! y) return NULL;
+  if (! ISCHAR24(y->length)) return NULL;
+  return y;
+}
+
+qsovec_t * qssymbol (qsmachine_t * mach, qsptr p)
+{
+  if (qssymbol_const(mach, p))
+    {
+      return (qsovec_t*)(qsovec(mach, p));
+    }
+  return NULL;
+}
+
+qsptr qssymbol_bless (qsmachine_t * machine, qsptr s)
+{
+  if (! qsstring_p(machine, s))
+    return QSERR_FAULT;
+  qsword slen = qsstring_length(machine, s);
+  qsptr p = qsovec_make(machine, QSCHAR(slen), 0);
+  qsovec_t * y = qsovec(machine, p);
+  qsword i;
+  for (i = 0; i < slen; i++)
+    {
+      /* TODO convert multi-byte sequence. */
+      y->elt[i] = qsstring_ref(machine, s, i);
+    }
+  y->elt[i] = 0;
+
+  /* TODO: intern. */
+  return p;
+}
+
+qsptr qssymbol_import (qsmachine_t * machine, const char * cstr)
+{
+  qsword slen = strlen(cstr);
+  qsptr p = qsovec_make(machine, QSCHAR(slen), 0);
+  qsovec_t * y = qsovec(machine, p);
+  strncpy(y->elt, cstr, slen+1);
+
+  /* TODO: intern. */
+  return p;
 }
 
 bool qssymbol_p (const qsmachine_t * mach, qsptr p)
 {
+  return (qssymbol_const(mach, p) != NULL);
 }
 
 int qssymbol_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
+  const qsovec_t * y = qsovec_const(mach, p);
+  if (! y) return n;
+  int m = CCHAR24(y->length);
+  n += qs_snprintf(buf+n, buflen-n-m, "%s", y->elt);
   return n;
 }
 

@@ -301,6 +301,23 @@ START_TEST(test_bytevecs)
 }
 END_TEST
 
+START_TEST(test_symbols)
+{
+  init();
+
+  qsptr p;
+  qserr err;
+  int n;
+  int b;
+
+  /* symbols (names). */
+  p = qssymbol_import(machine, "foobar");
+  ck_assert(qssymbol_p(machine, p));
+  n = qssymbol_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "foobar");
+}
+END_TEST
+
 
 TESTCASE(case1,
   TFUNC(test_test1)
@@ -309,6 +326,7 @@ TESTCASE(case1,
   TFUNC(test_widenums)
   TFUNC(test_voidptrs)
   TFUNC(test_bytevecs)
+  TFUNC(test_symbols)
   TFUNC(test_test2)
   )
 
