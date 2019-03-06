@@ -406,16 +406,19 @@ qswideword_t * qswideword (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qswideword_t * qswideword_make (qsmachine_t * mach, qsptr p, qsaddr * out_addr)
+qsptr qswideword_make (qsmachine_t * mach, qsptr subtype)
 {
   qsaddr mapped_addr = 0;
   qserr err = qsstore_alloc(&(mach->S), 0, &mapped_addr);
   if (err != QSERR_OK)
-    return NULL;
+    return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at(&(mach->S), mapped_addr));
-  qsobj_init(obj, 0, false);
-  if (out_addr) *out_addr = mapped_addr;
-  return (qswideword_t*)obj;
+  qsobj_init(obj, 0, true);
+  qswideword_t * wideword = (qswideword_t*)obj;
+  wideword->subtype = subtype;
+  wideword->payload.l = 0;
+  qsptr retval = qsptr_make(mach, mapped_addr);
+  return retval;
 }
 
 
@@ -705,13 +708,13 @@ int qscptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 
 
-/* Long (64b): prototype 'wideword', 'subtype' == QSWIDE_LONG. */
+/* Long (64b): prototype 'wideword', 'subtype' == QSNUM_LONG. */
 
 const qswideword_t * qslong_const (const qsmachine_t * mach, qsptr p)
 {
   const qswideword_t * l = qswideword_const(mach, p);
   if (! l) return NULL;
-  if (l->subtype != QSWIDE_CPTR) return NULL;
+  if (l->subtype != QSNUM_LONG) return NULL;
   return l;
 }
 
@@ -726,23 +729,46 @@ qswideword_t * qslong (qsmachine_t * mach, qsptr p)
 
 qsptr qslong_make (qsmachine_t * mach, int64_t val)
 {
+  qsptr p = qswideword_make(mach, QSNUM_LONG);
+  if (ISOBJ26(p))
+    {
+      qswideword_t * l = qswideword(mach, p);
+      if (l)
+	l->payload.l = val;
+    }
+  return p;
 }
 
 bool qslong_p (const qsmachine_t * mach, qsptr p)
 {
+  return (qslong_const(mach, p) != NULL);
 }
 
 int64_t qslong_get (const qsmachine_t * mach, qsptr p)
 {
+  const qswideword_t * l = qswideword_const(mach, p);
+  if (! l) return 0;
+  return l->payload.l;
 }
 
 int qslong_fetch (const qsmachine_t * mach, qsptr p, int64_t * out)
 {
+  const qswideword_t * l = qswideword_const(mach, p);
+  if (! l) return 0;
+  *out = l->payload.l;
+  return 1;
 }
 
 int qslong_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
+  const qswideword_t * l = qswideword_const(mach, p);
+  if (! l)
+    {
+      n += qs_snprintf(buf+n, buflen-n, "%d", 0);
+      return n;
+    }
+  n += qs_snprintf(buf+n, buflen-n, "%ld", l->payload.l);
   return n;
 }
 
