@@ -774,12 +774,12 @@ int qslong_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 
 
-/* Double-Precision Float (64b): prototype 'wideword', 'subtype' == QSWIDE_DOUBLE. */
+/* Double-Precision Float (64b): prototype 'wideword', 'subtype' == QSNUM_DOUBLE. */
 const qswideword_t * qsdouble_const (const qsmachine_t * mach, qsptr p)
 {
   const qswideword_t * d = qswideword_const(mach, p);
   if (! d) return NULL;
-  if (d->subtype != QSWIDE_CPTR) return NULL;
+  if (d->subtype != QSNUM_DOUBLE) return NULL;
   return d;
 }
 
@@ -794,23 +794,45 @@ qswideword_t * qsdouble (qsmachine_t * mach, qsptr p)
 
 qsptr qsdouble_make (qsmachine_t * mach, double val)
 {
+  qsptr p = qswideword_make(mach, QSNUM_DOUBLE);
+  if (ISOBJ26(p))
+    {
+      qswideword_t * d = qswideword(mach, p);
+      d->payload.d = val;
+    }
+  return p;
 }
 
 bool qsdouble_p (const qsmachine_t * mach, qsptr p)
 {
+  if (qsdouble_const(mach, p) != NULL);
 }
 
 double qsdouble_get (const qsmachine_t * mach, qsptr p)
 {
+  const qswideword_t * d = qswideword_const(mach, p);
+  if (! d) return 0;
+  return d->payload.d;
 }
 
 int qsdouble_fetch (const qsmachine_t * mach, qsptr p, double * out)
 {
+  const qswideword_t * d = qswideword_const(mach, p);
+  if (! d) return 0;
+  *out = d->payload.d;
+  return 1;
 }
 
 int qsdouble_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
+  const qswideword_t * d = qswideword_const(mach, p);
+  if (! d)
+    {
+      n += qs_snprintf(buf+n, buflen-n, "%g", 0);
+      return n;
+    }
+  n += qs_snprintf(buf+n, buflen-n, "%lg", d->payload.d);
   return n;
 }
 
