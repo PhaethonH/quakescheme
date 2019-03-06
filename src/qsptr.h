@@ -93,6 +93,7 @@ Word-Pointer expanding-tag encoding
 #define ISPRIM20(x)     ((x & MASK_TAG20) == TAG_PRIM20)
 #define ISERR20(x)      ((x & MASK_TAG20) == TAG_ERR20)
 #define ISFD20(x)       ((x & MASK_TAG20) == TAG_FD20)
+#define ISNIL(x)        (x == QSNIL)
 
 
 /* Conversions from word-pointers. */

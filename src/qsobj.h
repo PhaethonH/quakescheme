@@ -52,7 +52,7 @@ typedef struct qsobj_s {
     qsword fields[3];
 } qsobj_t;
 
-qsobj_t * qsobj_init (qsobj_t * obj, int alloscale, bool octetate);
+qsobj_t * qsobj_init (qsobj_t * obj, int allocscale, bool octetate);
 bool qsobj_is_used (const qsobj_t * obj);
 bool qsobj_is_marked (const qsobj_t * obj);
 bool qsobj_is_grey (const qsobj_t * obj);

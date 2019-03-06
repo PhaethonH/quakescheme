@@ -52,8 +52,8 @@ int qssym_crepr (qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qspair_make (qsmachine_t *, qsptr a, qsptr d);
 bool qspair_p (const qsmachine_t *, qsptr p);
-qserr qspair_ref_head (const qsmachine_t *, qsptr p);
-qserr qspair_ref_tail (const qsmachine_t *, qsptr p);
+qsptr qspair_ref_head (const qsmachine_t *, qsptr p);
+qsptr qspair_ref_tail (const qsmachine_t *, qsptr p);
 qserr qspair_setq_head (qsmachine_t *, qsptr p, qsptr a);
 qserr qspair_setq_tail (qsmachine_t *, qsptr p, qsptr d);
 #define qspair_car qspair_ref_head
@@ -123,5 +123,8 @@ bool qsclosure_p (const qsmachine_t *, qsptr p);
 qsptr qsclosure_ref_lam (const qsmachine_t *, qsptr p);
 qsptr qsclosure_ref_env (const qsmachine_t *, qsptr p);
 int qsclosure_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+
+/* Generalized stringification. */
+int qsptr_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 #endif /* QSVAL_H_ */

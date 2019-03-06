@@ -291,6 +291,7 @@ qserr qsstore_alloc (qsstore_t * store, qsword allocscale, qsaddr * out_addr)
 
   /* update mgmt word. */
   qsobj_t * obj = (qsobj_t*)(segment->space + fit);
+  obj->mgmt = TAG_SYNC29;
   MGMT_SET_ALLOC(obj->mgmt, allocscale);
 
   /* TODO: disallow loss of handle to allocated memory? */
