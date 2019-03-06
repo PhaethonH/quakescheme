@@ -326,6 +326,7 @@ qsobj_t * qsobj (qsmachine_t * mach, qsptr p)
 }
 
 
+/* QsSym: symbols by id.  See qssymbol for storing name. */
 qsptr qssym_make (qsmachine_t * mach, qsword sym_id)
 {
   return QSSYM(sym_id);
@@ -451,7 +452,7 @@ qsptr qspvec_make (qsmachine_t * mach, qsptr len, qsptr fillval)
   int a = MGMT_GET_ALLOC(obj->mgmt);
   qsobj_init(obj, a, false);
   qspvec_t * pvec = (qspvec_t*)obj;
-  pvec->length = QSINT(len);
+  pvec->length = len;
   pvec->gcback = QSNIL;
   pvec->gciter = QSNIL;
   qsword i;
@@ -481,6 +482,23 @@ qsovec_t * qsovec (qsmachine_t * mach, qsptr p)
       return (qsovec_t*)(qsobj(mach, p));
     }
   return NULL;
+}
+
+qsptr qsovec_make (qsmachine_t * mach, qsptr len, qsbyte fillval)
+{
+  qsaddr mapped_addr = 0;
+  qserr err = qsstore_alloc_nbytes(&(mach->S), len, &mapped_addr);
+  if (err != QSERR_OK)
+    return err;
+  qsobj_t * obj = (qsobj_t*)(qsstore_word_at_const(&(mach->S), mapped_addr));
+  int a = MGMT_GET_ALLOC(obj->mgmt);
+  qsobj_init(obj, a, true);
+  qsovec_t * ovec = (qsovec_t*)obj;
+  ovec->length = len;
+  ovec->refcount = 0;
+  ovec->reflock = 0;
+  qsptr retval = qsptr_make(mach, mapped_addr);
+  return retval;
 }
 
 
@@ -610,7 +628,7 @@ qspvec_t * qsvector (qsmachine_t * mach, qsptr p)
 
 qsptr qsvector_make (qsmachine_t * mach, qsword len, qsptr fill)
 {
-  qsptr p = qspvec_make(mach, len, fill);
+  qsptr p = qspvec_make(mach, QSINT(len), fill);
   return p;
 }
 
@@ -646,11 +664,12 @@ qsptr qsvector_setq (qsmachine_t * mach, qsptr p, qsword k, qsptr val)
 int qsvector_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
-  qsword i;
+  qsword i, m;
 
   n += qs_snprintf(buf+n, buflen-n, "%s", "#(");
 
-  for (i = 0; i < qsvector_length(mach, p); i++)
+  m = qsvector_length(mach, p);
+  for (i = 0; i < m; i++)
     {
       qsptr x = qsvector_ref(mach, p, i);
       if (i > 0)
@@ -837,6 +856,9 @@ int qsdouble_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
+/* QsSymbol: symbol name.  See qssym for comparing symbols by object id. */
+/* Heaped object: Symbol
+ */
 qsptr qssymbol_make (qsmachine_t * mach, qsptr name)
 {
 }
@@ -853,7 +875,10 @@ int qssymbol_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 
 
-/* String: prototype 'ovec', subtype ...? */
+/* Heaped object: String
+   * prototype = ovec
+   * .length ... ?
+ */
 
 const qsovec_t * qsstring_const (const qsmachine_t * mach, qsptr p)
 {
@@ -886,17 +911,80 @@ int qsstring_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
+/* Heaped object: Bytevector
+   * prototype = ovec
+   * .length isa integer
+ */
+const qsovec_t * qsbytevec_const (const qsmachine_t * mach, qsptr p)
+{
+  const qsovec_t * ovec = qsovec_const(mach, p);
+  if (! ovec) return NULL;
+  if (! ISINT30(ovec->length)) return NULL;
+  return (const qsovec_t*)ovec;
+}
+
+qsovec_t * qsbytevec (qsmachine_t * mach, qsptr p)
+{
+  if (qsbytevec_const(mach, p))
+    {
+      return (qsovec_t*)(qsovec(mach, p));
+    }
+  return NULL;
+}
+
 qsptr qsbytevec_make (qsmachine_t * mach, qsword len, qsbyte fill)
 {
+  qsptr p = qsovec_make(mach, QSINT(len), fill);
+  return p;
 }
 
 bool qsbytevec_p (const qsmachine_t * mach, qsptr p)
 {
+  return (qsbytevec_const(mach, p) != NULL);
+}
+
+qsword qsbytevec_length (const qsmachine_t * mach, qsptr p)
+{
+  const qsovec_t * ovec = qsovec_const(mach, p);
+  if (! ovec) return 0;
+  return CINT30(ovec->length);
+}
+
+qsbyte qsbytevec_ref (const qsmachine_t * mach, qsptr p, qsword k)
+{
+  const qsovec_t * ovec = qsovec_const(mach, p);
+  if (! ovec) return 0;
+  return ovec->elt[k];
+}
+
+qsptr qsbytevec_setq (qsmachine_t * mach, qsptr p, qsword k, qsbyte val)
+{
+  qsovec_t * ovec = qsovec(mach, p);
+  if (! ovec) return QSERR_FAULT;
+  ovec->elt[k] = val;
+  return p;
 }
 
 int qsbytevec_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
+  qsword i, m;
+  const qsovec_t * ovec = qsovec_const(mach, p);
+  if (! ovec)
+    {
+      n += qs_snprintf(buf+n, buflen-n, "%s", "#u8()");
+      return n;
+    }
+  n += qs_snprintf(buf+n, buflen-n, "%s", "#u8(");
+  m = qsbytevec_length(mach, p);
+  for (i = 0; i < m; i++)
+    {
+      if (i > 0)
+	n += qs_snprintf(buf+n, buflen-n, " ");
+      n += qs_snprintf(buf+n, buflen-n, "%d", qsbytevec_ref(mach, p, i));
+    }
+  n += qs_snprintf(buf+n, buflen-n, "%s", ")");
+
   return n;
 }
 

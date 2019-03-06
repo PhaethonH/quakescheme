@@ -217,7 +217,7 @@ START_TEST(test_widenums)
   n = qslong_fetch(machine, p, &l); /* test fetch(). */
   ck_assert_int_ne(n, 0);
   ck_assert(l == 8111222333);
-  n += qslong_crepr(machine, p, buf, sizeof(buf));  /* test stringify. */
+  n = qslong_crepr(machine, p, buf, sizeof(buf));  /* test stringify. */
   ck_assert_str_eq(buf, "8111222333");
 
 
@@ -231,12 +231,39 @@ START_TEST(test_widenums)
   n = qsdouble_fetch(machine, p, &d); /* test fetch(). */
   ck_assert_int_ne(n, 0);
   ck_assert( (d - 3.141592653589L) <= 0.0000001 );
-  n += qsdouble_crepr(machine, p, buf, sizeof(buf)); /* test stringify. */
+  n = qsdouble_crepr(machine, p, buf, sizeof(buf)); /* test stringify. */
   ck_assert_str_eq(buf, "3.14159");
 
   p = qsdouble_make(machine, 3141592653589.79L);
-  n += qsdouble_crepr(machine, p, buf, sizeof(buf));
+  n = qsdouble_crepr(machine, p, buf, sizeof(buf));
   ck_assert_str_eq(buf, "3.14159e+12");
+}
+END_TEST
+
+START_TEST(test_bytevecs)
+{
+  init();
+
+  qsptr p;
+  qserr err;
+  int n;
+  int b;
+
+  /* byte vectors. */
+  p = qsbytevec_make(machine, 12, 0);
+  ck_assert(qsbytevec_p(machine, p)); /* test predicate */
+  n = qsbytevec_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "#u8(0 0 0 0 0 0 0 0 0 0 0 0)");
+
+  n = qsbytevec_length(machine, p);
+  ck_assert_int_eq(n, 12);
+  b = qsbytevec_ref(machine, p, 7); /* test ref(). */
+  ck_assert_int_eq(b, 0);
+  qsbytevec_setq(machine, p, 6, 27); /* test setq(). */
+  b = qsbytevec_ref(machine, p, 6);
+  ck_assert_int_eq(b, 27);
+  n = qsbytevec_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "#u8(0 0 0 0 0 0 27 0 0 0 0 0)");
 }
 END_TEST
 
@@ -246,6 +273,7 @@ TESTCASE(case1,
   TFUNC(test_pairs)
   TFUNC(test_vectors)
   TFUNC(test_widenums)
+  TFUNC(test_bytevecs)
   TFUNC(test_test2)
   )
 

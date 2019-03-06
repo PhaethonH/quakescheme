@@ -98,6 +98,9 @@ int qsstring_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsbytevec_make (qsmachine_t *, qsword len, qsbyte fill);
 bool qsbytevec_p (const qsmachine_t *, qsptr p);
+qsword qsbytevec_length (const qsmachine_t *, qsptr p);
+qsbyte qsbytevec_ref (const qsmachine_t *, qsptr p, qsword k);
+qsptr qsbytevec_setq (qsmachine_t *, qsptr p, qsword k, qsbyte val);
 int qsbytevec_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsenv_make (qsmachine_t *, qsptr next_env);
