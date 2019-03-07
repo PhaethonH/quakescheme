@@ -164,5 +164,14 @@ Word-Pointer expanding-tag encoding
 #define QSERR_FAULT     QSERR(3)	/* Memory access fault. */
 
 
+/* Comparator results. */
+typedef enum qscmp_e {
+    QSCMP_EQ,
+    QSCMP_LT,
+    QSCMP_GT,
+    QSCMP_NE,
+} qscmp_t;
+
+
 
 #endif /* QSPTR_H_ */

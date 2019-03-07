@@ -944,6 +944,19 @@ int qssymbol_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
   return n;
 }
 
+qscmp_t qssymbol_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+{
+  const qsovec_t * y0 = qssymbol_const(mach, x);
+  const qsovec_t * y1 = qssymbol_const(mach, y);
+  if (!y0) return QSCMP_NE;
+  if (!y1) return QSCMP_NE;
+  if (y0->length != y1->length) return QSCMP_NE;
+  qsword m = CCHAR24(y0->length);
+  if (0 != strncmp(y0->elt, y1->elt, m))
+    return QSCMP_NE;
+  return QSCMP_EQ;
+}
+
 
 
 /* Heaped object: String
