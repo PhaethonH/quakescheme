@@ -622,7 +622,7 @@ const qspvec_t * qsvector_const (const qsmachine_t * mach, qsptr p)
 qspvec_t * qsvector (qsmachine_t * mach, qsptr p)
 {
   if (qsvector_const(mach, p))
-    return (qspvec_t*)(qstriplet(mach, p));
+    return (qspvec_t*)(qspvec(mach, p));
   return NULL;
 }
 
@@ -634,27 +634,27 @@ qsptr qsvector_make (qsmachine_t * mach, qsword len, qsptr fill)
 
 bool qsvector_p (const qsmachine_t * mach, qsptr p)
 {
-  return (qspvec_const(mach, p) != NULL);
+  return (qsvector_const(mach, p) != NULL);
 }
 
 qsword qsvector_length (const qsmachine_t * mach, qsptr p)
 {
-  const qspvec_t * pvec = qspvec_const(mach, p);
-  if (! pvec) return QSERR_FAULT;
+  const qspvec_t * pvec = qsvector_const(mach, p);
+  if (! pvec) return 0;
   return CINT30(pvec->length);
 }
 
 qsptr qsvector_ref (const qsmachine_t * mach, qsptr p, qsword k)
 {
-  const qspvec_t * pvec = qspvec_const(mach, p);
-  if (! pvec) return QSERR_FAULT;
+  const qspvec_t * vec = qsvector_const(mach, p);
+  if (! vec) return QSERR_FAULT;
   if ((k < 0) || (k >= qsvector_length(mach, p))) return QSERR_FAULT;
-  return pvec->elt[k];
+  return vec->elt[k];
 }
 
 qsptr qsvector_setq (qsmachine_t * mach, qsptr p, qsword k, qsptr val)
 {
-  qspvec_t * pvec = qspvec(mach, p);
+  qspvec_t * pvec = qsvector(mach, p);
   if (! pvec) return QSERR_FAULT;
   if ((k < 0) || (k >= qsvector_length(mach, p))) return QSERR_FAULT;
   pvec->elt[k] = val;
