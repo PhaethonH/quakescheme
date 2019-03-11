@@ -509,6 +509,49 @@ START_TEST(test_iters)
 }
 END_TEST
 
+START_TEST(test_utf8)
+{
+  init();
+
+  qsptr p;
+  qserr err;
+  qsptr probe;
+
+  /* UTF-8 encoded strings. */
+
+  p = qsutf8_make(machine, 8, (char)0);
+  ck_assert_int_eq(machine->S.smem.freelist, 2*sizeof(qsobj_t));
+
+  err = qsutf8_setq(machine, p, 0, 'H');
+  ck_assert_int_eq(err, p);
+  err = qsutf8_setq(machine, p, 1, 'e');
+  ck_assert_int_eq(err, p);
+  err = qsutf8_setq(machine, p, 2, 'l');
+  ck_assert_int_eq(err, p);
+  err = qsutf8_setq(machine, p, 3, 'l');
+  ck_assert_int_eq(err, p);
+  err = qsutf8_setq(machine, p, 4, 'o');
+  ck_assert_int_eq(err, p);
+  err = qsutf8_setq(machine, p, 5, '!');
+  ck_assert_int_eq(err, p);
+  err = qsutf8_setq(machine, p, 6, '!');
+  ck_assert_int_eq(err, p);
+  err = qsutf8_setq(machine, p, 7, '!');
+  ck_assert_int_eq(err, p);
+
+  err = qsutf8_setq(machine, p, 8, '8');
+  ck_assert(ISERR20(err));
+
+  qsutf8_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "\"Hello!!!\"");
+
+
+  p = qsutf8_inject_charp(machine, "Hello, world.");
+  ck_assert_int_eq(machine->S.smem.freelist, (2+2)*sizeof(qsobj_t));
+  ck_assert_int_eq(qsutf8_length(machine, p), 13);
+}
+END_TEST
+
 
 TESTCASE(case1,
   TFUNC(test_test1)
@@ -520,6 +563,7 @@ TESTCASE(case1,
   TFUNC(test_symbols)
   TFUNC(test_arrays)
   TFUNC(test_iters)
+  TFUNC(test_utf8)
   TFUNC(test_test2)
   )
 

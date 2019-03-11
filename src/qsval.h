@@ -124,6 +124,8 @@ Strings have multiple implementations for different purposes:
 */
 
 qsptr qsutf8_make (qsmachine_t *, qsword len, int fill);
+qsptr qsutf8_inject_charp (qsmachine_t *, const char * s);
+qsptr qsutf8_inject_bytes (qsmachine_t *, uint8_t * buf, qsword buflen);
 bool qsutf8_p (const qsmachine_t *, qsptr p);
 qsword qsutf8_length (const qsmachine_t *, qsptr p);
 int qsutf8_ref (const qsmachine_t *, qsptr p, qsword k);

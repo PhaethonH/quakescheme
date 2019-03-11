@@ -510,7 +510,7 @@ qsovec_t * qsovec (qsmachine_t * mach, qsptr p)
 qsptr qsovec_make (qsmachine_t * mach, qsptr len, qsbyte fillval)
 {
   qsaddr mapped_addr = 0;
-  qserr err = qsstore_alloc_nbytes(&(mach->S), len+1, &mapped_addr);
+  qserr err = qsstore_alloc_nbytes(&(mach->S), len, &mapped_addr);
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at_const(&(mach->S), mapped_addr));
@@ -1157,10 +1157,37 @@ qsovec_t * qsutf8 (qsmachine_t * mach, qsptr p)
 
 qsptr qsutf8_make (qsmachine_t * mach, qsword len, int fill)
 {
-  qsptr p = qsovec_make(mach, QSINT(len), fill);
+  /* Allocate one more byte for terminating guard byte '\0'. */
+  qsptr p = qsovec_make(mach, len+1, fill);
   qsobj_t * obj = qsobj(mach, p);
   qsobj_set_score(obj, 8);
+  qsovec_t * ovec = (qsovec_t*)obj;
+  /* Valid bytes discount the terminating '\0'. */
+  ovec->length = QSINT(len);
   return p;
+}
+
+qsptr qsutf8_inject_charp (qsmachine_t * mach, const char * cstr)
+{
+  size_t slen = strlen(cstr);
+  qsptr retval = qsutf8_make(mach, slen, 0);
+  if (ISOBJ26(retval))
+    {
+      qsovec_t * st = qsutf8(mach, retval);
+      strncpy(st->elt, cstr, slen);
+    }
+  return retval;
+}
+
+qsptr qsutf8_inject_bytes (qsmachine_t * mach, uint8_t * buf, qsword buflen)
+{
+  qsptr retval = qsutf8_make(mach, buflen, 0);
+  if (ISOBJ26(retval))
+    {
+      qsovec_t * st = qsutf8(mach, retval);
+      memcpy(st->elt, buf, buflen);
+    }
+  return retval;
 }
 
 bool qsutf8_p (const qsmachine_t * mach, qsptr p)
@@ -1189,8 +1216,8 @@ qsptr qsutf8_setq (qsmachine_t * mach, qsptr p, qsword k, int ch)
   if (! s) return QSERR_FAULT;
   /* TODO: multi-byte character. */
 
+  if ((k < 0) || (k >= qsutf8_length(mach, p))) return QSERR_FAULT;
   s->elt[k] = ch;
-
   return p;
 }
 
@@ -1206,6 +1233,24 @@ int qsutf8_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
   qsword m = qsutf8_length(mach, p);
   n += qs_snprintf(buf+n, buflen-n-m, "\"%s\"", s->elt);
   return n;
+}
+
+qscmp_t qsutf8_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+{
+  /* TODO: UTF-8 string-equivalents handling (e.g. overlong encoding). */
+  bool bx = qsutf8_p(mach, x);
+  bool by = qsutf8_p(mach, y);
+  if (!bx && !by) return QSCMP_NE;
+  if (!by) return QSCMP_GT;
+  if (!bx) return QSCMP_LT;
+
+  const qsovec_t * sx = qsutf8_const(mach, x);
+  const qsovec_t * sy = qsutf8_const(mach, y);
+  int res = strcmp(sx->elt, sy->elt);
+  if (res < 0) return QSCMP_LT;
+  if (res > 0) return QSCMP_GT;
+  if (res == 0) return QSCMP_EQ;
+  return QSCMP_NE;
 }
 
 
