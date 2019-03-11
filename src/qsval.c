@@ -357,6 +357,7 @@ const qstriplet_t * qstriplet_const (const qsmachine_t * mach, qsptr p)
 {
   if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
+  if (! obj) return NULL;
   if (MGMT_IS_OCT(obj->mgmt)) return NULL;
   if (MGMT_GET_ALLOC(obj->mgmt) != 0) return NULL;
   return (const qstriplet_t*)obj;
@@ -393,6 +394,7 @@ const qswideword_t * qswideword_const (const qsmachine_t * mach, qsptr p)
 {
   if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
+  if (! obj) return NULL;
   if (! MGMT_IS_OCT(obj->mgmt)) return NULL;
   if (MGMT_GET_ALLOC(obj->mgmt) != 0) return NULL;
   return (const qswideword_t*)obj;
@@ -428,6 +430,7 @@ const qspvec_t * qspvec_const (const qsmachine_t * mach, qsptr p)
 {
   if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
+  if (! obj) return NULL;
   if (MGMT_IS_OCT(obj->mgmt)) return NULL;
   if (MGMT_GET_ALLOC(obj->mgmt) == 0) return NULL;
   return (const qspvec_t*)obj;
@@ -470,6 +473,7 @@ const qsovec_t * qsovec_const (const qsmachine_t * mach, qsptr p)
 {
   if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
+  if (! obj) return NULL;
   if (! MGMT_IS_OCT(obj->mgmt)) return NULL;
   if (MGMT_GET_ALLOC(obj->mgmt) == 0) return NULL;
   return (const qsovec_t*)obj;
@@ -561,6 +565,14 @@ qsptr qspair_setq_tail (qsmachine_t * mach, qsptr p, qsptr d)
   if (! pair) return QSERR_FAULT;
   pair->third = d;
   return p;
+}
+
+qsptr qspair_iter (const qsmachine_t * mach, qsptr p)
+{
+  if (! qspair_const(mach, p)) return QSERR_FAULT;
+  qsaddr memaddr = COBJ26(p) << 4;
+  qsptr retval = qsiter_make(mach, memaddr);
+  return retval;
 }
 
 int qspair_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
@@ -1309,10 +1321,18 @@ qsaddr _qsiter_memaddr (const qsmachine_t * mach, qsptr p)
   return memaddr;
 }
 
-bool _qsiter_on_pair (const qsmachine_t * mach, qsptr p)
+bool _qsiter_on_pair (const qsmachine_t * mach, qsptr p, qsptr * out_pair)
 {
+  bool retval = false;
   qsaddr memaddr = _qsiter_memaddr(mach, p);
-  return (((memaddr & ~0xf) == memaddr) && (qspair_const(mach, p)));
+  if ((memaddr & 0xf) != 0) return false; /* not aligned, cannot be object. */
+  qsptr maybe_pair = QSOBJ( memaddr >> 4 );
+  if (qspair_const(mach, maybe_pair))
+    {
+      if (out_pair) *out_pair = maybe_pair;
+      retval = true;
+    }
+  return retval;
 }
 
 qsptr _qsiter_word (const qsmachine_t * mach, qsptr p)
@@ -1326,11 +1346,12 @@ qsptr _qsiter_word (const qsmachine_t * mach, qsptr p)
 qsptr qsiter_head (const qsmachine_t * mach, qsptr p)
 {
   qsptr retval;
+  qsptr pair = QSNIL;
 
   if (! qsiter_p(mach, p)) return QSERR_FAULT;
-  if (_qsiter_on_pair(mach, p))
+  if (_qsiter_on_pair(mach, p, &pair))
     {
-      retval = qspair_ref_head(mach, p);
+      retval = qspair_ref_head(mach, pair);
     }
   else
     {
@@ -1348,12 +1369,19 @@ qsptr qsiter_head (const qsmachine_t * mach, qsptr p)
 qsptr qsiter_tail (const qsmachine_t * mach, qsptr p)
 {
   qsptr retval;
+  qsptr pair = QSNIL;
   int depth = 0;
 
   if (! qsiter_p(mach, p)) return QSERR_FAULT;
-  if (_qsiter_on_pair(mach, p))
+  if (_qsiter_on_pair(mach, p, &pair))
     {
-      retval = qspair_ref_tail(mach, p);
+      qsptr next = qspair_ref_tail(mach, pair);
+      if (ISOBJ26(next))
+	retval = QSITER( COBJ26(next) << 2 );
+      else if (ISNIL(next))
+	retval = next;
+      else
+	retval = QSERR_FAULT;
     }
   else
     {
@@ -1380,7 +1408,7 @@ qsptr qsiter_tail (const qsmachine_t * mach, qsptr p)
       qsptr next = QSITER(CITER28(p) + skip);
       /* peek for end of iteration. */
       qsptr peek = _qsiter_word(mach, next);
-      if ((CITER28(next) & ~0x3) == 0)
+      if ((CITER28(next) & 0x3) == 0)
 	{
 	  /* aligned (4th word); is-sync => start of new object, ends list. */
 	  if (ISSYNC29(peek))

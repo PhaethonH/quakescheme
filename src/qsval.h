@@ -61,6 +61,7 @@ qsptr qspair_setq_tail (qsmachine_t *, qsptr p, qsptr d);
 #define qspair_cdr qspair_ref_tail
 #define qspair_setcarq qspair_setq_head
 #define qspair_setcdrq qspair_setq_tail
+qsptr qspair_iter (const qsmachine_t *, qsptr p);
 int qspair_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsvector_make (qsmachine_t *, qsword len, qsptr fill);

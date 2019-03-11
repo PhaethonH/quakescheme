@@ -456,6 +456,59 @@ START_TEST(test_arrays)
 }
 END_TEST
 
+START_TEST(test_iters)
+{
+  init();
+
+  qsptr p;
+  qserr err;
+  int n;
+  int b;
+  qsptr it;
+  qsptr probe;
+
+  /* iterators. */
+
+  qsptr pairs[16];
+
+  pairs[4] = qspair_make(machine, QSINT(4004), QSNIL);
+  pairs[3] = qspair_make(machine, QSINT(4003), pairs[4]);
+  pairs[2] = qspair_make(machine, QSINT(4002), pairs[3]);
+  pairs[1] = qspair_make(machine, QSINT(4001), pairs[2]);
+  pairs[0] = qspair_make(machine, QSINT(4000), pairs[1]);
+
+  ck_assert(qspair_p(machine, pairs[0]));
+
+  it = qspair_iter(machine, pairs[0]);
+  ck_assert(qsiter_p(machine, it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(4000));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(qsiter_p(machine, it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(4001));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(qsiter_p(machine, it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(4002));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(qsiter_p(machine, it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(4003));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(qsiter_p(machine, it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(4004));
+
+  it = qsiter_tail(machine, it);
+  ck_assert_int_eq(it, QSNIL);
+}
+END_TEST
+
 
 TESTCASE(case1,
   TFUNC(test_test1)
@@ -466,6 +519,7 @@ TESTCASE(case1,
   TFUNC(test_bytevecs)
   TFUNC(test_symbols)
   TFUNC(test_arrays)
+  TFUNC(test_iters)
   TFUNC(test_test2)
   )
 
