@@ -1,6 +1,7 @@
 #ifndef QSVAL_H_
 #define QSVAL_H_
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -69,6 +70,23 @@ qsptr qsvector_ref (const qsmachine_t *, qsptr p, qsword k);
 qsptr qsvector_setq (qsmachine_t *, qsptr p, qsword k, qsptr val);
 int qsvector_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
+/*
+The Array type is inspired by the CDR-coded list.
+
+The original purposes was to allow directly encoding lists into an array of qsptr in C, without trying to predict the location of the next pair (cdr).
+
+Unlike CDR-coding, end of list is indicated by sentinel value (leveraging the qsptr encoding plan), and improper lists are not supported.
+*/
+qsptr qsarray_make (qsmachine_t *, qsword len);
+qsptr qsarray_vinject (qsmachine_t *, va_list vp);
+qsptr qsarray_inject (qsmachine_t *, ...);
+bool qsarray_p (const qsmachine_t *, qsptr p);
+qsword qsarray_length (const qsmachine_t *, qsptr p);
+qsptr qsarray_ref (const qsmachine_t *, qsptr p, qsword k);
+qsptr qsarray_setq (qsmachine_t *, qsptr p, qsword k, qsptr val);
+qsptr qsarray_iter (const qsmachine_t *, qsptr p);
+int qsarray_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+
 /* C pointers (void pointers). */
 /* Considered dangerous, as a mix of dereferencing C pointers and arbitrarily modifying memory may break sandbox. */
 qsptr qscptr_make (qsmachine_t *, void * val);
@@ -97,12 +115,19 @@ bool qssymbol_p (const qsmachine_t *, qsptr p);
 int qssymbol_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 qscmp_t qssymbol_cmp (const qsmachine_t *, qsptr x, qsptr y);
 
-qsptr qsstring_make (qsmachine_t *, qsword len, int fill);
-bool qsstring_p (const qsmachine_t *, qsptr p);
-qsword qsstring_length (const qsmachine_t *, qsptr p);
-int qsstring_ref (const qsmachine_t *, qsptr p, qsword k);
-qsptr qsstring_setq (qsmachine_t *, qsptr p, qsword k, int ch);
-int qsstring_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+/*
+Strings have multiple implementations for different purposes:
+  * UTF-8 encoded byte vector, for interfacing with C string handling.
+  * Vector of char24 (akin to UTF-32) for mutability.
+  * List of char24 for bootstrapping from char24 and pairs.
+*/
+
+qsptr qsutf8_make (qsmachine_t *, qsword len, int fill);
+bool qsutf8_p (const qsmachine_t *, qsptr p);
+qsword qsutf8_length (const qsmachine_t *, qsptr p);
+int qsutf8_ref (const qsmachine_t *, qsptr p, qsword k);
+qsptr qsutf8_setq (qsmachine_t *, qsptr p, qsword k, int ch);
+int qsutf8_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsbytevec_make (qsmachine_t *, qsword len, qsbyte fill);
 bool qsbytevec_p (const qsmachine_t *, qsptr p);
@@ -134,6 +159,14 @@ bool qsclosure_p (const qsmachine_t *, qsptr p);
 qsptr qsclosure_ref_lam (const qsmachine_t *, qsptr p);
 qsptr qsclosure_ref_env (const qsmachine_t *, qsptr p);
 int qsclosure_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+
+/* the iterator type allows for iterating both pairs and arrays as a list.
+*/
+qsptr qsiter_make (const qsmachine_t *, qsaddr addr);
+bool qsiter_p (const qsmachine_t *, qsptr p);
+qsptr qsiter_head (const qsmachine_t *, qsptr p);
+qsptr qsiter_tail (const qsmachine_t *, qsptr p);
+int qsiter_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 /* Generalized stringification. */
 int qsptr_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);

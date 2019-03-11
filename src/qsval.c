@@ -442,21 +442,21 @@ qspvec_t * qspvec (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qspvec_make (qsmachine_t * mach, qsptr len, qsptr fillval)
+qsptr qspvec_make (qsmachine_t * mach, qsptr payload_words, qsptr fillval)
 {
   qsaddr mapped_addr = 0;
-  qserr err = qsstore_alloc_nwords(&(mach->S), len, &mapped_addr);
+  qserr err = qsstore_alloc_nwords(&(mach->S), payload_words, &mapped_addr);
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at(&(mach->S), mapped_addr));
   int a = MGMT_GET_ALLOC(obj->mgmt);
   qsobj_init(obj, a, false);
   qspvec_t * pvec = (qspvec_t*)obj;
-  pvec->length = len;
+  pvec->length = QSNIL;
   pvec->gcback = QSNIL;
   pvec->gciter = QSNIL;
   qsword i;
-  for (i = 0; i < len; i++)
+  for (i = 0; i < payload_words; i++)
     {
       pvec->elt[i] = fillval;
     }
@@ -628,7 +628,9 @@ qspvec_t * qsvector (qsmachine_t * mach, qsptr p)
 
 qsptr qsvector_make (qsmachine_t * mach, qsword len, qsptr fill)
 {
-  qsptr p = qspvec_make(mach, QSINT(len), fill);
+  qsptr p = qspvec_make(mach, len, fill);
+  qspvec_t * pvec = qspvec(mach, p);
+  pvec->length = QSINT(len);
   return p;
 }
 
@@ -682,6 +684,145 @@ int qsvector_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
   return n;
 }
 
+
+/* Heaped object: Array
+   * prototype = qspvec
+   * .length is nil
+ */
+
+const qspvec_t * qsarray_const (const qsmachine_t * mach, qsptr p)
+{
+  const qspvec_t * pvec = qspvec_const(mach, p);
+  if (! pvec) return NULL;
+  if (! ISNIL(pvec->length)) return NULL;
+  return pvec;
+}
+
+qspvec_t * qsarray (qsmachine_t * mach, qsptr p)
+{
+  if (qsarray_const(mach, p))
+    return (qspvec_t*)(qspvec(mach, p));
+  return NULL;
+}
+
+qsptr qsarray_make (qsmachine_t * mach, qsword len)
+{
+  qsptr p = qspvec_make(mach, len, QSNIL);
+  qspvec_t * pvec = qspvec(mach, p);
+  pvec->length = QSNIL;
+  return p;
+}
+
+qsptr qsarray_vinject (qsmachine_t * mach, va_list vp)
+{
+  qsword nptrs = 0;
+  va_list vp0;
+  qsptr elt;
+
+  /* bookmark. */
+  va_copy(vp0, vp);
+
+  /* count arguments. */
+  int depth = 1;
+  while (depth > 0)
+    {
+      elt = va_arg(vp0, qsptr);
+      if (elt == QSBOL)
+	depth++;
+      else if (elt == QSEOL)
+	depth--;
+      nptrs++;
+    }
+  va_end(vp0);
+
+  /* prepare memory. */
+  qsptr retval = qsarray_make(mach, nptrs);
+  if (! ISOBJ26(retval))
+    return QSERR_FAULT;
+
+  /* populate memory. */
+  qsword i;
+  for (i = 0; i < nptrs; i++)
+    {
+      elt = va_arg(vp, qsptr);
+      qsarray_setq(mach, retval, i, elt);
+    }
+  qsarray_setq(mach, retval, i, QSEOL);
+
+  return retval;
+}
+
+qsptr qsarray_inject (qsmachine_t * mach, ...)
+{
+  va_list vp;
+  qsptr retval = QSNIL;
+
+  va_start(vp, mach);
+  retval = qsarray_vinject(mach, vp);
+  va_end(vp);
+  return retval;
+}
+
+bool qsarray_p (const qsmachine_t * mach, qsptr p)
+{
+  return (qsarray_const(mach, p) != NULL);
+}
+
+qsword qsarray_length (const qsmachine_t * mach, qsptr p)
+{
+  const qspvec_t * pvec = qsarray_const(mach, p);
+  if (! pvec) return 0;
+  const int words_per_boundary = sizeof(qsobj_t) / sizeof(qsptr);
+  qsaddr allocsize = (1 << qsobj_get_allocscale((const qsobj_t*)pvec));
+  qsword retval = allocsize * words_per_boundary;
+  return retval;
+}
+
+qsptr qsarray_ref (const qsmachine_t * mach, qsptr p, qsword k)
+{
+  const qspvec_t * vec = qsarray_const(mach, p);
+  if (! vec) return QSERR_FAULT;
+  if ((k < 0) || (k >= qsarray_length(mach, p))) return QSERR_FAULT;
+  return vec->elt[k];
+}
+
+qsptr qsarray_setq (qsmachine_t * mach, qsptr p, qsword k, qsptr val)
+{
+  qspvec_t * pvec = qsarray(mach, p);
+  if (! pvec) return QSERR_FAULT;
+  if ((k < 0) || (k >= qsarray_length(mach, p))) return QSERR_FAULT;
+  pvec->elt[k] = val;
+  return p;
+}
+
+qsptr qsarray_iter (const qsmachine_t * mach, qsptr p)
+{
+  const qspvec_t * pvec = qsarray_const(mach, p);
+  if (! pvec) return QSERR_FAULT;
+  qsaddr memaddr = (COBJ26(p) + 1) << 4;  /* next boundary. */
+  return qsiter_make(mach, memaddr);
+}
+
+int qsarray_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+{
+  int n = 0;
+  qsword i, m;
+
+  n += qs_snprintf(buf+n, buflen-n, "%s", "#(");
+
+  m = qsarray_length(mach, p);
+  for (i = 0; i < m; i++)
+    {
+      qsptr x = qsarray_ref(mach, p, i);
+      if (i > 0)
+	n += qs_snprintf(buf+n, buflen-n, " ");
+      n += qsptr_crepr(mach, x, buf+n, buflen-n);
+    }
+
+  n += qs_snprintf(buf+n, buflen-n, "%s", ")");
+
+  return n;
+}
 
 
 /* C-Pointer: prototype 'wideword', 'subtype' == QSWIDE_CPTR. */
@@ -901,16 +1042,16 @@ qsovec_t * qssymbol (qsmachine_t * mach, qsptr p)
 
 qsptr qssymbol_bless (qsmachine_t * machine, qsptr s)
 {
-  if (! qsstring_p(machine, s))
+  if (! qsutf8_p(machine, s))
     return QSERR_FAULT;
-  qsword slen = qsstring_length(machine, s);
+  qsword slen = qsutf8_length(machine, s);
   qsptr p = qsovec_make(machine, QSCHAR(slen), 0);
   qsovec_t * y = qsovec(machine, p);
   qsword i;
   for (i = 0; i < slen; i++)
     {
       /* TODO convert multi-byte sequence. */
-      y->elt[i] = qsstring_ref(machine, s, i);
+      y->elt[i] = qsutf8_ref(machine, s, i);
     }
   y->elt[i] = 0;
 
@@ -959,13 +1100,13 @@ qscmp_t qssymbol_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
 
 
 
-/* Heaped object: String
+/* Heaped object: UTF-8 String
    * prototype = ovec
    * .score = 8
    * .length isa integer
  */
 
-const qsovec_t * qsstring_const (const qsmachine_t * mach, qsptr p)
+const qsovec_t * qsutf8_const (const qsmachine_t * mach, qsptr p)
 {
   const qsovec_t * s = qsovec_const(mach, p);
   if (! s) return NULL;
@@ -974,16 +1115,16 @@ const qsovec_t * qsstring_const (const qsmachine_t * mach, qsptr p)
   return s;
 }
 
-qsovec_t * qsstring (qsmachine_t * mach, qsptr p)
+qsovec_t * qsutf8 (qsmachine_t * mach, qsptr p)
 {
-  if (qsstring_const(mach, p))
+  if (qsutf8_const(mach, p))
     {
       return (qsovec_t*)(qsovec(mach, p));
     }
   return NULL;
 }
 
-qsptr qsstring_make (qsmachine_t * mach, qsword len, int fill)
+qsptr qsutf8_make (qsmachine_t * mach, qsword len, int fill)
 {
   qsptr p = qsovec_make(mach, QSINT(len), fill);
   qsobj_t * obj = qsobj(mach, p);
@@ -991,19 +1132,19 @@ qsptr qsstring_make (qsmachine_t * mach, qsword len, int fill)
   return p;
 }
 
-bool qsstring_p (const qsmachine_t * mach, qsptr p)
+bool qsutf8_p (const qsmachine_t * mach, qsptr p)
 {
-  return (qsstring_const(mach, p) != NULL);
+  return (qsutf8_const(mach, p) != NULL);
 }
 
-qsword qsstring_length (const qsmachine_t * mach, qsptr p)
+qsword qsutf8_length (const qsmachine_t * mach, qsptr p)
 {
   const qsovec_t * s = qsovec_const(mach, p);
   if (! s) return 0;
   return CINT30(s->length);
 }
 
-int qsstring_ref (const qsmachine_t * mach, qsptr p, qsword k)
+int qsutf8_ref (const qsmachine_t * mach, qsptr p, qsword k)
 {
   const qsovec_t * s = qsovec_const(mach, p);
   if (! s) return 0;
@@ -1011,7 +1152,7 @@ int qsstring_ref (const qsmachine_t * mach, qsptr p, qsword k)
   return s->elt[k];
 }
 
-qsptr qsstring_setq (qsmachine_t * mach, qsptr p, qsword k, int ch)
+qsptr qsutf8_setq (qsmachine_t * mach, qsptr p, qsword k, int ch)
 {
   qsovec_t * s = qsovec(mach, p);
   if (! s) return QSERR_FAULT;
@@ -1022,7 +1163,7 @@ qsptr qsstring_setq (qsmachine_t * mach, qsptr p, qsword k, int ch)
   return p;
 }
 
-int qsstring_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsutf8_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   const qsovec_t * s = qsovec_const(mach, p);
@@ -1031,7 +1172,7 @@ int qsstring_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
       n += qs_snprintf(buf+n, buflen-n, "\"\"");
       return n;
     }
-  qsword m = qsstring_length(mach, p);
+  qsword m = qsutf8_length(mach, p);
   n += qs_snprintf(buf+n, buflen-n-m, "\"%s\"", s->elt);
   return n;
 }
@@ -1148,6 +1289,118 @@ int qskont_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
+/* Make iterator from memory address, no checks.
+   For constructing from object, see __iter() for the associated object.
+ */
+qsptr qsiter_make (const qsmachine_t * mach, qsaddr addr)
+{
+  qsptr retval = QSITER(addr >> 2);
+  return retval;
+}
+
+bool qsiter_p (const qsmachine_t * mach, qsptr p)
+{
+  return ISITER28(p);
+}
+
+qsaddr _qsiter_memaddr (const qsmachine_t * mach, qsptr p)
+{
+  qsaddr memaddr = CITER28(p) << 2;
+  return memaddr;
+}
+
+bool _qsiter_on_pair (const qsmachine_t * mach, qsptr p)
+{
+  qsaddr memaddr = _qsiter_memaddr(mach, p);
+  return (((memaddr & ~0xf) == memaddr) && (qspair_const(mach, p)));
+}
+
+qsptr _qsiter_word (const qsmachine_t * mach, qsptr p)
+{
+  qsaddr memaddr = _qsiter_memaddr(mach, p);
+  qsptr retval = qsstore_get_word(&(mach->S), memaddr);
+  return retval;
+}
+
+/* returns contents of list head (car). */
+qsptr qsiter_head (const qsmachine_t * mach, qsptr p)
+{
+  qsptr retval;
+
+  if (! qsiter_p(mach, p)) return QSERR_FAULT;
+  if (_qsiter_on_pair(mach, p))
+    {
+      retval = qspair_ref_head(mach, p);
+    }
+  else
+    {
+      retval = _qsiter_word(mach, p);
+      if (retval == QSBOL)
+	{
+	  /* nested list, form iterator into next word. */
+	  retval = QSITER( (CITER28(p) + 1) );
+	}
+    }
+  return retval;
+}
+
+/* returns next iter in the list (cdr). */
+qsptr qsiter_tail (const qsmachine_t * mach, qsptr p)
+{
+  qsptr retval;
+  int depth = 0;
+
+  if (! qsiter_p(mach, p)) return QSERR_FAULT;
+  if (_qsiter_on_pair(mach, p))
+    {
+      retval = qspair_ref_tail(mach, p);
+    }
+  else
+    {
+      qsword skip = 1;
+      qsptr head = _qsiter_word(mach, p);
+      if (head == QSBOL)
+	{
+	  /* skip to matching QSEOL */
+	  depth = 1;
+	  while (depth > 0)
+	    {
+	      qsptr elt = _qsiter_word(mach, p + (skip << SHIFT_TAG28));
+	      if (elt == QSBOL)
+		{
+		  depth++;
+		}
+	      else if (elt == QSEOL)
+		{
+		  depth--;
+		}
+	      skip++;
+	    }
+	}
+      qsptr next = QSITER(CITER28(p) + skip);
+      /* peek for end of iteration. */
+      qsptr peek = _qsiter_word(mach, next);
+      if ((CITER28(next) & ~0x3) == 0)
+	{
+	  /* aligned (4th word); is-sync => start of new object, ends list. */
+	  if (ISSYNC29(peek))
+	    return QSNIL;
+	}
+      if (peek == QSEOL)
+	{
+	  /* end of list. */
+	  return QSNIL;
+	}
+      retval = next;
+    }
+
+  return retval;
+}
+
+int qsiter_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+{
+  return 0;
+}
 
 
 int qsptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)

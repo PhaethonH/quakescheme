@@ -318,6 +318,144 @@ START_TEST(test_symbols)
 }
 END_TEST
 
+START_TEST(test_arrays)
+{
+  init();
+
+  qsptr p;
+  qserr err;
+  int n;
+  int b;
+  qsptr it;
+  qsptr probe;
+
+  /* arrays. */
+
+  /* Test manual setup and iteration. */
+  p = qsarray_make(machine, 12);
+  /* 12 ptrs need 3 boundaries, +1 for header => 4 boundaries total. */
+  ck_assert_int_eq( qsarray_length(machine,p), 4*(sizeof(qsobj_t)/sizeof(qsptr)) );
+  qsarray_setq(machine, p, 0, QSINT(101));
+  qsarray_setq(machine, p, 1, QSINT(102));
+  qsarray_setq(machine, p, 2, QSINT(103));
+  qsarray_setq(machine, p, 3, QSINT(104));
+  qsarray_setq(machine, p, 4, QSINT(105));
+  qsarray_setq(machine, p, 5, QSINT(106));
+  qsarray_setq(machine, p, 6, QSINT(107));
+  qsarray_setq(machine, p, 7, QSEOL);
+  ck_assert(ISOBJ26(p));
+  ck_assert(qsarray_p(machine, p));
+
+  it = qsarray_iter(machine, p);
+  /* should be boundary after object's start. */
+  ck_assert_int_eq( CITER28(it), (COBJ26(p)+1)<<2 );
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(101));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(102));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(103));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(104));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(105));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(106));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(107));
+
+  it = qsiter_tail(machine, it);
+  ck_assert_int_eq(it, QSNIL);
+
+
+  /* Test iteration from injection call. */
+  p = qsarray_inject(machine, QSINT(1001), QSINT(1002), QSINT(1003), QSEOL);
+  /* 1 bounds for payload, plus 1 for header, rounded to 2 bounds total. */
+  ck_assert_int_eq( qsarray_length(machine,p), 2*(sizeof(qsobj_t)/sizeof(qsptr)) );
+  it = qsarray_iter(machine, p);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(1001));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(1002));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(1003));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISNIL(it));
+
+
+  /* Test iterating with nested arrays. */
+  p = qsarray_inject(machine, QSINT(2001), QSBOL, QSINT(2101), QSINT(2102),
+		     QSEOL, QSINT(2003), QSEOL);
+  ck_assert_int_eq( qsarray_length(machine,p), 4*(sizeof(qsobj_t)/sizeof(qsptr)) );
+  it = qsarray_iter(machine, p);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(2001));
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert(ISITER28(probe));
+
+    {
+      /* iterate nested list. */
+
+      qsptr it2 = probe;
+      probe = qsiter_head(machine, it2);
+      ck_assert_int_eq(probe, QSINT(2101));
+
+      it2 = qsiter_tail(machine, it2);
+      probe = qsiter_head(machine, it2);
+      ck_assert_int_eq(probe, QSINT(2102));
+
+      it2 = qsiter_tail(machine, it2);
+      ck_assert_int_eq(it2, QSNIL);
+    }
+
+  it = qsiter_tail(machine, it);
+  ck_assert(ISITER28(it));
+  probe = qsiter_head(machine, it);
+  ck_assert_int_eq(probe, QSINT(2003));
+
+
+  /* Test more-deeply nested array. */
+  p = qsarray_inject(machine, QSBOL, QSBOL, QSINT(3000), QSEOL, QSEOL, QSEOL);
+  it = qsarray_iter(machine, p);
+  probe = qsiter_head(machine, it);
+  ck_assert(ISITER28(probe));
+
+  it = qsiter_tail(machine, it);
+  ck_assert_int_eq(it, QSNIL);
+}
+END_TEST
+
 
 TESTCASE(case1,
   TFUNC(test_test1)
@@ -327,6 +465,7 @@ TESTCASE(case1,
   TFUNC(test_voidptrs)
   TFUNC(test_bytevecs)
   TFUNC(test_symbols)
+  TFUNC(test_arrays)
   TFUNC(test_test2)
   )
 

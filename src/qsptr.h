@@ -135,6 +135,10 @@ Word-Pointer expanding-tag encoding
 /*  other values in space Const. */
 /*  Blackhole - value to indicate variable not yet bound. */
 #define QSBLACKHOLE     QSCONST(3)
+/* Array, Begining Of List (nested list). */
+#define QSBOL		QSCONST(4)
+/* Array, End of List. */
+#define QSEOL		QSCONST(5)
 
 /*  Infinities, positive and negative. */
 #define QSINF           QSCONST(10)
