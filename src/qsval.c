@@ -277,6 +277,25 @@ int qserr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   qsword err_id = CERR20(p);
+  const char * symbolic = "";
+
+  switch (err_id)
+    {
+    case QSERR_OK:
+      symbolic = " OK";
+      break;
+    case QSERR_NOMEM:
+      symbolic = " NOMEM";
+      break;
+    case QSERR_UNBOUND:
+      symbolic = " UNBOUND";
+      break;
+    case QSERR_FAULT:
+      symbolic = " FAULT";
+      break;
+    default:
+      break;
+    }
 
   n += qs_snprintf(buf+n, buflen-n, "#<err %d>", err_id);
   return n;
@@ -1443,19 +1462,59 @@ int qsptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
     {
       n += qsint_crepr(mach, p, buf+n, buflen-n);
     }
+  else if (ISITER28(p))
+    {
+      n += qsiter_crepr(mach, p, buf+n, buflen-n);
+    }
   else if (ISCHAR24(p))
     {
       n += qschar_crepr(mach, p, buf+n, buflen-n);
     }
-  else if (ISCONST20(p))
-    {
-      n += qsconst_crepr(mach, p, buf+n, buflen-n);
-    }
   else if (ISOBJ26(p))
     {
+      if (qspair_p(mach, p))
+	{
+	  n += qspair_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qsvector_p(mach, p))
+	{
+	  n += qsvector_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qsbytevec_p(mach, p))
+	{
+	  n += qsbytevec_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qslong_p(mach, p))
+	{
+	  n += qslong_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qsdouble_p(mach, p))
+	{
+	  n += qsdouble_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qscptr_p(mach, p))
+	{
+	  n += qscptr_crepr(mach, p, buf+n, buflen-n);
+	}
     }
   else if (ISSYM26(p))
     {
+    }
+  else if (ISFD20(p))
+    {
+      n += qsfd_crepr(mach, p, buf+n, buflen-n);
+    }
+  else if (ISERR20(p))
+    {
+      n += qserr_crepr(mach, p, buf+n, buflen-n);
+    }
+  else if (ISPRIM20(p))
+    {
+      n += qsprim_crepr(mach, p, buf+n, buflen-n);
+    }
+  else if (ISCONST20(p))
+    {
+      n += qsconst_crepr(mach, p, buf+n, buflen-n);
     }
   else
     {
