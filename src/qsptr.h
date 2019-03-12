@@ -113,7 +113,7 @@ Word-Pointer expanding-tag encoding
 
 /* Conversions to word-pointers. */
 #define QSFLOAT(f)      (((union qsbits_u)((float)(f))).w & ~MASK_TAG31)
-#define QSINT(i)        (((union qsbits_u)(i * (1 << SHIFT_TAG30))).w | TAG_INT30)
+#define QSINT(i)        (((union qsbits_u)((i) * (1 << SHIFT_TAG30))).w | TAG_INT30)
 #define QSITER(a)       ((a << SHIFT_TAG28) | TAG_ITER28)
 #define QSOBJ(a)        ((a << SHIFT_TAG26) | TAG_OBJ26)
 #define QSSYM(a)        ((a << SHIFT_TAG26) | TAG_SYM26)

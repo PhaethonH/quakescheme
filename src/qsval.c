@@ -247,6 +247,11 @@ bool qsprim_p (const qsmachine_t * mach, qsptr p)
   return ISPRIM20(p);
 }
 
+int qsprim_id (const qsmachine_t * mach, qsptr p)
+{
+  return CPRIM20(p);
+}
+
 int qsprim_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
@@ -365,6 +370,11 @@ int qssym_crepr (qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
   return n;
+}
+
+qsptr qssym_symbol (const qsmachine_t * mach, qsptr p)
+{
+  return QSOBJ(CSYM26(p));
 }
 
 qscmp_t qssym_cmp (qsmachine_t * mach, qsptr x, qsptr y)
@@ -1112,6 +1122,7 @@ int qsdouble_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
  */
 const qsovec_t * qssymbol_const (const qsmachine_t * mach, qsptr p)
 {
+  if (ISSYM26(p)) p = qssym_symbol(mach, p);
   const qsovec_t * y = qsovec_const(mach, p);
   if (! y) return NULL;
   if (! ISCHAR24(y->length)) return NULL;
@@ -1120,6 +1131,7 @@ const qsovec_t * qssymbol_const (const qsmachine_t * mach, qsptr p)
 
 qsovec_t * qssymbol (qsmachine_t * mach, qsptr p)
 {
+  if (ISSYM26(p)) p = qssym_symbol(mach, p);
   if (qssymbol_const(mach, p))
     {
       return (qsovec_t*)(qsovec(mach, p));
@@ -1181,6 +1193,13 @@ qsptr qssymbol_intern_c (qsmachine_t * mach, const char * cstr)
   qssymstore_insert(mach, mach->Y, p);
 
   return p;
+}
+
+const char * qssymbol_name (const qsmachine_t * mach, qsptr p)
+{
+  const qsovec_t * y = qssymbol_const(mach, p);
+  if (! y) return NULL;
+  return y->elt;
 }
 
 bool qssymbol_p (const qsmachine_t * mach, qsptr p)
@@ -1460,6 +1479,10 @@ qsptr qsenv_make (qsmachine_t * mach, qsptr next_env)
 
 qsptr qsenv_insert (qsmachine_t * mach, qsptr env, qsptr variable, qsptr binding)
 {
+  if (ISNIL(env))
+    {
+      env = qsenv_make(mach, QSNIL);
+    }
   qsptr frame = qspair_car(mach, env);
   qsptr bind = qspair_make(mach, variable, binding);
   qsptr link = qspair_make(mach, bind, frame);
@@ -1708,6 +1731,16 @@ qsptr qskont_ref_k (const qsmachine_t * mach, qsptr p)
   const qspvec_t * kont = qskont_const(mach, p);
   if (!kont) return QSERR_FAULT;
   return kont->elt[3];
+}
+
+int qskont_fetch (const qsmachine_t * mach, qsptr p, qsptr * out_v, qsptr * out_c, qsptr * out_e, qsptr * out_k)
+{
+  int n = 0;
+  if (out_v) { *out_v = qskont_ref_v(mach, p); n++; }
+  if (out_c) { *out_c = qskont_ref_c(mach, p); n++; }
+  if (out_e) { *out_e = qskont_ref_e(mach, p); n++; }
+  if (out_k) { *out_k = qskont_ref_k(mach, p); n++; }
+  return n;
 }
 
 qsptr qskont_setq_v (qsmachine_t * mach, qsptr p, qsptr val)

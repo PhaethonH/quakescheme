@@ -40,6 +40,7 @@ int qsfd_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsprim_make (qsmachine_t *, qsword primid);
 bool qsprim_p (const qsmachine_t *, qsptr p);
+int qsprim_id (const qsmachine_t *, qsptr p);
 int qsprim_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 
@@ -48,7 +49,9 @@ int qsprim_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 qsptr qsobj_make (qsmachine_t *, qsword obj_id);
 
 qsptr qssym_make (qsmachine_t *, qsword sym_id);
+qsword qssym_id (const qsmachine_t *, qsptr p);
 bool qssym_p (const qsmachine_t *, qsptr p);
+qsptr qssym_symbol (const qsmachine_t *, qsptr p);
 int qssym_crepr (qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qspair_make (qsmachine_t *, qsptr a, qsptr d);
@@ -113,6 +116,7 @@ int qsdouble_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 qsptr qssymbol_bless (qsmachine_t *, qsptr s);
 qsptr qssymbol_find_c (qsmachine_t *, const char * cstr);
 qsptr qssymbol_intern_c (qsmachine_t *, const char * cstr);
+const char  * qssymbol_name (const qsmachine_t *, qsptr p);
 bool qssymbol_p (const qsmachine_t *, qsptr p);
 /* get Qssym pointer from Qssymbol object. */
 qsptr qssymbol_sym (const qsmachine_t *, qsptr p);
@@ -150,11 +154,13 @@ qsptr qsenv_lookup (qsmachine_t *, qsptr env, qsptr variable);
 int qsenv_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qskont_make (qsmachine_t *, qsptr variant, qsptr c, qsptr e, qsptr k);
+qsptr qskont_make_current (qsmachine_t *);
 bool qskont_p (const qsmachine_t *, qsptr p);
 qsptr qskont_ref_v (const qsmachine_t *, qsptr p);
 qsptr qskont_ref_c (const qsmachine_t *, qsptr p);
 qsptr qskont_ref_e (const qsmachine_t *, qsptr p);
 qsptr qskont_ref_k (const qsmachine_t *, qsptr p);
+int qskont_fetch (const qsmachine_t *, qsptr p, qsptr * out_v, qsptr * out_c, qsptr * out_e, qsptr * out_k);
 int qskont_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qslambda_make (qsmachine_t *, qsptr parameters, qsptr body);

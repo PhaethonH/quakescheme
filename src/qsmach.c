@@ -1,6 +1,10 @@
 #include "qsmach.h"
 #include "qsval.h"
 
+#define LIST_P(x) (qspair_p(mach,x) || qsiter_p(mach,x))
+#define CAR(x) (qspair_p(mach,x) ? qspair_ref_head(mach,x) : qsiter_p(mach,x) ?  qsiter_head(mach,x) : QSNIL)
+#define CDR(x) (qspair_p(mach,x) ? qspair_ref_tail(mach,x) : qsiter_p(mach,x) ?  qsiter_tail(mach,x) : QSNIL)
+
 qsmachine_t * qsmachine_init (qsmachine_t * mach)
 {
   qsstore_init(&(mach->S));
@@ -9,6 +13,12 @@ qsmachine_t * qsmachine_init (qsmachine_t * mach)
   mach->K = QSNIL;
   mach->A = QSNIL;
   mach->Y = QSNIL;
+  mach->n_prims = 0;
+  int i;
+  for (i = 0; i < MAX_PRIMS; i++)
+    {
+      mach->prims[i] = NULL;
+    }
   return mach;
 }
 
@@ -22,25 +32,283 @@ qsstore_t * qsmachine_get_store (qsmachine_t * mach)
   return &(mach->S);
 }
 
+int qsmachine_eval_lambda (qsmachine_t * mach)
+{
+  qsptr args = CDR(mach->C);
+  if (ISNIL(args))
+    {
+      /* TODO: exception. */
+      return -1;
+    }
+  qsptr param = CAR(args);
+  qsptr body = CDR(args);
+  qsptr lam = qslambda_make(mach, param, body);
+  qsptr clo = qsclosure_make(mach, lam, mach->E);
+  mach->A = clo;
+  return 0;
+}
+
+int qsmachine_applyproc (qsmachine_t * mach, qsptr proc, qsptr values)
+{
+  if (qsclosure_p(mach, proc))
+    {
+      qsptr env = qsclosure_ref_lam(mach, proc);
+      qsptr frame = qsenv_make(mach, env);
+      qsptr lam = qsclosure_ref_lam(mach, proc);
+      qsptr param = qslambda_ref_param(mach, lam);
+      qsptr body = qslambda_ref_body(mach, lam);
+      qsptr paramiter = qspair_p(mach, param) ? qspair_iter(mach, param) : param;
+      qsptr argiter = qspair_p(mach, values) ? qspair_iter(mach, values) : values;
+      while (ISITER28(paramiter) && ISITER28(argiter))
+	{
+	  qsptr formal = qsiter_head(mach, paramiter);
+	  qsptr value = qsiter_head(mach, argiter);
+	  env = qsenv_insert(mach, env, formal, value);
+	  paramiter = qsiter_tail(mach, paramiter);
+	  argiter = qsiter_tail(mach, argiter);
+	}
+      if (ISITER28(paramiter) || ISITER28(argiter))
+	{
+	  /* TODO: parameter mismatch. */
+	}
+      mach->C = body;
+      mach->E = env;
+      mach->K = mach->K;
+    }
+  else
+    {
+      return QSERR_FAULT;
+    }
+  return 0;
+}
+
+int qsmachine_applykont (qsmachine_t * mach, qsptr k, qsptr value)
+{
+  if (ISNIL(k))
+    {
+      /* halt */
+      mach->halt = true;
+      return 0;
+    }
+  else
+    {
+      qsptr k_v, k_c, k_e, k_k;
+      qskont_fetch(mach, k, &k_v, &k_c, &k_e, &k_k);
+      if (qssym_p(mach, k_v) || qssymbol_p(mach, k_v))
+	{
+	  /* assigned to variable in environment. */
+	  if (qssym_p(mach, k_v)) k_v = qssym_symbol(mach, k_v);
+	  mach->E = qsenv_insert(mach, k_e, k_v, value);
+	}
+      else
+	{
+	  mach->E = k_e;
+	}
+      mach->C = k_c;
+      mach->K = k_k;
+    }
+  return 1;
+}
+
+qsptr qsmachine_eval_atomic (qsmachine_t * mach, qsptr arg)
+{
+  qsptr retval = QSNIL;
+  if (qspair_p(mach,arg) || qsiter_p(mach,arg))
+    {
+      /* list, lead with Primitive => apply operator */
+      qsptr head = CAR(arg);
+      if (qsprim_p(mach, head))
+	{
+	  int primid = qsprim_id(mach, head);
+	  qsprim_f op = qsprimreg_get(mach, primid);
+	  retval = op(mach, CDR(arg));
+	}
+      else
+	{
+	  /* not recognized as Primitive call. */
+	  return QSERR_FAULT;
+	}
+    }
+  else if (qslambda_p(mach,arg))
+    {
+      /* lambda => closure. */
+      retval = qsclosure_make(mach, arg, mach->E);
+    }
+  else if (qssymbol_p(mach,arg) || qssym_p(mach,arg))
+    {
+      /* variable => look up in environment. */
+      qsptr variable = arg;
+      if (qssymbol_p(mach, variable)) variable = qssymbol_sym(mach, variable);
+      retval = qsenv_lookup(mach, mach->E, variable);
+    }
+  else
+    {
+      /* else => self. */
+      retval = arg;
+    }
+  return retval;
+}
+
 int qsmachine_step (qsmachine_t * mach)
 {
+  qsptr C = mach->C;
+  if (qspair_p(mach,C) || qsiter_p(mach,C))
+    {
+      /* check for forms. */
+      qsptr head = CAR(C);
+      qsptr args = CDR(C);
+      const char * headname = NULL;
+      if (qssym_p(mach,head)) head = qssym_symbol(mach,C);
+      if (qssymbol_p(mach, head)) headname = qssymbol_name(mach, head);
+      if (!headname) headname = "";
+      if (0 == strcmp(headname, "if"))
+	{
+	  qsptr aexp = CAR(args);
+	  qsptr eTRUE = CAR(CDR(args));
+	  qsptr eFALSE = CAR(CDR(CDR(args)));
+	  qsptr discriminant = qsmachine_eval_atomic(mach, aexp);
+	  if (discriminant != QSFALSE)
+	    {
+	      mach->C = eTRUE;
+	    }
+	  else
+	    {
+	      mach->C = eFALSE;
+	    }
+	  /* preserve/maintain E and K */
+	}
+      else if (0 == strcmp(headname, "let"))
+	{
+	  qsptr bindings = CAR(args);
+	  qsptr body = CAR(CDR(args));
+	  qsptr variable = CAR(CAR(bindings));
+	  qsptr exp = CAR(CDR(CAR(bindings)));
+	  qsptr E = mach->E;
+	  qsptr K = mach->K;
+	  qsptr letk = qskont_make(mach, variable, body, E, K);
+	  mach->C = exp;
+	  /* preserve/maintain E */
+	  mach->K = letk;
+	}
+      else if (0 == strcmp(headname, "letrec"))
+	{
+	  qsptr frame = qsenv_make(mach, mach->E);
+	  qsptr bindings = CAR(args);
+	  qsptr body = CAR(CDR(args));
+	  qsptr binditer = qspair_p(mach, bindings) ? qspair_iter(mach, bindings) : bindings;
+	  while (ISITER28(binditer))
+	    {
+	      qsptr bind = qsiter_head(mach, binditer);
+	      qsptr variable = CAR(bind);
+	      qsptr aexp = CAR(CDR(bind));
+	      qsptr value = qsmachine_eval_atomic(mach, aexp);
+	      frame = qsenv_insert(mach, frame, variable, value);
+
+	      binditer = qsiter_tail(mach, binditer);
+	    }
+	  mach->C = body;
+	  mach->E = frame;
+	}
+      else if (0 == strcmp(headname, "set!"))
+	{
+	  qsptr variable = CAR(args);
+	  qsptr aexp = CAR(CDR(args));
+	  qsptr value = qsmachine_eval_atomic(mach, aexp);
+	  mach->E = qsenv_insert(mach, mach->E, variable, value);
+	  mach->A = QSBLACKHOLE;
+	  qsmachine_applykont(mach, mach->K, QSBLACKHOLE);
+	}
+      else if (0 == strcmp(headname, "call/cc"))
+	{
+	  qsptr aexp = args;
+	  qsptr proc = qsmachine_eval_atomic(mach, aexp);
+	  qsptr cc = qskont_make_current(mach);
+	  qsptr args = qspair_make(mach, cc, QSNIL);
+	  mach->A = qsmachine_applyproc(mach, proc, args);
+	}
+      else
+	{
+	  /* else maybe procedure call. */
+	  qsptr A = qsmachine_eval_atomic(mach, C);
+	  if (ISERR20(A))
+	    {
+	      /* evaluate individual list members. */
+	      qsptr root = QSNIL, build = QSNIL;
+	      qsptr curr = (qspair_p(mach,C) ? qspair_iter(mach,C) : C);
+	      while (!ISNIL(curr))
+		{
+		  qsptr aexp = qsiter_head(mach, C);
+		  qsptr a = qsmachine_eval_atomic(mach, aexp);
+		  if (ISNIL(root))
+		    build = root = qspair_make(mach, a, QSNIL);
+		  else
+		    {
+		      /* append */
+		      qsptr next = qspair_make(mach, a, QSNIL);
+		      qspair_setq_tail(mach, build, next);
+		      build = next;
+		    }
+		  curr = qsiter_tail(mach, C);
+		}
+	      mach->A = root;
+	    }
+	  else
+	    {
+	      /* evaluated as aexp, proceed with continuation. */
+	      mach->A = A;
+	      qsmachine_applykont(mach, mach->K, mach->A);
+	    }
+	}
+    }
+  else
+    {
+      mach->A = qsmachine_eval_atomic(mach, C);
+      /* return. */
+      qsmachine_applykont(mach, mach->K, mach->A);
+    }
   return 0;
 }
 
 int qsmachine_load (qsmachine_t * mach, qsptr C, qsptr E, qsptr K)
 {
+  mach->C = C;
+  mach->E = E;
+  mach->K = K;
+  mach->halt = false;
   return 0;
 }
 
-int qsmachine_applykont (qsmachine_t * mach, qsptr kont, qsptr value)
+
+
+
+int qsprimreg_register (qsmachine_t * mach, qsprim_f op)
 {
-  return 0;
+  if (mach->n_prims >= MAX_PRIMS) return -1;
+  int primid = mach->n_prims;
+  mach->prims[mach->n_prims] = op;
+  mach->n_prims++;
+  return primid;
 }
 
-int qsmachine_applyproc (qsmachine_t * mach, qsptr clo, qsptr values)
+qsprim_f qsprimreg_get (const qsmachine_t * mach, int nth)
 {
-  return 0;
+  if ((0 <= nth) && (nth < mach->n_prims))
+    {
+      return mach->prims[nth];
+    }
+  return NULL;
 }
+
+int qsprimreg_find (const qsmachine_t * mach, qsprim_f cfunc)
+{
+  int primid;
+  for (primid = 0; primid < mach->n_prims; primid++)
+    {
+      if (mach->prims[primid] == cfunc) return primid;
+    }
+  return -1;
+}
+
 
 
 
