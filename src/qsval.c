@@ -1448,18 +1448,51 @@ int qsbytevec_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
+/* Phase 1: environment is list of ( QsEnvFrame . QsEnv )
+   Where QsEnvFrame is alist of ( QsSym . QsValue )
+   */
+
 qsptr qsenv_make (qsmachine_t * mach, qsptr next_env)
 {
+  qsptr retval = qspair_make(mach, QSNIL, next_env);
+  return retval;
 }
 
-qsptr qsenv_insert (qsmachine_t * mach, qsptr variable, qsptr binding)
+qsptr qsenv_insert (qsmachine_t * mach, qsptr env, qsptr variable, qsptr binding)
 {
+  qsptr frame = qspair_car(mach, env);
+  qsptr bind = qspair_make(mach, variable, binding);
+  qsptr link = qspair_make(mach, bind, frame);
+  qspair_setq_head(mach, env, link);
+  return env;
+}
+
+qsptr qsenv_lookup (qsmachine_t * mach, qsptr env, qsptr variable)
+{
+  qsptr frameiter;
+  qsptr binditer;
+
+  frameiter = env;
+  while (qspair_const(mach, frameiter))
+    {
+      qsptr binditer = qspair_ref_head(mach, frameiter);
+      while (qspair_const(mach, binditer))
+	{
+	  qsptr bind = qspair_ref_head(mach, binditer);
+	  if (qspair_ref_head(mach, bind) == variable)
+	    {
+	      return qspair_ref_tail(mach, bind);
+	    }
+	  binditer = qspair_ref_tail(mach, binditer);
+	}
+      frameiter = qspair_ref_tail(mach, frameiter);
+    }
+  return QSERR_UNBOUND;
 }
 
 int qsenv_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
-  int n = 0;
-  return n;
+  return qspair_crepr(mach, p, buf, buflen);
 }
 
 

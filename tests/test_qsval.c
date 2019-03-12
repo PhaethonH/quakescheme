@@ -570,6 +570,64 @@ START_TEST(test_symbols)
 }
 END_TEST
 
+START_TEST(test_envs)
+{
+  init();
+
+  qsptr p, q;
+  qserr err;
+  int n;
+  int b;
+
+  /* environment (variable bindings). */
+
+  /* ( (foo . 1) (bar . 2) (baz . 3) ) */
+  qsptr env = qsenv_make(machine, QSNIL);
+
+  qsptr y_foo = qssymbol_intern_c(machine, "foo");
+  qsptr y_bar = qssymbol_intern_c(machine, "bar");
+  qsptr y_baz = qssymbol_intern_c(machine, "baz");
+  qsptr y_quux = qssymbol_intern_c(machine, "quux");
+
+  env = qsenv_insert(machine, env, y_foo, QSINT(1));
+  ck_assert_int_ne(env, QSNIL);
+  env = qsenv_insert(machine, env, y_bar, QSINT(2));
+  env = qsenv_insert(machine, env, y_baz, QSINT(3));
+
+  p = qsenv_lookup(machine, env, y_foo);
+  ck_assert(ISINT30(p));
+  ck_assert_int_eq(p, QSINT(1));
+
+  p = qsenv_lookup(machine, env, y_bar);
+  ck_assert_int_eq(p, QSINT(2));
+
+  p = qsenv_lookup(machine, env, y_baz);
+  ck_assert_int_eq(p, QSINT(3));
+
+  p = qsenv_lookup(machine, env, y_quux);
+  ck_assert_int_eq(p, QSERR_UNBOUND);
+
+
+  /* New frame, ( (foo . 222) (quux . 444) ) */
+  env = qsenv_make(machine, env);
+
+  env = qsenv_insert(machine, env, y_foo, QSINT(222));
+  env = qsenv_insert(machine, env, y_quux, QSINT(444));
+
+  p = qsenv_lookup(machine, env, y_foo);
+  ck_assert_int_eq(p, QSINT(222));
+
+  p = qsenv_lookup(machine, env, y_bar);
+  ck_assert_int_eq(p, QSINT(2));
+
+  p = qsenv_lookup(machine, env, y_baz);
+  ck_assert_int_eq(p, QSINT(3));
+
+  p = qsenv_lookup(machine, env, y_quux);
+  ck_assert_int_eq(p, QSINT(444));
+}
+END_TEST
+
 
 TESTCASE(case1,
   TFUNC(test_test1)
@@ -582,6 +640,7 @@ TESTCASE(case1,
   TFUNC(test_iters)
   TFUNC(test_utf8)
   TFUNC(test_symbols)
+  TFUNC(test_envs)
   TFUNC(test_test2)
   )
 

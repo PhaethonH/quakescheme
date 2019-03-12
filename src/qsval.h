@@ -145,7 +145,8 @@ qsptr qsbytevec_setq (qsmachine_t *, qsptr p, qsword k, qsbyte val);
 int qsbytevec_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsenv_make (qsmachine_t *, qsptr next_env);
-qsptr qsenv_insert (qsmachine_t *, qsptr variable, qsptr binding);
+qsptr qsenv_insert (qsmachine_t *, qsptr env, qsptr variable, qsptr binding);
+qsptr qsenv_lookup (qsmachine_t *, qsptr env, qsptr variable);
 int qsenv_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qskont_make (qsmachine_t *, qsptr variant, qsptr c, qsptr e, qsptr k, qsptr extra);
