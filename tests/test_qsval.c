@@ -158,6 +158,11 @@ START_TEST(test_pairs)
   ck_assert(qspair_p(machine, pp[3]));
   n = qspair_crepr(machine, pp[1], buf, sizeof(buf));
   ck_assert_str_eq(buf, "(10 20 30)");
+
+  /* one-element list. */
+  p = qspair_make(machine, QSINT(40), QSNIL);
+  n = qspair_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(40)");
 }
 END_TEST
 
@@ -559,6 +564,9 @@ START_TEST(test_symbols)
   ck_assert(qssymbol_p(machine, q));
   ck_assert_int_eq(q, p);
 
+  qsptr_crepr(machine, q, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "foobar");
+
   /* populate with useless symbols. */
   qssymbol_intern_c(machine, "foo");
   qssymbol_intern_c(machine, "bar");
@@ -628,6 +636,93 @@ START_TEST(test_envs)
 }
 END_TEST
 
+START_TEST(test_lambdas)
+{
+  init();
+
+  qsptr p, q;
+  qserr err;
+  int n;
+  int b;
+
+  /* lambas. */
+
+  /* (lambda (x) x) */
+  qsptr y_x = qssymbol_intern_c(machine, "x");
+
+  qsptr param = qspair_make(machine, y_x, QSNIL);
+  qsptr body = y_x;
+  qsptr lam = qslambda_make(machine, param, body);
+
+  p = qslambda_ref_param(machine, lam);
+  q = qslambda_ref_body(machine, lam);
+  ck_assert_int_eq(p, param);
+  ck_assert_int_eq(q, body);
+
+  n = qsptr_crepr(machine, param, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(x)");
+
+  qslambda_crepr(machine, lam, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(lambda (x) x)");
+
+  /* (lambda (x y) (+ x y) */
+  qsptr y_y = qssymbol_intern_c(machine, "y");
+  qsptr y_plus = qssymbol_intern_c(machine, "+");
+}
+END_TEST
+
+START_TEST(test_closures)
+{
+  init();
+
+  qsptr p, q;
+  qserr err;
+  int n;
+  int b;
+
+  /* closures. */
+
+  /* (lambda (x) x) */
+  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr param = qspair_make(machine, y_x, QSNIL);
+  qsptr body = y_x;
+  qsptr lam = qslambda_make(machine, param, body);
+
+  /* (closure  (lambda (x) x)  ((x . 3))) */
+  qsptr env = qsenv_make(machine, QSNIL);
+  qsenv_insert(machine, env, y_x, QSINT(3));
+
+  p = qsclosure_make(machine, lam, env);
+  ck_assert(qsclosure_p(machine, p));
+}
+END_TEST
+
+START_TEST(test_konts)
+{
+  init();
+
+  qsptr p, q;
+  qserr err;
+  int n;
+  int b;
+
+  /* kontinuations. */
+
+  /* (make-continuation () x () ()) */
+  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr k = qskont_make(machine, QSNIL, y_x, QSNIL, QSNIL);
+
+  p = qskont_ref_v(machine, k);
+  ck_assert_int_eq(p, QSNIL);
+  p = qskont_ref_c(machine, k);
+  ck_assert_int_eq(p, y_x);
+  p = qskont_ref_e(machine, k);
+  ck_assert_int_eq(p, QSNIL);
+  p = qskont_ref_k(machine, k);
+  ck_assert_int_eq(p, QSNIL);
+}
+END_TEST
+
 
 TESTCASE(case1,
   TFUNC(test_test1)
@@ -641,6 +736,9 @@ TESTCASE(case1,
   TFUNC(test_utf8)
   TFUNC(test_symbols)
   TFUNC(test_envs)
+  TFUNC(test_lambdas)
+  TFUNC(test_closures)
+  TFUNC(test_konts)
   TFUNC(test_test2)
   )
 

@@ -108,7 +108,7 @@ Word-Pointer expanding-tag encoding
 #define CERR20(x)       (((union qsbits_u)(x)).w >> SHIFT_TAG20)
 #define CFD20(x)        (((union qsbits_u)(x)).w >> SHIFT_TAG20)
 
-#define CBOOL(x)	(!(x == QSFALSE))
+#define CBOOL(x)        (!(x == QSFALSE))
 
 
 /* Conversions to word-pointers. */
@@ -123,7 +123,7 @@ Word-Pointer expanding-tag encoding
 #define QSERR(e)        ((e << SHIFT_TAG20) | TAG_ERR20)
 #define QSFD(n)         ((n << SHIFT_TAG20) | TAG_FD20)
 
-#define QSBOOL(b)	(b ? QSTRUE : QSFALSE)
+#define QSBOOL(b)       (b ? QSTRUE : QSFALSE)
 
 
 /* Enumeration for space Const20 */
@@ -136,9 +136,12 @@ Word-Pointer expanding-tag encoding
 /*  Blackhole - value to indicate variable not yet bound. */
 #define QSBLACKHOLE     QSCONST(3)
 /* Array, Begining Of List (nested list). */
-#define QSBOL		QSCONST(4)
+#define QSBOL           QSCONST(4)
 /* Array, End of List. */
-#define QSEOL		QSCONST(5)
+#define QSEOL           QSCONST(5)
+#define QSLAMBDA        QSCONST(6)
+#define QSCLO           QSCONST(7)
+#define QSKONT          QSCONST(8)
 
 /*  Infinities, positive and negative. */
 #define QSINF           QSCONST(10)

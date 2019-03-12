@@ -149,12 +149,12 @@ qsptr qsenv_insert (qsmachine_t *, qsptr env, qsptr variable, qsptr binding);
 qsptr qsenv_lookup (qsmachine_t *, qsptr env, qsptr variable);
 int qsenv_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
-qsptr qskont_make (qsmachine_t *, qsptr variant, qsptr c, qsptr e, qsptr k, qsptr extra);
+qsptr qskont_make (qsmachine_t *, qsptr variant, qsptr c, qsptr e, qsptr k);
 bool qskont_p (const qsmachine_t *, qsptr p);
+qsptr qskont_ref_v (const qsmachine_t *, qsptr p);
 qsptr qskont_ref_c (const qsmachine_t *, qsptr p);
 qsptr qskont_ref_e (const qsmachine_t *, qsptr p);
 qsptr qskont_ref_k (const qsmachine_t *, qsptr p);
-qsptr qskont_ref_extra (const qsmachine_t *, qsptr p);
 int qskont_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qslambda_make (qsmachine_t *, qsptr parameters, qsptr body);

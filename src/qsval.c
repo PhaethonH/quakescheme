@@ -1496,17 +1496,257 @@ int qsenv_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-qsptr qskont_make (qsmachine_t * mach, qsptr variant, qsptr c, qsptr e, qsptr k, qsptr extra)
+const qstriplet_t * qslambda_const (const qsmachine_t * mach, qsptr p)
 {
+  const qstriplet_t * triplet = qstriplet_const(mach, p);
+  if (! triplet) return NULL;
+  if (triplet->first != QSLAMBDA) return NULL;
+  return triplet;
+}
+
+qstriplet_t * qslambda (qsmachine_t * mach, qsptr p)
+{
+  if (qslambda_const(mach, p))
+    {
+      return qstriplet(mach, p);
+    }
+  return NULL;
+}
+
+/* Combine list of formal parameters with body. */
+qsptr qslambda_make (qsmachine_t * mach, qsptr param, qsptr body)
+{
+  qsptr p = qstriplet_make(mach, QSLAMBDA, param, body);
+  return p;
+}
+
+bool qslambda_p (const qsmachine_t * mach, qsptr p)
+{
+  return (qslambda_const(mach, p) != NULL);
+}
+
+qsptr qslambda_ref_param (const qsmachine_t * mach, qsptr p)
+{
+  const qstriplet_t * lam = qslambda_const(mach, p);
+  if (! lam) return QSERR_FAULT;
+  return lam->second;
+}
+
+qsptr qslambda_ref_body (const qsmachine_t * mach, qsptr p)
+{
+  const qstriplet_t * lam = qslambda_const(mach, p);
+  if (! lam) return QSERR_FAULT;
+  return lam->third;
+}
+
+qsptr qslambda_setq_param (qsmachine_t * mach, qsptr p, qsptr val)
+{
+  qstriplet_t * lam = qslambda(mach, p);
+  if (! lam) return QSERR_FAULT;
+  lam->second = val;
+  return p;
+}
+
+qsptr qslambda_setq_body (qsmachine_t * mach, qsptr p, qsptr val)
+{
+  qstriplet_t * lam = qslambda(mach, p);
+  if (! lam) return QSERR_FAULT;
+  lam->third = val;
+  return p;
+}
+
+int qslambda_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+{
+  int n = 0;
+//  n += qs_snprintf(buf+n, buflen-n, "#<lambda 0x%08x>", COBJ26(p));
+  const qstriplet_t * lam = qstriplet_const(mach, p);
+  if (! lam) return n;
+  n += qs_snprintf(buf+n, buflen-n, "(lambda ");
+  qsptr param = lam->second;
+  qsptr body = lam->third;
+  n += qsptr_crepr(mach, param, buf+n, buflen-n);
+  if (! ISNIL(body))
+    {
+      n += qs_snprintf(buf+n, buflen-n, " ");
+      n += qsptr_crepr(mach, body, buf+n, buflen-n);
+    }
+  n += qs_snprintf(buf+n, buflen-n, ")");
+  return n;
+}
+
+
+const qstriplet_t * qsclosure_const (const qsmachine_t * mach, qsptr p)
+{
+  const qstriplet_t * triplet = qstriplet_const(mach, p);
+  if (! triplet) return NULL;
+  if (triplet->first != QSCLO) return NULL;
+  return triplet;
+}
+
+qstriplet_t * qsclosure (qsmachine_t * mach, qsptr p)
+{
+  if (qsclosure_const(mach, p))
+    {
+      return qstriplet(mach, p);
+    }
+  return NULL;
+}
+
+/* Combine lambda with environment. */
+qsptr qsclosure_make (qsmachine_t * mach, qsptr lam, qsptr env)
+{
+  qsptr p = qstriplet_make(mach, QSCLO, lam, env);
+  return p;
+}
+
+bool qsclosure_p (const qsmachine_t * mach, qsptr p)
+{
+  return (qsclosure_const(mach, p) != NULL);
+}
+
+qsptr qsclosure_ref_lam (const qsmachine_t * mach, qsptr p)
+{
+  const qstriplet_t * clo = qsclosure_const(mach, p);
+  if (! clo) return QSERR_FAULT;
+  return clo->second;
+}
+
+qsptr qsclosure_ref_env (const qsmachine_t * mach, qsptr p)
+{
+  const qstriplet_t * clo = qsclosure_const(mach, p);
+  if (! clo) return QSERR_FAULT;
+  return clo->third;
+}
+
+qsptr qsclosure_setq_lam (qsmachine_t * mach, qsptr p, qsptr val)
+{
+  qstriplet_t * clo = qsclosure(mach, p);
+  if (! clo) return QSERR_FAULT;
+  clo->second = val;
+}
+
+qsptr qsclosure_setq_env (qsmachine_t * mach, qsptr p, qsptr val)
+{
+  qstriplet_t * clo = qsclosure(mach, p);
+  if (! clo) return QSERR_FAULT;
+  clo->third = val;
+}
+
+int qsclosure_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+{
+  int n = 0;
+  n += qs_snprintf(buf+n, buflen-n, "#<closure 0x%08x>", COBJ26(p));
+  return n;
+}
+
+
+const qspvec_t * qskont_const (const qsmachine_t * mach, qsptr p)
+{
+  const qspvec_t * pvec = qspvec_const(mach, p);
+  if (!pvec) return NULL;
+  if (pvec->length != QSKONT) return NULL;
+  return pvec;
+}
+
+qspvec_t * qskont (qsmachine_t * mach, qsptr p)
+{
+  if (qskont_const(mach, p))
+    {
+      return qspvec(mach, p);
+    }
+  return NULL;
+}
+
+/* arbitrary continuation */
+qsptr qskont_make (qsmachine_t * mach, qsptr variant, qsptr c, qsptr e, qsptr k)
+{
+  qsptr p = qspvec_make(mach, 4, QSNIL);
+  qspvec_t * pvec = qspvec(mach, p);
+  if (! pvec) return QSERR_NOMEM;
+  pvec->length = QSKONT;
+  pvec->elt[0] = variant;
+  pvec->elt[1] = c;
+  pvec->elt[2] = e;
+  pvec->elt[3] = k;
+  return p;
+}
+
+/* current-continuation */
+qsptr qskont_make_current (qsmachine_t * mach)
+{
+  return qskont_make(mach, QSNIL, mach->C, mach->E, mach->K);
 }
 
 bool qskont_p (const qsmachine_t * mach, qsptr p)
 {
+  return (qskont_const(mach, p) != NULL);
+}
+
+qsptr qskont_ref_v (const qsmachine_t * mach, qsptr p)
+{
+  const qspvec_t * kont = qskont_const(mach, p);
+  if (!kont) return QSERR_FAULT;
+  return kont->elt[0];
+}
+
+qsptr qskont_ref_c (const qsmachine_t * mach, qsptr p)
+{
+  const qspvec_t * kont = qskont_const(mach, p);
+  if (!kont) return QSERR_FAULT;
+  return kont->elt[1];
+}
+
+qsptr qskont_ref_e (const qsmachine_t * mach, qsptr p)
+{
+  const qspvec_t * kont = qskont_const(mach, p);
+  if (!kont) return QSERR_FAULT;
+  return kont->elt[2];
+}
+
+qsptr qskont_ref_k (const qsmachine_t * mach, qsptr p)
+{
+  const qspvec_t * kont = qskont_const(mach, p);
+  if (!kont) return QSERR_FAULT;
+  return kont->elt[3];
+}
+
+qsptr qskont_setq_v (qsmachine_t * mach, qsptr p, qsptr val)
+{
+  qspvec_t * kont = qskont(mach, p);
+  if (!kont) return QSERR_FAULT;
+  kont->elt[0] = val;
+  return p;
+}
+
+qsptr qskont_setq_c (qsmachine_t * mach, qsptr p, qsptr val)
+{
+  qspvec_t * kont = qskont(mach, p);
+  if (!kont) return QSERR_FAULT;
+  kont->elt[1] = val;
+  return p;
+}
+
+qsptr qskont_setq_e (qsmachine_t * mach, qsptr p, qsptr val)
+{
+  qspvec_t * kont = qskont(mach, p);
+  if (!kont) return QSERR_FAULT;
+  kont->elt[2] = val;
+  return p;
+}
+
+qsptr qskont_setq_k (qsmachine_t * mach, qsptr p, qsptr val)
+{
+  qspvec_t * kont = qskont(mach, p);
+  if (!kont) return QSERR_FAULT;
+  kont->elt[3] = val;
+  return p;
 }
 
 int qskont_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
   int n = 0;
+  const qspvec_t * kont = qskont_const(mach, p);
+  n += qs_snprintf(buf+n, buflen-n, "#<kont 0x%08x>", COBJ26(p));
   return n;
 }
 
@@ -1687,9 +1927,27 @@ int qsptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 	{
 	  n += qscptr_crepr(mach, p, buf+n, buflen-n);
 	}
+      else if (qssymbol_p(mach, p))
+	{
+	  n += qssymbol_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qslambda_p(mach, p))
+	{
+	  n += qslambda_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qsclosure_p(mach, p))
+	{
+	  n += qsclosure_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qskont_p(mach, p))
+	{
+	  n += qskont_crepr(mach, p, buf+n, buflen-n);
+	}
     }
   else if (ISSYM26(p))
     {
+      qsptr symobj = QSOBJ(CSYM26(p));
+      n += qssymbol_crepr(mach, symobj, buf+n, buflen-n);
     }
   else if (ISFD20(p))
     {
