@@ -367,6 +367,10 @@ int qssym_crepr (qsmachine_t * mach, qsptr p, char * buf, int buflen)
   return n;
 }
 
+qscmp_t qssym_cmp (qsmachine_t * mach, qsptr x, qsptr y)
+{
+  return (x == y) ? QSCMP_EQ : QSCMP_NE;
+}
 
 
 /* Heaped object */
@@ -407,6 +411,18 @@ qsptr qstriplet_make (qsmachine_t * mach, qsptr first, qsptr second, qsptr third
   return retval;
 }
 
+qscmp_t qstriplet_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+{
+  const qstriplet_t * tx = qstriplet_const(mach, x);
+  const qstriplet_t * ty = qstriplet_const(mach, y);
+  if (!tx || !ty) return QSCMP_NE;
+  if (x == y) return QSCMP_EQ;
+  if (tx->first != ty->first) return QSCMP_NE;
+  if (tx->second != ty->second) return QSCMP_NE;
+  if (tx->third != ty->third) return QSCMP_NE;
+  return QSCMP_EQ;
+}
+
 
 /* Heaped prototype: WideWord. */
 const qswideword_t * qswideword_const (const qsmachine_t * mach, qsptr p)
@@ -441,6 +457,18 @@ qsptr qswideword_make (qsmachine_t * mach, qsptr subtype)
   wideword->payload.l = 0;
   qsptr retval = qsptr_make(mach, mapped_addr);
   return retval;
+}
+
+qscmp_t qswideword_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+{
+  const qswideword_t * wx = qswideword_const(mach, x);
+  const qswideword_t * wy = qswideword_const(mach, y);
+  if (!wx || !wy) return QSCMP_NE;
+  if (x == y) return QSCMP_EQ;
+  if (wx->subtype != wy->subtype) return QSCMP_NE;
+  /* widest member possible that can be compared. */
+  if (wx->payload.l != wy->payload.l) return QSCMP_NE;
+  return QSCMP_EQ;
 }
 
 
@@ -486,6 +514,20 @@ qsptr qspvec_make (qsmachine_t * mach, qsptr payload_words, qsptr fillval)
   return retval;
 }
 
+qscmp_t qspvec_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+{
+  const qspvec_t * vx = qspvec_const(mach, x);
+  const qspvec_t * vy = qspvec_const(mach, y);
+  if (!vx || !vy) return QSCMP_NE;
+  if (x == y) return QSCMP_EQ;
+  if (vx->length != vy->length) return QSCMP_NE;
+  qsword i;
+  qsword m = (1 << qsobj_get_allocscale((qsobj_t*)vx)) * sizeof(qsobj_t)/sizeof(qsptr) - sizeof(qsobj_t);
+  for (i = 0; i < m; i++)
+    if (vx->elt[i] != vy->elt[i]) return QSCMP_NE;
+  return QSCMP_EQ;
+}
+
 
 /* Heaped prototype: Octet Vector. */
 const qsovec_t * qsovec_const (const qsmachine_t * mach, qsptr p)
@@ -522,6 +564,20 @@ qsptr qsovec_make (qsmachine_t * mach, qsptr len, qsbyte fillval)
   ovec->reflock = 0;
   qsptr retval = qsptr_make(mach, mapped_addr);
   return retval;
+}
+
+qscmp_t qsovec_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+{
+  const qsovec_t * ox = qsovec_const(mach, x);
+  const qsovec_t * oy = qsovec_const(mach, y);
+  if (!ox || !oy) return QSCMP_NE;
+  if (x == y) return QSCMP_EQ;
+  if (ox->length != oy->length) return QSCMP_NE;
+  qsword i;
+  qsword m = (1 << qsobj_get_allocscale((qsobj_t*)ox)) * sizeof(qsobj_t) - sizeof(qsobj_t);
+  for (i = 0; i < m; i++)
+    if (ox->elt[i] != oy->elt[i]) return QSCMP_NE;
+  return QSCMP_EQ;
 }
 
 
@@ -1071,39 +1127,79 @@ qsovec_t * qssymbol (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qssymbol_bless (qsmachine_t * machine, qsptr s)
+qsptr _qssymbol_make (qsmachine_t * mach, qsword namelen, qsovec_t ** out_sym)
 {
-  if (! qsutf8_p(machine, s))
+  qsptr p = qsovec_make(mach, namelen+1, 0);
+  qsovec_t * y = qsovec(mach, p);
+  if (!y) return QSERR_FAULT;
+  if (out_sym) *out_sym = y;
+  return p;
+}
+
+qsptr qssymbol_bless (qsmachine_t * mach, qsptr s)
+{
+  if (! qsutf8_p(mach, s))
     return QSERR_FAULT;
-  qsword slen = qsutf8_length(machine, s);
-  qsptr p = qsovec_make(machine, QSCHAR(slen), 0);
-  qsovec_t * y = qsovec(machine, p);
+  qsword slen = qsutf8_length(mach, s);
+
+  qsovec_t * y = NULL;
+  qsptr p = _qssymbol_make(mach, slen, &y);
+  if (! ISOBJ26(p)) return QSERR_FAULT;
+
+  y->length = QSCHAR(slen);
   qsword i;
   for (i = 0; i < slen; i++)
     {
       /* TODO convert multi-byte sequence. */
-      y->elt[i] = qsutf8_ref(machine, s, i);
+      y->elt[i] = qsutf8_ref(mach, s, i);
     }
   y->elt[i] = 0;
 
-  /* TODO: intern. */
+  /* intern symbol. */
+  qssymstore_insert(mach, mach->Y, p);
+
   return p;
 }
 
-qsptr qssymbol_import (qsmachine_t * machine, const char * cstr)
+qsptr qssymbol_intern_c (qsmachine_t * mach, const char * cstr)
 {
-  qsword slen = strlen(cstr);
-  qsptr p = qsovec_make(machine, QSCHAR(slen), 0);
-  qsovec_t * y = qsovec(machine, p);
-  strncpy(y->elt, cstr, slen+1);
+  /* 1. find already interned symbol. */
+  qsptr extant = qssymstore_find_c(mach, cstr);
+  if (ISOBJ26(extant))
+    return extant;
 
-  /* TODO: intern. */
+  /* 2. fallback to constructing symbol object. */
+  qsovec_t * y = NULL;
+  qsword slen = strlen(cstr);
+  qsptr p = _qssymbol_make(mach, slen, &y);
+  if (! ISOBJ26(p)) return QSERR_NOMEM;
+  y->length = QSCHAR(slen);
+  qsword i;
+  strcpy(y->elt, cstr);
+
+  /* 3. then interning symbol object. */
+  qssymstore_insert(mach, mach->Y, p);
+
   return p;
 }
 
 bool qssymbol_p (const qsmachine_t * mach, qsptr p)
 {
   return (qssymbol_const(mach, p) != NULL);
+}
+
+qsptr qssymbol_sym (const qsmachine_t * mach, qsptr p)
+{
+  if (! qssymbol_const(mach, p)) return QSNIL;
+  return QSSYM(COBJ26(p));
+}
+
+qsword qssymbol_length (const qsmachine_t * mach, qsptr p)
+{
+  const qsovec_t * y = qssymbol_const(mach, p);
+  if (!y) return 0;
+  qsword retval = CCHAR24(y->length);
+  return retval;
 }
 
 int qssymbol_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
@@ -1114,6 +1210,23 @@ int qssymbol_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
   int m = CCHAR24(y->length);
   n += qs_snprintf(buf+n, buflen-n-m, "%s", y->elt);
   return n;
+}
+
+int qssymbol_strcmp (const qsmachine_t * mach, qsptr x, const char * s)
+{
+  const qsovec_t * y = qssymbol_const(mach, x);
+  if (! y) return 0;
+  int m = qssymbol_length(mach, x);
+  /* Use C string comparison, up to the length of the symbol content.
+     If they don't match, strcmp() result stands.
+     If mostly match, but symbol is too long, strcmp() returns Greater Than.
+     If mostly match, but symbol is too short, should return Less Than.
+     */
+  int res = strncmp(y->elt, s, m);
+  if (res != 0) return res;  /* unequal, shortcut return. */
+  if (s[m] != 0) return -1;  /* matching prefix, but s is longer. */
+  /* matching prefix but s is shorter covered in strncmp(). */
+  return 0; /* equal */
 }
 
 qscmp_t qssymbol_cmp (const qsmachine_t * mach, qsptr x, qsptr y)

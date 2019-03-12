@@ -301,23 +301,6 @@ START_TEST(test_bytevecs)
 }
 END_TEST
 
-START_TEST(test_symbols)
-{
-  init();
-
-  qsptr p;
-  qserr err;
-  int n;
-  int b;
-
-  /* symbols (names). */
-  p = qssymbol_import(machine, "foobar");
-  ck_assert(qssymbol_p(machine, p));
-  n = qssymbol_crepr(machine, p, buf, sizeof(buf));
-  ck_assert_str_eq(buf, "foobar");
-}
-END_TEST
-
 START_TEST(test_arrays)
 {
   init();
@@ -552,6 +535,41 @@ START_TEST(test_utf8)
 }
 END_TEST
 
+START_TEST(test_symbols)
+{
+  init();
+
+  qsptr p, q;
+  qserr err;
+  int n;
+  int b;
+
+  /* symbols (names). */
+  ck_assert_int_eq(machine->Y, QSNIL);
+
+  p = qssymbol_intern_c(machine, "foobar");
+  ck_assert(qssymbol_p(machine, p));
+  n = qssymbol_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "foobar");
+
+  ck_assert_int_ne(machine->Y, QSNIL);
+
+  /* check intern returns the same object instance. */
+  q = qssymbol_intern_c(machine, "foobar");
+  ck_assert(qssymbol_p(machine, q));
+  ck_assert_int_eq(q, p);
+
+  /* populate with useless symbols. */
+  qssymbol_intern_c(machine, "foo");
+  qssymbol_intern_c(machine, "bar");
+  p = qssymbol_intern_c(machine, "baz");
+  qssymbol_intern_c(machine, "quux");
+
+  q = qssymbol_intern_c(machine, "baz");
+  ck_assert_int_eq(q, p);
+}
+END_TEST
+
 
 TESTCASE(case1,
   TFUNC(test_test1)
@@ -560,10 +578,10 @@ TESTCASE(case1,
   TFUNC(test_widenums)
   TFUNC(test_voidptrs)
   TFUNC(test_bytevecs)
-  TFUNC(test_symbols)
   TFUNC(test_arrays)
   TFUNC(test_iters)
   TFUNC(test_utf8)
+  TFUNC(test_symbols)
   TFUNC(test_test2)
   )
 
