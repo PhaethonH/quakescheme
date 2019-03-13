@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "qsmach.h"
 
@@ -179,6 +180,7 @@ int qsclosure_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 /* Heavy Port (ports that have to track their own state inside Scheme) */
 qsptr qscport_make (qsmachine_t * mach, qsptr variant, qsptr pathspec, bool writeable, qsptr host_resource);
+bool qscport_p (qsmachine_t *, qsptr p);
 bool qscport_get_writeable (qsmachine_t * mach, qsptr p);
 qsptr qscport_get_pathspec (qsmachine_t * mach, qsptr p);
 int qscport_get_pos (qsmachine_t * mach, qsptr p);
@@ -193,8 +195,6 @@ qsptr qscport_set_resource (qsmachine_t * mach, qsptr p, qsptr val);
 /* C Character Pointer (String) ports. */
 qsptr qscharpport_make (qsmachine_t *, uint8_t * buf, int buflen);
 bool qscharpport_p (qsmachine_t *, qsptr p);
-bool qscharpport_get_writeable (qsmachine_t *, qsptr p);
-qsptr qscharpport_set_writeable (qsmachine_t *, qsptr p, bool val);
 int qscharpport_read_u8 (qsmachine_t *, qsptr p);
 bool qscharpport_write_u8 (qsmachine_t *, qsptr p, int byte);
 bool qscharpport_close (qsmachine_t *, qsptr p);
@@ -203,12 +203,19 @@ int qscharpport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 /* OctetVector (utf-8 string) ports. */
 qsptr qsovport_make (qsmachine_t *, qsptr s);
 bool qsovport_p (qsmachine_t *, qsptr s);
-bool qsovport_get_writeable (qsmachine_t *, qsptr p);
-qsptr qsovport_set_writeable (qsmachine_t *, qsptr p, bool val);
 int qsovport_read_u8 (qsmachine_t *, qsptr p);
 bool qsovport_write_u8 (qsmachine_t *, qsptr p, int byte);
 bool qsovport_close (qsmachine_t *, qsptr p);
 int qsovport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+
+/* Port backed by Standard C File. */
+qsptr qscfile_make (qsmachine_t *, const char * path, const char * mode);
+bool qscfile_p (qsmachine_t *, qsptr p);
+FILE * qscfile_get (qsmachine_t *, qsptr p);
+int qscfile_read_u8 (qsmachine_t *, qsptr p);
+bool qscfile_write_u8 (qsmachine_t *, qsptr p, int byte);
+bool qscfile_close (qsmachine_t *, qsptr p);
+int qscfile_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 
 /* the iterator type allows for iterating both pairs and arrays as a list.

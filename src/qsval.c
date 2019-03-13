@@ -1782,6 +1782,7 @@ qspvec_t * qscport (qsmachine_t * mach, qsptr p)
   if (! port) return NULL;
   switch (port->length)
     {
+    case QSPORT_CFILE:
     case QSPORT_BYTEVEC:
     case QSPORT_CHARP:
       return port;
@@ -1794,6 +1795,7 @@ qsptr qscport_make (qsmachine_t * mach, qsptr variant, qsptr pathspec, bool writ
 {
   qsptr p = qsvector_make(mach, 4, QSNIL);
   qspvec_t * vec = qspvec(mach, p);
+  if (! vec) return QSERR_FAULT;
   vec->length = variant;
   if (writeable)
     {
@@ -1813,6 +1815,11 @@ qsptr qscport_make (qsmachine_t * mach, qsptr variant, qsptr pathspec, bool writ
   vec->elt[3] = host_resource;
 
   return p;
+}
+
+bool qscport_p (qsmachine_t * mach, qsptr p)
+{
+  return (qscport(mach, p) != NULL);
 }
 
 bool qscport_get_writeable (qsmachine_t * mach, qsptr p)
@@ -1918,8 +1925,10 @@ qsptr qscharpport_make (qsmachine_t * mach, uint8_t * buf, int buflen)
   bool writeable = false;
   qsptr pathspec = QSNIL;
   qsptr cptr = qscptr_make(mach, (void*)buf);
+  if (! qscptr_p(mach, cptr)) return QSERR_NOMEM;
 
   qsptr p = qscport_make(mach, variant, pathspec, writeable, cptr);
+  if (! qscport_p(mach, p)) return QSERR_NOMEM;
   qscport_set_max(mach, p, buflen);
   return p;
 }
@@ -1927,16 +1936,6 @@ qsptr qscharpport_make (qsmachine_t * mach, uint8_t * buf, int buflen)
 bool qscharpport_p (qsmachine_t * mach, qsptr p)
 {
   return (qscharpport(mach, p) != NULL);
-}
-
-bool qscharpport_get_writeable (qsmachine_t * mach, qsptr p)
-{
-  return qscport_get_writeable(mach, p);
-}
-
-qsptr qscharpport_set_writeable (qsmachine_t * mach, qsptr p, bool val)
-{
-  return qscport_set_writeable(mach, p, val);
 }
 
 int qscharpport_read_u8 (qsmachine_t * mach, qsptr p)
@@ -2006,6 +2005,7 @@ qsptr qsovport_make (qsmachine_t * mach, qsptr bv)
 
   if (! qsbytevec_p(mach, bv)) return QSERR_FAULT;
   qsptr p = qscport_make(mach, variant, pathspec, writeable, bv);
+  if (! qscport_p(mach, p)) return QSERR_FAULT;
   qscport_set_max(mach, p, qsbytevec_length(mach, bv));
   return p;
 }
@@ -2013,16 +2013,6 @@ qsptr qsovport_make (qsmachine_t * mach, qsptr bv)
 bool qsovport_p (qsmachine_t * mach, qsptr p)
 {
   return (qsovport(mach, p) != NULL);
-}
-
-bool qsovport_get_writeable (qsmachine_t * mach, qsptr p)
-{
-  return qscport_get_writeable(mach, p);
-}
-
-qsptr qsovport_set_writeable (qsmachine_t * mach, qsptr p, bool val)
-{
-  return qscport_set_writeable(mach, p, val);
 }
 
 int qsovport_read_u8 (qsmachine_t * mach, qsptr p)
@@ -2064,6 +2054,95 @@ bool qsovport_close (qsmachine_t * mach, qsptr p)
   /* then wait for garbage collection. */
   return true;
 }
+
+
+/* Backed by Standard C File. */
+qspvec_t * qscfile (qsmachine_t * mach, qsptr p)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return NULL;
+  if (port->length != QSPORT_CFILE) return NULL;
+  return port;
+}
+
+qsptr qscfile_make (qsmachine_t * mach, const char * path, const char * mode)
+{
+  qsptr variant = QSPORT_CFILE;
+  bool writeable = false;
+  if (mode)
+    {
+      if (strchr(mode, 'w') || strchr(mode, 'a')) writeable = true;
+    }
+  else
+    {
+      mode = "r";
+    }
+  qsptr pathspec = qsutf8_inject_charp(mach, path);
+  if (! qsutf8_p(mach, pathspec)) return QSERR_NOMEM;
+
+  FILE * f = fopen(path, mode);
+  if (! f) return QSERR_FAULT;
+  qsptr fptr = qscptr_make(mach, (void*)f);
+  if (! qscptr_p(mach, fptr)) return QSERR_NOMEM;
+  qsptr p = qscport_make(mach, variant, pathspec, writeable, fptr);
+  if (! qscport_p(mach, p)) return QSERR_NOMEM;
+  return p;
+}
+
+bool qscfile_p (qsmachine_t * mach, qsptr p)
+{
+  return (qscfile(mach, p) != NULL);
+}
+
+int qscfile_read_u8 (qsmachine_t * mach, qsptr p)
+{
+  int retval = -1;
+  if (! qscfile(mach, p)) return -1;
+  if (qscport_get_max(mach, p) == 0)
+    {
+      /* already flagged EOF. */
+      return -1;
+    }
+  qsptr fptr = qscport_get_resource(mach, p);
+  if (! qscptr_p(mach, fptr)) return -1;
+  FILE * f = (FILE*)(qscptr_get(mach, fptr));
+  if (! f) return -1;
+  retval = fgetc(f);
+  if (retval < 0)
+    qscport_set_max(mach, p, 0);
+  return retval;
+}
+
+bool qscfile_write_u8 (qsmachine_t * mach, qsptr p, int byte)
+{
+  if (! qscfile(mach, p)) return false;
+  if (! qscport_get_writeable(mach, p)) return false;
+  qsptr fptr = qscport_get_resource(mach, p);
+  if (! qscptr_p(mach, fptr)) return false;
+  FILE * f = (FILE*)(qscptr_get(mach, fptr));
+  if (! f) return false;
+  int res = fputc(byte, f);
+  return (res > 0);
+}
+
+bool qscfile_close (qsmachine_t * mach, qsptr p)
+{
+  if (! qscfile(mach, p)) return false;
+
+  /* Finalizer */
+    {
+      qsptr fptr = qscport_get_resource(mach, p);
+      FILE * f = (FILE*)(qscptr_get(mach, p));
+      if (f) fclose(f);
+    }
+
+  qscport_set_resource(mach, p, QSNIL);  /* unlink resource. */
+  qscport_set_pathspec(mach, p, QSNIL);
+  qscport_set_writeable(mach, p, false);
+  /* then wait for garbage collection. */
+  return true;
+}
+
 
 
 

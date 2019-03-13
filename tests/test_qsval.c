@@ -754,7 +754,7 @@ START_TEST(test_ports)
   p = qsbytevec_make(machine, 6, 0);
   ck_assert(qsbytevec_p(machine, p));
   port = qsovport_make(machine, p);
-  qsovport_set_writeable(machine, port, true);
+  qscport_set_writeable(machine, port, true);
   b = qsovport_write_u8(machine, port, 'S');
   ck_assert(b);
   b = qsovport_write_u8(machine, port, 'c');
@@ -774,6 +774,23 @@ START_TEST(test_ports)
   memcpy(buf, bytes, n_bytes);
   buf[n_bytes] = 0;
   ck_assert_str_eq(buf, "Scheme");
+
+  /* FILE port. */
+  port = qscfile_make(machine, "read1.txt", NULL);
+  if (! qscport_p(machine, port))
+    port = qscfile_make(machine, "tests/read1.txt", NULL);
+  ck_assert(qscport_p(machine, port));
+  ck_assert(qscfile_p(machine, port));
+  b = qscfile_read_u8(machine, port);
+  ck_assert_int_eq(b, 'h');
+  b = qscfile_read_u8(machine, port);
+  ck_assert_int_eq(b, 'e');
+  b = qscfile_read_u8(machine, port);
+  ck_assert_int_eq(b, 'l');
+  b = qscfile_read_u8(machine, port);
+  ck_assert_int_eq(b, 'l');
+  b = qscfile_read_u8(machine, port);
+  ck_assert_int_eq(b, 'o');
 }
 END_TEST
 

@@ -150,6 +150,8 @@ Word-Pointer expanding-tag encoding
 #define QSNAN           QSCONST(12)
 #define QSNNAN          QSCONST(13)
 
+#define QSPORT_CLOSED   QSCONST(20)
+#define QSPORT_CFILE    QSCONST(22)
 #define QSPORT_BYTEVEC  QSCONST(24)
 #define QSPORT_CHARP    QSCONST(26)
 
