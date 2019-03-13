@@ -380,15 +380,71 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 		}
 	      else
 		{
-		  /* trace treenode. */
+		  /* trace triplet. */
 		  int reverse = MGMT_GET_REVERS(obj->mgmt);
+		  qsptr temp;
+		  qsptr parent = prev;
+#define LD(ptr)  ((COBJ26(ptr)) << 4)
+#define ST(addr) ((QSOBJ(addr)) >> 4)
+		  /* normalize parent. */
+		  switch (reverse)
+		    {
+		    case 0:
+		      parent = prev;
+		      break;
+		    case 1:
+		      parent = LD(obj->fields[0]);
+		      obj->fields[0] = ST(prev);
+		      break;
+		    case 2:
+		      parent = LD(obj->fields[1]);
+		      obj->fields[1] = ST(prev);
+		      break;
+		    case 3:
+		    default:
+		      parent = LD(obj->fields[2]);
+		      obj->fields[2] = ST(prev);
+		      break;
+		    }
+
+		  /* determine next descent. */
 		  switch (reverse)
 		    {
 		    case 0: /* left ... */
-		      break;
+		      if (ISOBJ26(obj->fields[0]))
+			{
+			  MGMT_SET_REVERS(obj->mgmt, 1);
+			  prev = curr;			/* parent of descent. */
+			  curr = LD(obj->fields[0]);    /* next descent. */
+			  obj->fields[0] = ST(parent);  /* reversal. */
+			  break;
+			}
+		      /* fallthrough. */
 		    case 1: /* center ... */
-		      break;
+		      if (ISOBJ26(obj->fields[1]))
+			{
+			  MGMT_SET_REVERS(obj->mgmt, 2);
+			  prev = curr;		        /* parent of descent. */
+			  curr = LD(obj->fields[1]);    /* next descent. */
+			  obj->fields[1] = ST(parent);  /* reversal. */
+			  break;
+			}
+		      /* fallthrough. */
 		    case 2: /* right ... */
+		      if (ISOBJ26(obj->fields[2]))
+			{
+			  MGMT_SET_REVERS(obj->mgmt, 3);
+			  prev = curr;			/* parent of descent. */
+			  curr = LD(obj->fields[2]);    /* next descent. */
+			  obj->fields[2] = ST(parent);	/* reversal. */
+			  break;
+			}
+		      /* fallthrough. */
+		    case 3: /* done. */
+		      MGMT_SET_REVERS(obj->mgmt, 0);
+		      prev = curr;		  /* true child. */
+		      curr = parent;		  /* true parent. */
+		      MGMT_SET_MARK(obj->mgmt);
 		      break;
 		    }
 		}
@@ -398,16 +454,50 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 	      /* cross-boundary. */
 	      if (MGMT_IS_OCT(obj->mgmt))
 		{
+		  qsword max = 1 << qsobj_get_allocscale(obj);
+		  qsword ofs;
+		  qsaddr eltaddr;
+		  qsptr elt;
 		  /* trace word-vector. */
+		  if (obj->fields[2] == QSNIL)
+		    {
+		      /* start iteration. */
+		      obj->fields[2] = prev;
+		      ofs = 0;
+		    }
+		  else
+		    {
+		      ofs = CINT30(obj->fields[3]);
+		    }
+		  eltaddr = (curr + sizeof(qsobj_t)) + ofs * sizeof(qsptr);
+		  elt = (qsptr)(qsstore_get_word(store, eltaddr));
+		  if (ISOBJ26(elt))
+		    {
+		      prev = curr;
+		      curr = LD(elt);
+		    }
+		  ++ofs;
+		  if (ofs < max)
+		    {
+		      obj->fields[3] = QSINT(ofs);
+		    }
+		  else
+		    {
+		      /* done. */
+		      obj->fields[2] = QSNIL;
+		      obj->fields[3] = QSNIL;
+		      MGMT_SET_MARK(obj->mgmt);
+		    }
 		}
 	      else
 		{
 		  /* trace byte-vector. */
+		  MGMT_SET_MARK(obj->mgmt);
 		}
 	    }
 	}
-
     }
+  return QSERR_OK;
 }
 
 
