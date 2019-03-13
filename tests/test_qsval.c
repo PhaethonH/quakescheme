@@ -802,6 +802,130 @@ START_TEST(test_ports)
   ck_assert_int_eq(b, 'h');
   b = qsfd_read_u8(machine, port);
   ck_assert_int_eq(b, 'e');
+
+
+  /* Generalized Port. */
+  /* Port.charp */
+  char backing[100] = "Lorem ipsum";
+  port = qsport_make_c(machine, QSPORT_CHARP, backing, strlen(backing), 0, 0);
+  ck_assert(qsport_p(machine, port));
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'L');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'o');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'r');
+
+  memset(backing, 0, sizeof(backing));
+  port = qsport_make_c(machine, QSPORT_CHARP, backing, sizeof(backing), 1, 0);
+  ck_assert(qsport_p(machine, port));
+  b = qsport_write_u8(machine, port, 'l');
+  ck_assert(b);
+  b = qsport_write_u8(machine, port, 'o');
+  b = qsport_write_u8(machine, port, 'r');
+  b = qsport_write_u8(machine, port, 'e');
+  b = qsport_write_u8(machine, port, 'm');
+  n = qsport_tell(machine, port);
+  ck_assert_int_eq(n, 5);
+  ck_assert_str_eq(backing, "lorem");
+
+  b = qsport_seek(machine, port, 0);
+  ck_assert(b);
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'l');
+
+  /* TODO: read-write */
+
+
+  /* Port.bytevec */
+  qsptr bv = qsbytevec_make(machine, 100, 0);
+  port = qsport_make(machine, QSPORT_BYTEVEC, bv, 1, 0);
+  ck_assert(qsport_p(machine, port));
+  b = qsport_write_u8(machine, port, 'd');
+  b = qsport_write_u8(machine, port, 'o');
+  b = qsport_write_u8(machine, port, 'l');
+  b = qsport_write_u8(machine, port, 'o');
+  b = qsport_write_u8(machine, port, 'r');
+  b = qsport_write_u8(machine, port, ' ');
+  b = qsport_write_u8(machine, port, 's');
+  b = qsport_write_u8(machine, port, 'i');
+  b = qsport_write_u8(machine, port, 't');
+  n = qsport_tell(machine, port);
+  ck_assert_int_eq(n, 9);
+
+  b = qsbytevec_extract(machine, bv, &bytes, &n_bytes);
+  ck_assert(b);
+  ck_assert_str_eq(bytes, "dolor sit");
+
+  b = qsport_seek(machine, port, 0);
+  ck_assert(b);
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'd');
+
+  /* TODO: read. */
+
+
+  /* Port.cfile */
+  port = qsport_make_c(machine, QSPORT_CFILE, "read1.txt", 0, 0, 0);
+  if (! qsport_p(machine, port))
+    port = qsport_make_c(machine, QSPORT_CFILE, "tests/read1.txt", 0, 0, 0);
+  ck_assert(qsport_p(machine, port));
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'h');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'e');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'l');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'l');
+
+  n = qsport_tell(machine, port);
+  ck_assert_int_eq(n, 4);
+  b = qsport_seek(machine, port, 0);
+  ck_assert(b);
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'h');
+
+  /* TODO: write. */
+
+
+  /* Port.fd */
+  port = qsport_make_c(machine, QSPORT_FD, "read1.txt", 0, 0, 0);
+  if (! qsfd_p(machine, port))
+    port = qsport_make_c(machine, QSPORT_FD, "tests/read1.txt", 0, 0, 0);
+  ck_assert(qsport_p(machine, port));
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'h');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'e');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'l');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'l');
+
+  qsptr s1 = qsutf8_inject_charp(machine, "read1.txt");
+  qsptr s2 = qsutf8_inject_charp(machine, "tests/read1.txt");
+  port = qsport_make(machine, QSPORT_FD, s1, 0, 0);
+  if (! qsfd_p(machine, port))
+    port = qsport_make(machine, QSPORT_FD, s2, 0, 0);
+  ck_assert(qsport_p(machine, port));
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'h');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'e');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'l');
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'l');
+
+  n = qsport_tell(machine, port);
+  ck_assert_int_eq(n, 4);
+  b = qsport_seek(machine, port, 0);
+  ck_assert(b);
+  b = qsport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'h');
+
+  /* TODO: write */
 }
 END_TEST
 

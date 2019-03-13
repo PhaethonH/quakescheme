@@ -233,7 +233,14 @@ qsptr qsfd_open (qsmachine_t * mach, const char  * path, int flags, int mode)
 
 bool qsfd_p (const qsmachine_t * mach, qsptr p)
 {
-  return ISFD20(p);
+  if (ISFD20(p))
+    {
+      /* Ensure FD is valid. */
+      int fd = CFD20(p);
+      off_t res = lseek(fd, 0, SEEK_CUR);
+      return (res >= 0);
+    }
+  return false;
 }
 
 int qsfd_id (const qsmachine_t * mach, qsptr p)
@@ -251,6 +258,7 @@ bool qsfd_eof (const qsmachine_t * mach, qsptr p)
 
 int qsfd_read_u8 (const qsmachine_t * mach, qsptr p)
 {
+  if (! qsfd_p(mach, p)) return -1;
   uint8_t byte;
   int fd = qsfd_id(mach, p);
   ssize_t res = read(fd, &byte, 1);
@@ -262,10 +270,26 @@ int qsfd_read_u8 (const qsmachine_t * mach, qsptr p)
 
 bool qsfd_write_u8 (const qsmachine_t * mach, qsptr p, int byte)
 {
+  if (! qsfd_p(mach, p)) return false;
   uint8_t buf = (uint8_t)byte;
   int fd = qsfd_id(mach, p);
   ssize_t res = write(fd, &buf, 1);
   return (res > 0);
+}
+
+qsword qsfd_tell (const qsmachine_t * mach, qsptr p)
+{
+  if (! qsfd_p(mach, p)) return 0;
+  int fd = qsfd_id(mach, p);
+  return lseek(fd, 0, SEEK_CUR);
+}
+
+bool qsfd_seek (const qsmachine_t * mach, qsptr p, qsword pos)
+{
+  if (! qsfd_p(mach, p)) return 0;
+  int fd = qsfd_id(mach, p);
+  off_t res = lseek(fd, pos, SEEK_SET);
+  return (res >= 0);
 }
 
 bool qsfd_close (const qsmachine_t * mach, qsptr p)
@@ -2030,6 +2054,19 @@ bool qscharpport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
   return true;
 }
 
+qsword qscharpport_tell (qsmachine_t * mach, qsptr p)
+{
+  if (! qscharpport(mach, p)) return 0;
+  return qscport_get_pos(mach, p);
+}
+
+bool qscharpport_seek (qsmachine_t * mach, qsptr p, qsword pos)
+{
+  if (! qscharpport(mach, p)) return false;
+  qscport_set_pos(mach, p, pos);
+  return true;
+}
+
 bool qscharpport_close (qsmachine_t * mach, qsptr p)
 {
   if (! qscharpport(mach, p)) return false;
@@ -2112,6 +2149,19 @@ bool qsovport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
   return true;
 }
 
+qsword qsovport_tell (qsmachine_t * mach, qsptr p)
+{
+  if (! qsovport(mach, p)) return 0;
+  return qscport_get_pos(mach, p);
+}
+
+bool qsovport_seek (qsmachine_t * mach, qsptr p, qsword pos)
+{
+  if (! qsovport(mach, p)) return false;
+  qscport_set_pos(mach, p, pos);
+  return true;
+}
+
 bool qsovport_close (qsmachine_t * mach, qsptr p)
 {
   if (! qsovport(mach, p)) return false;
@@ -2163,13 +2213,19 @@ bool qsfport_p (qsmachine_t * mach, qsptr p)
   return (qsfport(mach, p) != NULL);
 }
 
+FILE * qsfport_get (qsmachine_t * mach, qsptr p)
+{
+  if (! qsfport(mach, p)) return NULL;
+  qsptr fptr = qscport_get_resource(mach, p);
+  if (! qscptr_p(mach, fptr)) return NULL;
+  FILE * f = (FILE*)(qscptr_get(mach, fptr));
+  return f;
+}
+
 bool qsfport_eof (qsmachine_t * mach, qsptr p)
 {
   int retval = -1;
-  if (! qsfport(mach, p)) return -1;
-  qsptr fptr = qscport_get_resource(mach, p);
-  if (! qscptr_p(mach, fptr)) return false;
-  FILE * f = (FILE*)(qscptr_get(mach, fptr));
+  FILE * f = qsfport_get(mach, p);
   if (! f) return false;
   return feof(f);
 }
@@ -2177,10 +2233,7 @@ bool qsfport_eof (qsmachine_t * mach, qsptr p)
 int qsfport_read_u8 (qsmachine_t * mach, qsptr p)
 {
   int retval = -1;
-  if (! qsfport(mach, p)) return -1;
-  qsptr fptr = qscport_get_resource(mach, p);
-  if (! qscptr_p(mach, fptr)) return -1;
-  FILE * f = (FILE*)(qscptr_get(mach, fptr));
+  FILE * f = qsfport_get(mach, p);
   if (! f) return -1;
   if (feof(f)) return -1;
   retval = fgetc(f);
@@ -2189,14 +2242,25 @@ int qsfport_read_u8 (qsmachine_t * mach, qsptr p)
 
 bool qsfport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
 {
-  if (! qsfport(mach, p)) return false;
-  if (! qscport_get_writeable(mach, p)) return false;
-  qsptr fptr = qscport_get_resource(mach, p);
-  if (! qscptr_p(mach, fptr)) return false;
-  FILE * f = (FILE*)(qscptr_get(mach, fptr));
+  FILE * f = qsfport_get(mach, p);
   if (! f) return false;
   int res = fputc(byte, f);
   return (res > 0);
+}
+
+qsword qsfport_tell (qsmachine_t * mach, qsptr p)
+{
+  FILE * f = qsfport_get(mach, p);
+  if (! f) return false;
+  return ftell(f);
+}
+
+bool qsfport_seek (qsmachine_t * mach, qsptr p, qsword pos)
+{
+  FILE * f = qsfport_get(mach, p);
+  if (! f) return false;
+  int newpos = fseek(f, pos, SEEK_SET);
+  return (newpos == pos);
 }
 
 bool qsfport_close (qsmachine_t * mach, qsptr p)
@@ -2217,6 +2281,154 @@ bool qsfport_close (qsmachine_t * mach, qsptr p)
   return true;
 }
 
+
+/* Overall Port wrapper. */
+qsptr qsport_make_c (qsmachine_t * mach, qsptr variant, const uint8_t * spec, int speclen, bool writeable, bool appending)
+{
+  qsptr retval = QSERR_FAULT;
+  switch (variant)
+    {
+    case QSPORT_FD:
+	{
+	  if (spec)
+	    {
+	      int flags = O_RDONLY;
+	      if (writeable) flags = O_RDWR | O_CREAT;
+	      if (appending) flags |= O_WRONLY;
+	      int mode = 0600;  /* Default permissions on create. */
+	      retval = qsfd_open(mach, spec, flags, 0600);
+	      if (appending)
+		{
+		  int fd = qsfd_id(mach, retval);
+		  lseek(fd, 0, SEEK_END);
+		}
+	    }
+	  else
+	    {
+	      /* take fd as-is from speclen */
+	      retval = qsfd_make(mach, speclen);
+	    }
+	}
+      break;
+    case QSPORT_CFILE:
+	{
+	  const char * cmode = "r";
+	  if (writeable) cmode = "w+";
+	  if (appending) cmode = "a";
+	  retval = qsfport_make(mach, spec, cmode);
+	}
+      break;
+    case QSPORT_CHARP:
+	{
+	  if (speclen == 0)
+	    speclen = strlen(spec) + 1;
+	  uint8_t * spec_rw = (uint8_t*)spec;
+	  retval = qscharpport_make(mach, spec_rw, speclen);
+	  if (writeable) qscport_set_writeable(mach, retval, true);
+	}
+      break;
+    default:
+      break;
+    }
+  return retval;
+}
+
+qsptr qsport_make (qsmachine_t * mach, qsptr variant, qsptr path, bool writeable, bool appending)
+{
+  qsptr retval = QSERR_FAULT;
+  switch (variant)
+    {
+    case QSPORT_FD:
+	{
+	  if (qsutf8_p(mach, path))
+	    {
+	      const char * s = NULL;
+	      const qsovec_t * st = qsutf8_const(mach, path);
+	      if (! st) return QSERR_FAULT;
+	      s = st->elt;
+	      retval = qsport_make_c(mach, variant, s, 0, writeable, appending);
+	    }
+	  else if (qsint_p(mach, path))
+	    {
+	      retval = qsfd_make(mach, CINT30(path));
+	    }
+	  else if (qsfd_p(mach, path))
+	    {
+	      retval = path;
+	    }
+	}
+      break;
+    case QSPORT_BYTEVEC:
+      retval = qsovport_make(mach, path);
+      if (writeable) qscport_set_writeable(mach, retval, 1);
+      /* TODO: append. */
+      break;
+    case QSPORT_CFILE:
+	{
+	  const char * s = NULL;
+	  const qsovec_t * st = qsutf8_const(mach, path);
+	  if (! st) return QSERR_FAULT;
+	  s = st->elt;
+	  retval = qsport_make_c(mach, variant, s, 0, writeable, appending);
+	}
+      break;
+    default:
+      break;
+    }
+  return retval;
+}
+
+bool qsport_p (qsmachine_t * mach, qsptr p)
+{
+  if (qsfd_p(mach, p)) return true; /* TODO: check still open. */
+  if (! qscport_p(mach, p)) return false;
+  return true;
+}
+
+bool qsport_eof (qsmachine_t * mach, qsptr p)
+{
+  if (qsfd_p(mach, p)) return qsfd_eof(mach, p);
+  if (qsfport_p(mach, p)) return qsfport_eof(mach, p);
+  if (qsovport_p(mach, p)) return qsovport_eof(mach, p);
+  if (qscharpport_p(mach, p)) return qscharpport_eof(mach, p);
+  return true; /* not a port => eof. */
+}
+
+int qsport_read_u8 (qsmachine_t * mach, qsptr p)
+{
+  if (qsfd_p(mach, p)) return qsfd_read_u8(mach, p);
+  if (qsfport_p(mach, p)) return qsfport_read_u8(mach, p);
+  if (qsovport_p(mach, p)) return qsovport_read_u8(mach, p);
+  if (qscharpport_p(mach, p)) return qscharpport_read_u8(mach, p);
+  return -1;
+}
+
+bool qsport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
+{
+  if (qsfd_p(mach, p)) return qsfd_write_u8(mach, p, byte);
+  if (qsfport_p(mach, p)) return qsfport_write_u8(mach, p, byte);
+  if (qsovport_p(mach, p)) return qsovport_write_u8(mach, p, byte);
+  if (qscharpport_p(mach, p)) return qscharpport_write_u8(mach, p, byte);
+  return -1;
+}
+
+qsword qsport_tell (qsmachine_t * mach, qsptr p)
+{
+  if (qsfd_p(mach, p)) return qsfd_tell(mach, p);
+  if (qsfport_p(mach, p)) return qsfport_tell(mach, p);
+  if (qsovport_p(mach, p)) return qsovport_tell(mach, p);
+  if (qscharpport_p(mach, p)) return qscharpport_tell(mach, p);
+  return 0;
+}
+
+bool qsport_seek (qsmachine_t * mach, qsptr p, qsword pos)
+{
+  if (qsfd_p(mach, p)) return qsfd_seek(mach, p, pos);
+  if (qsfport_p(mach, p)) return qsfport_seek(mach, p, pos);
+  if (qsovport_p(mach, p)) return qsovport_seek(mach, p, pos);
+  if (qscharpport_p(mach, p)) return qscharpport_seek(mach, p, pos);
+  return false;
+}
 
 
 

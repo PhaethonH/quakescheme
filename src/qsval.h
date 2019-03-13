@@ -231,8 +231,21 @@ bool qsfport_eof (qsmachine_t *, qsptr p);
 FILE * qsfport_get (qsmachine_t *, qsptr p);
 int qsfport_read_u8 (qsmachine_t *, qsptr p);
 bool qsfport_write_u8 (qsmachine_t *, qsptr p, int byte);
+qsword qsfport_tell (qsmachine_t *, qsptr p);
+bool qsfport_seek (qsmachine_t *, qsptr p, qsword pos);
 bool qsfport_close (qsmachine_t *, qsptr p);
 int qsfport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+
+/* Overall Port wrapper. */
+qsptr qsport_make (qsmachine_t *, qsptr variant, qsptr path, bool writeable, bool appending);
+qsptr qsport_make_c (qsmachine_t *, qsptr variant, const uint8_t * spec, int speclen, bool writeable, bool appending);
+bool qsport_p (qsmachine_t *, qsptr p);
+bool qsport_eof (qsmachine_t *, qsptr p);
+int qsport_read_u8 (qsmachine_t *, qsptr p);
+bool qsport_write_u8 (qsmachine_t *, qsptr p, int byte);
+qsword qsport_tell (qsmachine_t *, qsptr p);
+bool qsport_seek (qsmachine_t *, qsptr p, qsword pos);
+bool qsport_close (qsmachine_t *, qsptr p);
 
 
 /* the iterator type allows for iterating both pairs and arrays as a list.
