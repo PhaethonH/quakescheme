@@ -61,9 +61,9 @@ START_TEST(test_atomeval1)
   ck_assert_int_eq(p, QSINT(5));
 
   /* Evaluate variable. */
-  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
+  qsptr y_x = qssymbol_intern_c(machine, "x");
   E = qsenv_make(machine, QSNIL);
-  E = qsenv_insert(machine, E, qssymbol_sym(machine, y_x), QSINT(7));
+  E = qsenv_insert(machine, E, qsname_sym(machine, y_x), QSINT(7));
   machine->E = E;
   p = qsmachine_eval_atomic(machine, y_x);
   ck_assert_int_eq(p, QSINT(7));
@@ -101,10 +101,10 @@ START_TEST(test_step1)
   ck_assert(machine->halt);
 
   /* Evaluate variable. */
-  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
+  qsptr y_x = qssymbol_intern_c(machine, "x");
   C = y_x;
   E = qsenv_make(machine, QSNIL);
-  E = qsenv_insert(machine, E, qssymbol_sym(machine, y_x), QSINT(7));
+  E = qsenv_insert(machine, E, qsname_sym(machine, y_x), QSINT(7));
   K = QSNIL;
   qsmachine_load(machine, C, E, K);
   qsmachine_step(machine);
@@ -143,14 +143,14 @@ START_TEST(test_step2)
   qsptr p, exp;
   int res;
 
-  qsptr y_if = qssymbol_sym(machine, qssymbol_intern_c(machine, "if"));
-  qsptr y_let = qssymbol_sym(machine, qssymbol_intern_c(machine, "let"));
-  qsptr y_letrec = qssymbol_sym(machine, qssymbol_intern_c(machine, "letrec"));
-  qsptr y_setq = qssymbol_sym(machine, qssymbol_intern_c(machine, "set!"));
-  qsptr y_callcc = qssymbol_sym(machine, qssymbol_intern_c(machine, "call/cc"));
-  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
-  qsptr y_y = qssymbol_sym(machine, qssymbol_intern_c(machine, "y"));
-  qsptr y_z = qssymbol_sym(machine, qssymbol_intern_c(machine, "z"));
+  qsptr y_if = qssymbol_intern_c(machine, "if");
+  qsptr y_let = qssymbol_intern_c(machine, "let");
+  qsptr y_letrec = qssymbol_intern_c(machine, "letrec");
+  qsptr y_setq = qssymbol_intern_c(machine, "set!");
+  qsptr y_callcc = qssymbol_intern_c(machine, "call/cc");
+  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr y_y = qssymbol_intern_c(machine, "y");
+  qsptr y_z = qssymbol_intern_c(machine, "z");
 
   /* Conditional. */
   exp = qspair_make(machine, y_if,

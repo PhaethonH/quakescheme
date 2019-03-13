@@ -52,6 +52,7 @@ qsptr qssym_make (qsmachine_t *, qsword sym_id);
 qsword qssym_id (const qsmachine_t *, qsptr p);
 bool qssym_p (const qsmachine_t *, qsptr p);
 qsptr qssym_symbol (const qsmachine_t *, qsptr p);
+qsptr qssym_name (const qsmachine_t *, qsptr p);
 int qssym_crepr (qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qspair_make (qsmachine_t *, qsptr a, qsptr d);
@@ -112,18 +113,17 @@ int qsdouble_fetch (const qsmachine_t *, qsptr p, double * out);
 int qsdouble_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 /* symbol object links symbol id (qsint) to symbol name (qsstring) */
-//qsptr qssymbol_make (qsmachine_t *, qsptr name);
-qsptr qssymbol_bless (qsmachine_t *, qsptr s);
-qsptr qssymbol_find_c (qsmachine_t *, const char * cstr);
-qsptr qssymbol_intern_c (qsmachine_t *, const char * cstr);
-const char  * qssymbol_name (const qsmachine_t *, qsptr p);
-bool qssymbol_p (const qsmachine_t *, qsptr p);
+qsptr qsname_make (qsmachine_t *, qsword namelen);
+qsptr qsname_bless (qsmachine_t *, qsptr s);
+qsptr qsname_inject (qsmachine_t *, const char * cstr);
+const char * qsname_get (const qsmachine_t *, qsptr p);
+bool qsname_p (const qsmachine_t *, qsptr p);
 /* get Qssym pointer from Qssymbol object. */
-qsptr qssymbol_sym (const qsmachine_t *, qsptr p);
-qsword qssymbol_length (const qsmachine_t *, qsptr p);
-int qssymbol_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
-int qssymbol_strcmp (const qsmachine_t *, qsptr x, const char * s);
-qscmp_t qssymbol_cmp (const qsmachine_t *, qsptr x, qsptr y);
+qsptr qsname_sym (const qsmachine_t *, qsptr p);
+qsword qsname_length (const qsmachine_t *, qsptr p);
+int qsname_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+int qsname_strcmp (const qsmachine_t *, qsptr x, const char * s);
+qscmp_t qsname_cmp (const qsmachine_t *, qsptr x, qsptr y);
 
 /*
 Strings have multiple implementations for different purposes:
@@ -183,6 +183,18 @@ bool qsiter_p (const qsmachine_t *, qsptr p);
 qsptr qsiter_head (const qsmachine_t *, qsptr p);
 qsptr qsiter_tail (const qsmachine_t *, qsptr p);
 int qsiter_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+
+bool qssymbol_p (const qsmachine_t *, qsptr p);
+/* convert string object to interned symbol; returns QsSym pointer. */
+qsptr qssymbol_bless (qsmachine_t *, qsptr s);
+/* intern name object into symbol table; returns QsSym pointer. */
+qsptr qssymbol_intern (qsmachine_t *, qsptr p);
+/* intern symbol name from C string; returns QsSym pointer. */
+qsptr qssymbol_intern_c (qsmachine_t *, const char * cstr);
+/* gets symbol name from QsName or QsSym. */
+const char * qssymbol_get (const qsmachine_t *, qsptr p);
+int qssymbol_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+qscmp_t qssymbol_cmp (const qsmachine_t *, qsptr x, qsptr y);
 
 /* Generalized stringification. */
 int qsptr_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);

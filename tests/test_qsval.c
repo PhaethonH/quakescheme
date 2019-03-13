@@ -552,28 +552,31 @@ START_TEST(test_symbols)
   /* symbols (names). */
   ck_assert_int_eq(machine->Y, QSNIL);
 
-  p = qssymbol_intern_c(machine, "foobar");
-  ck_assert(qssymbol_p(machine, p));
-  n = qssymbol_crepr(machine, p, buf, sizeof(buf));
+  p = qsname_inject(machine, "foobar");
+  ck_assert(qsname_p(machine, p));
+  n = qsname_crepr(machine, p, buf, sizeof(buf));
   ck_assert_str_eq(buf, "foobar");
+  p = qssymbol_intern(machine, p);
 
   ck_assert_int_ne(machine->Y, QSNIL);
 
   /* check intern returns the same object instance. */
   q = qssymbol_intern_c(machine, "foobar");
-  ck_assert(qssymbol_p(machine, q));
+  ck_assert(qssym_p(machine, q));
   ck_assert_int_eq(q, p);
 
   qsptr_crepr(machine, q, buf, sizeof(buf));
   ck_assert_str_eq(buf, "foobar");
 
   /* populate with useless symbols. */
-  qssymbol_intern_c(machine, "foo");
-  qssymbol_intern_c(machine, "bar");
-  p = qssymbol_intern_c(machine, "baz");
-  qssymbol_intern_c(machine, "quux");
+  qssymbol_intern(machine, qsname_inject(machine, "foo"));
+  qssymbol_intern(machine, qsname_inject(machine, "bar"));
+  p = qsname_inject(machine, "baz");
+  p = qssymbol_intern(machine, p);
+  qssymbol_intern(machine, qsname_inject(machine, "quux"));
 
   q = qssymbol_intern_c(machine, "baz");
+  qssymbol_intern(machine, q);
   ck_assert_int_eq(q, p);
 }
 END_TEST
@@ -592,10 +595,10 @@ START_TEST(test_envs)
   /* ( (foo . 1) (bar . 2) (baz . 3) ) */
   qsptr env = qsenv_make(machine, QSNIL);
 
-  qsptr y_foo = qssymbol_sym(machine, qssymbol_intern_c(machine, "foo"));
-  qsptr y_bar = qssymbol_sym(machine, qssymbol_intern_c(machine, "bar"));
-  qsptr y_baz = qssymbol_sym(machine, qssymbol_intern_c(machine, "baz"));
-  qsptr y_quux = qssymbol_sym(machine, qssymbol_intern_c(machine, "quux"));
+  qsptr y_foo = qssymbol_intern_c(machine, "foo");
+  qsptr y_bar = qssymbol_intern_c(machine, "bar");
+  qsptr y_baz = qssymbol_intern_c(machine, "baz");
+  qsptr y_quux = qssymbol_intern_c(machine, "quux");
 
   env = qsenv_insert(machine, env, y_foo, QSINT(1));
   ck_assert_int_ne(env, QSNIL);
@@ -648,7 +651,7 @@ START_TEST(test_lambdas)
   /* lambas. */
 
   /* (lambda (x) x) */
-  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
+  qsptr y_x = qssymbol_intern_c(machine, "x");
 
   qsptr param = qspair_make(machine, y_x, QSNIL);
   qsptr body = y_x;
@@ -666,8 +669,8 @@ START_TEST(test_lambdas)
   ck_assert_str_eq(buf, "(lambda (x) x)");
 
   /* (lambda (x y) (+ x y) */
-  qsptr y_y = qssymbol_sym(machine, qssymbol_intern_c(machine, "y"));
-  qsptr y_plus = qssymbol_sym(machine, qssymbol_intern_c(machine, "+"));
+  qsptr y_y = qssymbol_intern_c(machine, "y");
+  qsptr y_plus = qssymbol_intern_c(machine, "+");
 }
 END_TEST
 
@@ -683,7 +686,7 @@ START_TEST(test_closures)
   /* closures. */
 
   /* (lambda (x) x) */
-  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
+  qsptr y_x = qssymbol_intern_c(machine, "x");
   qsptr param = qspair_make(machine, y_x, QSNIL);
   qsptr body = y_x;
   qsptr lam = qslambda_make(machine, param, body);
@@ -709,7 +712,7 @@ START_TEST(test_konts)
   /* kontinuations. */
 
   /* (make-continuation () x () ()) */
-  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
+  qsptr y_x = qssymbol_intern_c(machine, "x");
   qsptr k = qskont_make(machine, QSNIL, y_x, QSNIL, QSNIL);
 
   p = qskont_ref_v(machine, k);

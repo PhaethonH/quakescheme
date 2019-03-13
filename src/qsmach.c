@@ -101,7 +101,7 @@ int qsmachine_applykont (qsmachine_t * mach, qsptr k, qsptr value)
     {
       qsptr k_v, k_c, k_e, k_k;
       qskont_fetch(mach, k, &k_v, &k_c, &k_e, &k_k);
-      if (qssym_p(mach, k_v) || qssymbol_p(mach, k_v))
+      if (qssym_p(mach, k_v) || qsname_p(mach, k_v))
 	{
 	  /* assigned to variable in environment. */
 	  if (qssym_p(mach, k_v)) k_v = qssym_symbol(mach, k_v);
@@ -141,11 +141,11 @@ qsptr qsmachine_eval_atomic (qsmachine_t * mach, qsptr arg)
       /* lambda => closure. */
       retval = qsclosure_make(mach, arg, mach->E);
     }
-  else if (qssymbol_p(mach,arg) || qssym_p(mach,arg))
+  else if (qsname_p(mach,arg) || qssym_p(mach,arg))
     {
       /* variable => look up in environment. */
       qsptr variable = arg;
-      if (qssymbol_p(mach, variable)) variable = qssymbol_sym(mach, variable);
+      if (qsname_p(mach, variable)) variable = qsname_sym(mach, variable);
       retval = qsenv_lookup(mach, mach->E, variable);
     }
   else
@@ -166,7 +166,7 @@ int qsmachine_step (qsmachine_t * mach)
       qsptr args = CDR(C);
       const char * headname = NULL;
       if (qssym_p(mach,head)) head = qssym_symbol(mach, head);
-      if (qssymbol_p(mach, head)) headname = qssymbol_name(mach, head);
+      if (qsname_p(mach, head)) headname = qsname_get(mach, head);
       if (!headname) headname = "";
       if (0 == strcmp(headname, "if"))
 	{
@@ -323,15 +323,15 @@ bool _qssymstore_find_cmp_utf8s (const qsmachine_t * mach, qsptr probe, void * c
 {
   /* bypass warning about casting 64b pointer to 32b int. */
   qsptr utf8s = (qsptr)(uintptr_t)(criterion);
-  return (QSCMP_EQ == qssymbol_cmp(mach, probe, utf8s));
+  return (QSCMP_EQ == qsname_cmp(mach, probe, utf8s));
 }
 
 bool _qssymstore_find_cmp_str (const qsmachine_t * mach, qsptr probe, void * criterion)
 {
-  return (0 == qssymbol_strcmp(mach, probe, (const char *)criterion));
+  return (0 == qsname_strcmp(mach, probe, (const char *)criterion));
 }
 
-qsptr _qssymstore_find (const qsmachine_t * mach, void * criterion, bool (*cmp)(const qsmachine_t *, qsptr, void *))
+qsptr _qssymstore_find (const qsmachine_t * mach, void * criterion, bool (*eq)(const qsmachine_t *, qsptr, void *))
 {
   qsptr symstore = mach->Y;
   if (ISNIL(symstore)) return QSNIL;
@@ -340,11 +340,12 @@ qsptr _qssymstore_find (const qsmachine_t * mach, void * criterion, bool (*cmp)(
   while (ISITER28(symiter))
     {
       probe = qsiter_head(mach, symiter);
-      if (qssymbol_p(mach, probe))
+      if (qsname_p(mach, probe))
 	{
-	  if (cmp(mach, probe, criterion))
+	  if (eq(mach, probe, criterion))
 	    {
-	      return probe;
+	      qsptr retval = qsname_sym(mach, probe);
+	      return retval;
 	    }
 	}
       symiter = qsiter_tail(mach, symiter);
