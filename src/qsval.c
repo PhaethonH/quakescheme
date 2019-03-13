@@ -1406,6 +1406,15 @@ qsword qsbytevec_length (const qsmachine_t * mach, qsptr p)
   return CINT30(ovec->length);
 }
 
+bool qsbytevec_extract (const qsmachine_t * mach, qsptr p, const uint8_t ** out_uint8ptr, qsword * out_size)
+{
+  const qsovec_t * ovec = qsovec_const(mach, p);
+  if (! ovec) return false;
+  if (out_uint8ptr) *out_uint8ptr = ovec->elt;
+  if (out_size) *out_size = CINT30(ovec->length);
+  return true;
+}
+
 qsbyte qsbytevec_ref (const qsmachine_t * mach, qsptr p, qsword k)
 {
   const qsovec_t * ovec = qsovec_const(mach, p);
@@ -1773,6 +1782,7 @@ qspvec_t * qscport (qsmachine_t * mach, qsptr p)
   if (! port) return NULL;
   switch (port->length)
     {
+    case QSPORT_BYTEVEC:
     case QSPORT_CHARP:
       return port;
     default:
@@ -1965,6 +1975,87 @@ bool qscharpport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
 bool qscharpport_close (qsmachine_t * mach, qsptr p)
 {
   if (! qscharpport(mach, p)) return false;
+  qscport_set_max(mach, p, 0);
+  qscport_set_pos(mach, p, 0);
+  qscport_set_resource(mach, p, QSNIL);  /* unlink resource. */
+  qscport_set_pathspec(mach, p, QSNIL);
+  qscport_set_writeable(mach, p, false);
+  /* then wait for garbage collection. */
+  return true;
+}
+
+
+/* OctetVector Port:
+   port reading from Scheme bytevec.
+   writing to Scheme bytevec.
+ */
+
+qspvec_t * qsovport (qsmachine_t * mach, qsptr p)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return NULL;
+  if (port->length != QSPORT_BYTEVEC) return NULL;
+  return port;
+}
+
+qsptr qsovport_make (qsmachine_t * mach, qsptr bv)
+{
+  qsptr variant = QSPORT_BYTEVEC;
+  bool writeable = false;
+  qsptr pathspec = QSNIL;
+
+  if (! qsbytevec_p(mach, bv)) return QSERR_FAULT;
+  qsptr p = qscport_make(mach, variant, pathspec, writeable, bv);
+  qscport_set_max(mach, p, qsbytevec_length(mach, bv));
+  return p;
+}
+
+bool qsovport_p (qsmachine_t * mach, qsptr p)
+{
+  return (qsovport(mach, p) != NULL);
+}
+
+bool qsovport_get_writeable (qsmachine_t * mach, qsptr p)
+{
+  return qscport_get_writeable(mach, p);
+}
+
+qsptr qsovport_set_writeable (qsmachine_t * mach, qsptr p, bool val)
+{
+  return qscport_set_writeable(mach, p, val);
+}
+
+int qsovport_read_u8 (qsmachine_t * mach, qsptr p)
+{
+  int retval = -1;
+  if (! qsovport(mach, p)) return -1;
+  int pos = qscport_get_pos(mach, p);
+  int max = qscport_get_max(mach, p);
+  qsptr bv = qscport_get_resource(mach, p);
+  if (pos >= max) return -1;
+  if (pos < 0) return -1;
+  retval = qsbytevec_ref(mach, bv, pos);
+  return retval;
+}
+
+bool qsovport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
+{
+  if (! qsovport(mach, p)) return false;
+  int pos = qscport_get_pos(mach, p);
+  int max = qscport_get_max(mach, p);
+  qsptr bv = qscport_get_resource(mach, p);
+  if (pos >= max) return false;
+  if (pos < 0) return false;
+  /* TODO: expand. */
+  qsbytevec_setq(mach, bv, pos, byte);
+  ++pos;
+  qscport_set_pos(mach, p, pos);
+  return true;
+}
+
+bool qsovport_close (qsmachine_t * mach, qsptr p)
+{
+  if (! qsovport(mach, p)) return false;
   qscport_set_max(mach, p, 0);
   qscport_set_pos(mach, p, 0);
   qscport_set_resource(mach, p, QSNIL);  /* unlink resource. */

@@ -749,6 +749,31 @@ START_TEST(test_ports)
   ck_assert_int_eq(b, 'r');
   b = qscharpport_read_u8(machine, port);
   ck_assert_int_eq(b, -1);
+
+  /* bytevector port. */
+  p = qsbytevec_make(machine, 6, 0);
+  ck_assert(qsbytevec_p(machine, p));
+  port = qsovport_make(machine, p);
+  qsovport_set_writeable(machine, port, true);
+  b = qsovport_write_u8(machine, port, 'S');
+  ck_assert(b);
+  b = qsovport_write_u8(machine, port, 'c');
+  b = qsovport_write_u8(machine, port, 'h');
+  b = qsovport_write_u8(machine, port, 'e');
+  b = qsovport_write_u8(machine, port, 'm');
+  b = qsovport_write_u8(machine, port, 'e');
+  ck_assert(b);
+  b = qsovport_write_u8(machine, port, 'r');
+  ck_assert(! b);
+  const uint8_t * bytes;
+  qsword n_bytes;
+  qsptr ov = qscport_get_resource(machine, port);
+  ck_assert_int_eq(p, ov);
+  qsbytevec_extract(machine, ov, &bytes, &n_bytes);
+  ck_assert_int_eq(n_bytes, 6);
+  memcpy(buf, bytes, n_bytes);
+  buf[n_bytes] = 0;
+  ck_assert_str_eq(buf, "Scheme");
 }
 END_TEST
 

@@ -144,6 +144,7 @@ int qsutf8_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 qsptr qsbytevec_make (qsmachine_t *, qsword len, qsbyte fill);
 bool qsbytevec_p (const qsmachine_t *, qsptr p);
 qsword qsbytevec_length (const qsmachine_t *, qsptr p);
+bool qsbytevec_extract (const qsmachine_t *, qsptr p, const uint8_t ** out_uint8ptr, qsword * out_size);
 qsbyte qsbytevec_ref (const qsmachine_t *, qsptr p, qsword k);
 qsptr qsbytevec_setq (qsmachine_t *, qsptr p, qsword k, qsbyte val);
 int qsbytevec_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
@@ -176,12 +177,18 @@ qsptr qsclosure_ref_env (const qsmachine_t *, qsptr p);
 int qsclosure_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 
-/* OctetVector (utf-8 string) ports. */
-qsptr qsovport_make (qsmachine_t *, qsptr s);
-int qsovport_read_u8 (qsmachine_t *, qsptr p);
-bool qsovport_write_u8 (qsmachine_t *, qsptr p, int byte);
-qsptr qsovport_close (qsmachine_t *);
-int qsovport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+/* Heavy Port (ports that have to track their own state inside Scheme) */
+qsptr qscport_make (qsmachine_t * mach, qsptr variant, qsptr pathspec, bool writeable, qsptr host_resource);
+bool qscport_get_writeable (qsmachine_t * mach, qsptr p);
+qsptr qscport_get_pathspec (qsmachine_t * mach, qsptr p);
+int qscport_get_pos (qsmachine_t * mach, qsptr p);
+int qscport_get_max (qsmachine_t * mach, qsptr p);
+qsptr qscport_get_resource (qsmachine_t * mach, qsptr p);
+qsptr qscport_set_writeable (qsmachine_t * mach, qsptr p, bool val);
+qsptr qscport_set_pathspec (qsmachine_t * mach, qsptr p, qsptr val);
+qsptr qscport_set_pos (qsmachine_t * mach, qsptr p, int pos);
+qsptr qscport_set_max (qsmachine_t * mach, qsptr p, int max);
+qsptr qscport_set_resource (qsmachine_t * mach, qsptr p, qsptr val);
 
 /* C Character Pointer (String) ports. */
 qsptr qscharpport_make (qsmachine_t *, uint8_t * buf, int buflen);
@@ -192,6 +199,16 @@ int qscharpport_read_u8 (qsmachine_t *, qsptr p);
 bool qscharpport_write_u8 (qsmachine_t *, qsptr p, int byte);
 bool qscharpport_close (qsmachine_t *, qsptr p);
 int qscharpport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+
+/* OctetVector (utf-8 string) ports. */
+qsptr qsovport_make (qsmachine_t *, qsptr s);
+bool qsovport_p (qsmachine_t *, qsptr s);
+bool qsovport_get_writeable (qsmachine_t *, qsptr p);
+qsptr qsovport_set_writeable (qsmachine_t *, qsptr p, bool val);
+int qsovport_read_u8 (qsmachine_t *, qsptr p);
+bool qsovport_write_u8 (qsmachine_t *, qsptr p, int byte);
+bool qsovport_close (qsmachine_t *, qsptr p);
+int qsovport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 
 /* the iterator type allows for iterating both pairs and arrays as a list.
