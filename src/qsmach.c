@@ -32,6 +32,13 @@ qsstore_t * qsmachine_get_store (qsmachine_t * mach)
   return &(mach->S);
 }
 
+int qsmachine_display (qsmachine_t * mach, qsptr p)
+{
+  char buf[1024];
+  qsptr_crepr(mach, p, buf, sizeof(buf));
+  puts(buf);
+}
+
 int qsmachine_eval_lambda (qsmachine_t * mach)
 {
   qsptr args = CDR(mach->C);
@@ -57,8 +64,8 @@ int qsmachine_applyproc (qsmachine_t * mach, qsptr proc, qsptr values)
       qsptr lam = qsclosure_ref_lam(mach, proc);
       qsptr param = qslambda_ref_param(mach, lam);
       qsptr body = qslambda_ref_body(mach, lam);
-      qsptr paramiter = qspair_p(mach, param) ? qspair_iter(mach, param) : param;
-      qsptr argiter = qspair_p(mach, values) ? qspair_iter(mach, values) : values;
+      qsptr paramiter = qsiter_begin(mach, param);
+      qsptr argiter = qsiter_begin(mach, values);
       while (ISITER28(paramiter) && ISITER28(argiter))
 	{
 	  qsptr formal = qsiter_head(mach, paramiter);
@@ -158,7 +165,7 @@ int qsmachine_step (qsmachine_t * mach)
       qsptr head = CAR(C);
       qsptr args = CDR(C);
       const char * headname = NULL;
-      if (qssym_p(mach,head)) head = qssym_symbol(mach,C);
+      if (qssym_p(mach,head)) head = qssym_symbol(mach, head);
       if (qssymbol_p(mach, head)) headname = qssymbol_name(mach, head);
       if (!headname) headname = "";
       if (0 == strcmp(headname, "if"))
@@ -195,7 +202,7 @@ int qsmachine_step (qsmachine_t * mach)
 	  qsptr frame = qsenv_make(mach, mach->E);
 	  qsptr bindings = CAR(args);
 	  qsptr body = CAR(CDR(args));
-	  qsptr binditer = qspair_p(mach, bindings) ? qspair_iter(mach, bindings) : bindings;
+	  qsptr binditer = qsiter_begin(mach, bindings);
 	  while (ISITER28(binditer))
 	    {
 	      qsptr bind = qsiter_head(mach, binditer);
@@ -203,7 +210,6 @@ int qsmachine_step (qsmachine_t * mach)
 	      qsptr aexp = CAR(CDR(bind));
 	      qsptr value = qsmachine_eval_atomic(mach, aexp);
 	      frame = qsenv_insert(mach, frame, variable, value);
-
 	      binditer = qsiter_tail(mach, binditer);
 	    }
 	  mach->C = body;
@@ -234,8 +240,8 @@ int qsmachine_step (qsmachine_t * mach)
 	    {
 	      /* evaluate individual list members. */
 	      qsptr root = QSNIL, build = QSNIL;
-	      qsptr curr = (qspair_p(mach,C) ? qspair_iter(mach,C) : C);
-	      while (!ISNIL(curr))
+	      qsptr curr = qsiter_begin(mach, C);
+	      while (ISITER28(curr))
 		{
 		  qsptr aexp = qsiter_head(mach, C);
 		  qsptr a = qsmachine_eval_atomic(mach, aexp);
@@ -248,7 +254,7 @@ int qsmachine_step (qsmachine_t * mach)
 		      qspair_setq_tail(mach, build, next);
 		      build = next;
 		    }
-		  curr = qsiter_tail(mach, C);
+		  curr = qsiter_tail(mach, curr);
 		}
 	      mach->A = root;
 	    }

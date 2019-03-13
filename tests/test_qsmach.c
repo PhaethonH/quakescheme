@@ -61,7 +61,7 @@ START_TEST(test_atomeval1)
   ck_assert_int_eq(p, QSINT(5));
 
   /* Evaluate variable. */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
   E = qsenv_make(machine, QSNIL);
   E = qsenv_insert(machine, E, qssymbol_sym(machine, y_x), QSINT(7));
   machine->E = E;
@@ -101,7 +101,7 @@ START_TEST(test_step1)
   ck_assert(machine->halt);
 
   /* Evaluate variable. */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
   C = y_x;
   E = qsenv_make(machine, QSNIL);
   E = qsenv_insert(machine, E, qssymbol_sym(machine, y_x), QSINT(7));
@@ -143,14 +143,14 @@ START_TEST(test_step2)
   qsptr p, exp;
   int res;
 
-  qsptr y_if = qssymbol_intern_c(machine, "if");
-  qsptr y_let = qssymbol_intern_c(machine, "let");
-  qsptr y_letrec = qssymbol_intern_c(machine, "letrec");
-  qsptr y_setq = qssymbol_intern_c(machine, "set!");
-  qsptr y_callcc = qssymbol_intern_c(machine, "call/cc");
-  qsptr y_x = qssymbol_intern_c(machine, "x");
-  qsptr y_y = qssymbol_intern_c(machine, "y");
-  qsptr y_z = qssymbol_intern_c(machine, "z");
+  qsptr y_if = qssymbol_sym(machine, qssymbol_intern_c(machine, "if"));
+  qsptr y_let = qssymbol_sym(machine, qssymbol_intern_c(machine, "let"));
+  qsptr y_letrec = qssymbol_sym(machine, qssymbol_intern_c(machine, "letrec"));
+  qsptr y_setq = qssymbol_sym(machine, qssymbol_intern_c(machine, "set!"));
+  qsptr y_callcc = qssymbol_sym(machine, qssymbol_intern_c(machine, "call/cc"));
+  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
+  qsptr y_y = qssymbol_sym(machine, qssymbol_intern_c(machine, "y"));
+  qsptr y_z = qssymbol_sym(machine, qssymbol_intern_c(machine, "z"));
 
   /* Conditional. */
   exp = qspair_make(machine, y_if,
@@ -162,7 +162,11 @@ START_TEST(test_step2)
   K = QSNIL;
   qsmachine_load(machine, C, E, K);
   qsmachine_step(machine);  /* pick branch. */
+  qsptr_crepr(machine, machine->C, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "1");
   qsmachine_step(machine);  /* evaluate picked branch. */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "1");
   ck_assert_int_eq(machine->A, QSINT(1));
   ck_assert(machine->halt);
 
@@ -215,7 +219,8 @@ START_TEST(test_step2)
   ck_assert_int_eq(p, QSINT(38));
 
   /* Recursive Let. */
-  exp = qsarray_inject(machine,
+  qsptr lis;
+  lis = qsarray_inject(machine,
           y_letrec,
 	  QSBOL,
 	    QSBOL, y_x, QSINT(121), QSEOL,
@@ -224,6 +229,20 @@ START_TEST(test_step2)
 	  QSEOL,
 	  y_y,
 	QSEOL);
+  exp = qsiter_begin(machine, lis);
+  *buf = 0;
+  qsptr_crepr(machine, exp, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(letrec ((x 121) (y 122) (z 123)) y)");
+  C = exp;
+  E = QSNIL;
+  K = QSNIL;
+  qsmachine_load(machine, C, E, K);
+  qsmachine_step(machine);  /* prep env and C <- body. */
+  qsmachine_step(machine);  /* evaluate body. */
+  ck_assert(machine->halt);
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "122");
+  ck_assert_int_eq(machine->A, QSINT(122));
 
   /* First-class Continuation. */
 

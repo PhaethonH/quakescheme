@@ -1122,7 +1122,7 @@ int qsdouble_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
  */
 const qsovec_t * qssymbol_const (const qsmachine_t * mach, qsptr p)
 {
-  if (ISSYM26(p)) p = qssym_symbol(mach, p);
+//  if (ISSYM26(p)) p = qssym_symbol(mach, p);
   const qsovec_t * y = qsovec_const(mach, p);
   if (! y) return NULL;
   if (! ISCHAR24(y->length)) return NULL;
@@ -1131,7 +1131,7 @@ const qsovec_t * qssymbol_const (const qsmachine_t * mach, qsptr p)
 
 qsovec_t * qssymbol (qsmachine_t * mach, qsptr p)
 {
-  if (ISSYM26(p)) p = qssym_symbol(mach, p);
+//  if (ISSYM26(p)) p = qssym_symbol(mach, p);
   if (qssymbol_const(mach, p))
     {
       return (qsovec_t*)(qsovec(mach, p));
@@ -1209,6 +1209,7 @@ bool qssymbol_p (const qsmachine_t * mach, qsptr p)
 
 qsptr qssymbol_sym (const qsmachine_t * mach, qsptr p)
 {
+  if (ISSYM26(p)) return p;
   if (! qssymbol_const(mach, p)) return QSNIL;
   return QSSYM(COBJ26(p));
 }
@@ -1495,20 +1496,20 @@ qsptr qsenv_lookup (qsmachine_t * mach, qsptr env, qsptr variable)
   qsptr frameiter;
   qsptr binditer;
 
-  frameiter = env;
-  while (qspair_const(mach, frameiter))
+  frameiter = qsiter_begin(mach, env);
+  while (ISITER28(frameiter))
     {
-      qsptr binditer = qspair_ref_head(mach, frameiter);
-      while (qspair_const(mach, binditer))
+      qsptr binditer = qsiter_begin(mach, qsiter_head(mach, frameiter));
+      while (ISITER28(binditer))
 	{
-	  qsptr bind = qspair_ref_head(mach, binditer);
+	  qsptr bind = qsiter_head(mach, binditer);
 	  if (qspair_ref_head(mach, bind) == variable)
 	    {
 	      return qspair_ref_tail(mach, bind);
 	    }
-	  binditer = qspair_ref_tail(mach, binditer);
+	  binditer = qsiter_tail(mach, binditer);
 	}
-      frameiter = qspair_ref_tail(mach, frameiter);
+      frameiter = qsiter_tail(mach, frameiter);
     }
   return QSERR_UNBOUND;
 }
@@ -1793,6 +1794,23 @@ qsptr qsiter_make (const qsmachine_t * mach, qsaddr addr)
   return retval;
 }
 
+qsptr qsiter_begin (const qsmachine_t * mach, qsptr p)
+{
+  if (qsiter_p(mach, p))
+    {
+      return p;
+    }
+  else if (qspair_p(mach, p))
+    {
+      return qspair_iter(mach, p);
+    }
+  else if (qsarray_p(mach, p))
+    {
+      return qsarray_iter(mach, p);
+    }
+  return QSNIL;
+}
+
 bool qsiter_p (const qsmachine_t * mach, qsptr p)
 {
   return ISITER28(p);
@@ -1910,8 +1928,31 @@ qsptr qsiter_tail (const qsmachine_t * mach, qsptr p)
 
 int qsiter_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 {
-  return 0;
+  int n = 0;
+  if (! ISITER28(p)) return 0;
+  if (_qsiter_on_pair(mach, p, NULL))
+    {
+      n += qspair_crepr(mach, p, buf+n, buflen-n);
+    }
+  else
+    {
+      qsptr it = p;
+
+      n += qs_snprintf(buf+n, buflen-n, "(");
+      while (ISITER28(it))
+	{
+	  qsptr x = qsiter_head(mach, it);
+	  if (it != p)
+	    n += qs_snprintf(buf+n, buflen-n, " ");
+	  n += qsptr_crepr(mach, x, buf+n, buflen-n);
+	  it = qsiter_tail(mach, it);
+	}
+      n += qs_snprintf(buf+n, buflen-n, ")");
+    }
+  return n;
 }
+
+
 
 
 int qsptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
@@ -1943,6 +1984,10 @@ int qsptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
       else if (qsvector_p(mach, p))
 	{
 	  n += qsvector_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qsarray_p(mach, p))
+	{
+	  n += qsarray_crepr(mach, p, buf+n, buflen-n);
 	}
       else if (qsbytevec_p(mach, p))
 	{

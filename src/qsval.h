@@ -178,6 +178,7 @@ int qsclosure_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 /* the iterator type allows for iterating both pairs and arrays as a list.
 */
 qsptr qsiter_make (const qsmachine_t *, qsaddr addr);
+qsptr qsiter_begin (const qsmachine_t *, qsptr p);
 bool qsiter_p (const qsmachine_t *, qsptr p);
 qsptr qsiter_head (const qsmachine_t *, qsptr p);
 qsptr qsiter_tail (const qsmachine_t *, qsptr p);

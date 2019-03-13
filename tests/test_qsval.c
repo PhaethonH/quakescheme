@@ -592,10 +592,10 @@ START_TEST(test_envs)
   /* ( (foo . 1) (bar . 2) (baz . 3) ) */
   qsptr env = qsenv_make(machine, QSNIL);
 
-  qsptr y_foo = qssymbol_intern_c(machine, "foo");
-  qsptr y_bar = qssymbol_intern_c(machine, "bar");
-  qsptr y_baz = qssymbol_intern_c(machine, "baz");
-  qsptr y_quux = qssymbol_intern_c(machine, "quux");
+  qsptr y_foo = qssymbol_sym(machine, qssymbol_intern_c(machine, "foo"));
+  qsptr y_bar = qssymbol_sym(machine, qssymbol_intern_c(machine, "bar"));
+  qsptr y_baz = qssymbol_sym(machine, qssymbol_intern_c(machine, "baz"));
+  qsptr y_quux = qssymbol_sym(machine, qssymbol_intern_c(machine, "quux"));
 
   env = qsenv_insert(machine, env, y_foo, QSINT(1));
   ck_assert_int_ne(env, QSNIL);
@@ -648,7 +648,7 @@ START_TEST(test_lambdas)
   /* lambas. */
 
   /* (lambda (x) x) */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
 
   qsptr param = qspair_make(machine, y_x, QSNIL);
   qsptr body = y_x;
@@ -666,8 +666,8 @@ START_TEST(test_lambdas)
   ck_assert_str_eq(buf, "(lambda (x) x)");
 
   /* (lambda (x y) (+ x y) */
-  qsptr y_y = qssymbol_intern_c(machine, "y");
-  qsptr y_plus = qssymbol_intern_c(machine, "+");
+  qsptr y_y = qssymbol_sym(machine, qssymbol_intern_c(machine, "y"));
+  qsptr y_plus = qssymbol_sym(machine, qssymbol_intern_c(machine, "+"));
 }
 END_TEST
 
@@ -683,7 +683,7 @@ START_TEST(test_closures)
   /* closures. */
 
   /* (lambda (x) x) */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
   qsptr param = qspair_make(machine, y_x, QSNIL);
   qsptr body = y_x;
   qsptr lam = qslambda_make(machine, param, body);
@@ -709,7 +709,7 @@ START_TEST(test_konts)
   /* kontinuations. */
 
   /* (make-continuation () x () ()) */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr y_x = qssymbol_sym(machine, qssymbol_intern_c(machine, "x"));
   qsptr k = qskont_make(machine, QSNIL, y_x, QSNIL, QSNIL);
 
   p = qskont_ref_v(machine, k);
