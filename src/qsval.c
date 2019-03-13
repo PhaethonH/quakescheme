@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
 
 #include "qsval.h"
 #include "qsobj.h"
@@ -238,6 +239,14 @@ bool qsfd_p (const qsmachine_t * mach, qsptr p)
 int qsfd_id (const qsmachine_t * mach, qsptr p)
 {
   return CFD20(p);
+}
+
+bool qsfd_eof (const qsmachine_t * mach, qsptr p)
+{
+  /* FDs allows for dynamic/variable EOF.
+     For normal files, read() returns 0 on EOF.
+   */
+  return false;
 }
 
 int qsfd_read_u8 (const qsmachine_t * mach, qsptr p)
@@ -1978,6 +1987,15 @@ bool qscharpport_p (qsmachine_t * mach, qsptr p)
   return (qscharpport(mach, p) != NULL);
 }
 
+bool qscharpport_eof (qsmachine_t * mach, qsptr p)
+{
+  int retval = -1;
+  if (! qscharpport(mach, p)) return -1;
+  int pos = qscport_get_pos(mach, p);
+  int max = qscport_get_max(mach, p);
+  return (pos >= max);
+}
+
 int qscharpport_read_u8 (qsmachine_t * mach, qsptr p)
 {
   int retval = -1;
@@ -1998,6 +2016,7 @@ int qscharpport_read_u8 (qsmachine_t * mach, qsptr p)
 bool qscharpport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
 {
   if (! qscharpport(mach, p)) return false;
+  if (! qscport_get_writeable(mach, p)) return false;
   int pos = qscport_get_pos(mach, p);
   int max = qscport_get_max(mach, p);
   qsptr cptr = qscport_get_resource(mach, p);
@@ -2055,6 +2074,15 @@ bool qsovport_p (qsmachine_t * mach, qsptr p)
   return (qsovport(mach, p) != NULL);
 }
 
+bool qsovport_eof (qsmachine_t * mach, qsptr p)
+{
+  int retval = -1;
+  if (! qsovport(mach, p)) return -1;
+  int pos = qscport_get_pos(mach, p);
+  int max = qscport_get_max(mach, p);
+  return (pos >= max);
+}
+
 int qsovport_read_u8 (qsmachine_t * mach, qsptr p)
 {
   int retval = -1;
@@ -2071,6 +2099,7 @@ int qsovport_read_u8 (qsmachine_t * mach, qsptr p)
 bool qsovport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
 {
   if (! qsovport(mach, p)) return false;
+  if (! qscport_get_writeable(mach, p)) return false;
   int pos = qscport_get_pos(mach, p);
   int max = qscport_get_max(mach, p);
   qsptr bv = qscport_get_resource(mach, p);
@@ -2097,7 +2126,7 @@ bool qsovport_close (qsmachine_t * mach, qsptr p)
 
 
 /* Backed by Standard C File. */
-qspvec_t * qscfile (qsmachine_t * mach, qsptr p)
+qspvec_t * qsfport (qsmachine_t * mach, qsptr p)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return NULL;
@@ -2105,7 +2134,7 @@ qspvec_t * qscfile (qsmachine_t * mach, qsptr p)
   return port;
 }
 
-qsptr qscfile_make (qsmachine_t * mach, const char * path, const char * mode)
+qsptr qsfport_make (qsmachine_t * mach, const char * path, const char * mode)
 {
   qsptr variant = QSPORT_CFILE;
   bool writeable = false;
@@ -2129,33 +2158,38 @@ qsptr qscfile_make (qsmachine_t * mach, const char * path, const char * mode)
   return p;
 }
 
-bool qscfile_p (qsmachine_t * mach, qsptr p)
+bool qsfport_p (qsmachine_t * mach, qsptr p)
 {
-  return (qscfile(mach, p) != NULL);
+  return (qsfport(mach, p) != NULL);
 }
 
-int qscfile_read_u8 (qsmachine_t * mach, qsptr p)
+bool qsfport_eof (qsmachine_t * mach, qsptr p)
 {
   int retval = -1;
-  if (! qscfile(mach, p)) return -1;
-  if (qscport_get_max(mach, p) == 0)
-    {
-      /* already flagged EOF. */
-      return -1;
-    }
+  if (! qsfport(mach, p)) return -1;
+  qsptr fptr = qscport_get_resource(mach, p);
+  if (! qscptr_p(mach, fptr)) return false;
+  FILE * f = (FILE*)(qscptr_get(mach, fptr));
+  if (! f) return false;
+  return feof(f);
+}
+
+int qsfport_read_u8 (qsmachine_t * mach, qsptr p)
+{
+  int retval = -1;
+  if (! qsfport(mach, p)) return -1;
   qsptr fptr = qscport_get_resource(mach, p);
   if (! qscptr_p(mach, fptr)) return -1;
   FILE * f = (FILE*)(qscptr_get(mach, fptr));
   if (! f) return -1;
+  if (feof(f)) return -1;
   retval = fgetc(f);
-  if (retval < 0)
-    qscport_set_max(mach, p, 0);
   return retval;
 }
 
-bool qscfile_write_u8 (qsmachine_t * mach, qsptr p, int byte)
+bool qsfport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
 {
-  if (! qscfile(mach, p)) return false;
+  if (! qsfport(mach, p)) return false;
   if (! qscport_get_writeable(mach, p)) return false;
   qsptr fptr = qscport_get_resource(mach, p);
   if (! qscptr_p(mach, fptr)) return false;
@@ -2165,9 +2199,9 @@ bool qscfile_write_u8 (qsmachine_t * mach, qsptr p, int byte)
   return (res > 0);
 }
 
-bool qscfile_close (qsmachine_t * mach, qsptr p)
+bool qsfport_close (qsmachine_t * mach, qsptr p)
 {
-  if (! qscfile(mach, p)) return false;
+  if (! qsfport(mach, p)) return false;
 
   /* Finalizer */
     {

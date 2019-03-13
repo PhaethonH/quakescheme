@@ -48,6 +48,7 @@ qsptr qsfd_make (qsmachine_t *, int fd);
 qsptr qsfd_open (qsmachine_t *, const char * path, int flags, int mode);
 bool qsfd_p (const qsmachine_t *, qsptr p);
 int qsfd_id (const qsmachine_t *, qsptr p);
+bool qsfd_eof (const qsmachine_t *, qsptr p);
 int qsfd_read_u8 (const qsmachine_t *, qsptr p);
 bool qsfd_write_u8 (const qsmachine_t *, qsptr p, int byte);
 bool qsfd_close (const qsmachine_t *, qsptr p);
@@ -209,6 +210,7 @@ qsptr qscport_set_resource (qsmachine_t * mach, qsptr p, qsptr val);
 /* C Character Pointer (String) ports. */
 qsptr qscharpport_make (qsmachine_t *, uint8_t * buf, int buflen);
 bool qscharpport_p (qsmachine_t *, qsptr p);
+bool qscharpport_eof (qsmachine_t *, qsptr p);
 int qscharpport_read_u8 (qsmachine_t *, qsptr p);
 bool qscharpport_write_u8 (qsmachine_t *, qsptr p, int byte);
 bool qscharpport_close (qsmachine_t *, qsptr p);
@@ -223,13 +225,14 @@ bool qsovport_close (qsmachine_t *, qsptr p);
 int qsovport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 /* Port backed by Standard C File. */
-qsptr qscfile_make (qsmachine_t *, const char * path, const char * mode);
-bool qscfile_p (qsmachine_t *, qsptr p);
-FILE * qscfile_get (qsmachine_t *, qsptr p);
-int qscfile_read_u8 (qsmachine_t *, qsptr p);
-bool qscfile_write_u8 (qsmachine_t *, qsptr p, int byte);
-bool qscfile_close (qsmachine_t *, qsptr p);
-int qscfile_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+qsptr qsfport_make (qsmachine_t *, const char * path, const char * mode);
+bool qsfport_p (qsmachine_t *, qsptr p);
+bool qsfport_eof (qsmachine_t *, qsptr p);
+FILE * qsfport_get (qsmachine_t *, qsptr p);
+int qsfport_read_u8 (qsmachine_t *, qsptr p);
+bool qsfport_write_u8 (qsmachine_t *, qsptr p, int byte);
+bool qsfport_close (qsmachine_t *, qsptr p);
+int qsfport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 
 /* the iterator type allows for iterating both pairs and arrays as a list.

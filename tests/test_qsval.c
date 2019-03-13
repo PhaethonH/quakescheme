@@ -777,20 +777,20 @@ START_TEST(test_ports)
   ck_assert_str_eq(buf, "Scheme");
 
   /* FILE port. */
-  port = qscfile_make(machine, "read1.txt", NULL);
+  port = qsfport_make(machine, "read1.txt", NULL);
   if (! qscport_p(machine, port))
-    port = qscfile_make(machine, "tests/read1.txt", NULL);
+    port = qsfport_make(machine, "tests/read1.txt", NULL);
   ck_assert(qscport_p(machine, port));
-  ck_assert(qscfile_p(machine, port));
-  b = qscfile_read_u8(machine, port);
+  ck_assert(qsfport_p(machine, port));
+  b = qsfport_read_u8(machine, port);
   ck_assert_int_eq(b, 'h');
-  b = qscfile_read_u8(machine, port);
+  b = qsfport_read_u8(machine, port);
   ck_assert_int_eq(b, 'e');
-  b = qscfile_read_u8(machine, port);
+  b = qsfport_read_u8(machine, port);
   ck_assert_int_eq(b, 'l');
-  b = qscfile_read_u8(machine, port);
+  b = qsfport_read_u8(machine, port);
   ck_assert_int_eq(b, 'l');
-  b = qscfile_read_u8(machine, port);
+  b = qsfport_read_u8(machine, port);
   ck_assert_int_eq(b, 'o');
 
   /* FD port. */
