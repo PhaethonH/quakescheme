@@ -726,6 +726,32 @@ START_TEST(test_konts)
 }
 END_TEST
 
+START_TEST(test_ports)
+{
+  init();
+
+  qsptr p, q;
+  qserr err;
+  int n;
+  int b;
+
+  /* ports. */
+
+  /* c-string port. */
+  char * raw = "Bzr";
+  qsptr port = qscharpport_make(machine, raw, 3);
+  ck_assert(qscharpport_p(machine, port));
+  b = qscharpport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'B');
+  b = qscharpport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'z');
+  b = qscharpport_read_u8(machine, port);
+  ck_assert_int_eq(b, 'r');
+  b = qscharpport_read_u8(machine, port);
+  ck_assert_int_eq(b, -1);
+}
+END_TEST
+
 
 TESTCASE(case1,
   TFUNC(test_test1)
@@ -742,6 +768,7 @@ TESTCASE(case1,
   TFUNC(test_lambdas)
   TFUNC(test_closures)
   TFUNC(test_konts)
+  TFUNC(test_ports)
   TFUNC(test_test2)
   )
 

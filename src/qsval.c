@@ -1762,6 +1762,220 @@ int qskont_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
+
+/* Heavy Port (base class).
+   Ports where state information has to be stored in Scheme objects.
+   No const versions as ports can only exist in writeable memory.
+ */
+qspvec_t * qscport (qsmachine_t * mach, qsptr p)
+{
+  qspvec_t * port = qspvec(mach, p);
+  if (! port) return NULL;
+  switch (port->length)
+    {
+    case QSPORT_CHARP:
+      return port;
+    default:
+      return NULL;
+    }
+}
+
+qsptr qscport_make (qsmachine_t * mach, qsptr variant, qsptr pathspec, bool writeable, qsptr host_resource)
+{
+  qsptr p = qsvector_make(mach, 4, QSNIL);
+  qspvec_t * vec = qspvec(mach, p);
+  vec->length = variant;
+  if (writeable)
+    {
+      qsobj_t * obj = qsobj(mach, p);
+      if (obj)
+	{
+	  qsobj_set_score(obj, qsobj_get_score(obj) | 1);
+	}
+    }
+  /* 0: path spec. */
+  vec->elt[0] = pathspec;
+  /* 1: position. */
+  vec->elt[1] = QSINT(0);
+  /* 2: maximum (EOF). */
+  vec->elt[2] = QSINT(-1);
+  /* 3: host resource. */
+  vec->elt[3] = host_resource;
+
+  return p;
+}
+
+bool qscport_get_writeable (qsmachine_t * mach, qsptr p)
+{
+  const qsobj_t * obj = qsobj_const(mach, p);
+  if (qsobj_get_score(obj) & 1)
+    {
+      return true;
+    }
+  return false;
+}
+
+qsptr qscport_set_writeable (qsmachine_t * mach, qsptr p, bool val)
+{
+  qsobj_t * obj = qsobj(mach, p);
+  if (val)
+    {
+      qsobj_set_score(obj, qsobj_get_score(obj) | 1);
+    }
+  else
+    {
+      qsobj_set_score(obj, qsobj_get_score(obj) & ~1);
+    }
+  return p;
+}
+
+qsptr qscport_get_pathspec (qsmachine_t * mach, qsptr p)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return QSNIL;
+  return port->elt[0];
+}
+
+qsptr qscport_set_pathspec (qsmachine_t * mach, qsptr p, qsptr s)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return QSNIL;
+  port->elt[0] = s;
+  return p;
+}
+
+int qscport_get_pos (qsmachine_t * mach, qsptr p)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return QSNIL;
+  return CINT30(port->elt[1]);
+}
+
+qsptr qscport_set_pos (qsmachine_t * mach, qsptr p, int pos)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return QSNIL;
+  port->elt[1] = QSINT(pos);
+  return p;
+}
+
+int qscport_get_max (qsmachine_t * mach, qsptr p)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return QSNIL;
+  return CINT30(port->elt[2]);
+}
+
+qsptr qscport_set_max (qsmachine_t * mach, qsptr p, int max)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return QSNIL;
+  port->elt[2] = QSINT(max);
+  return p;
+}
+
+qsptr qscport_get_resource (qsmachine_t * mach, qsptr p)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return QSNIL;
+  return port->elt[3];
+}
+
+qsptr qscport_set_resource (qsmachine_t * mach, qsptr p, qsptr val)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return QSNIL;
+  port->elt[3] = val;
+  return p;
+}
+
+
+/* C Character Pointer (String) Port:
+   port reading from C char array (string),
+   writing to C char array (string).
+ */
+qspvec_t * qscharpport (qsmachine_t * mach, qsptr p)
+{
+  qspvec_t * port = qscport(mach, p);
+  if (! port) return NULL;
+  if (port->length != QSPORT_CHARP) return NULL;
+  return port;
+}
+
+qsptr qscharpport_make (qsmachine_t * mach, uint8_t * buf, int buflen)
+{
+  qsptr variant = QSPORT_CHARP;
+  bool writeable = false;
+  qsptr pathspec = QSNIL;
+  qsptr cptr = qscptr_make(mach, (void*)buf);
+
+  qsptr p = qscport_make(mach, variant, pathspec, writeable, cptr);
+  qscport_set_max(mach, p, buflen);
+  return p;
+}
+
+bool qscharpport_p (qsmachine_t * mach, qsptr p)
+{
+  return (qscharpport(mach, p) != NULL);
+}
+
+bool qscharpport_get_writeable (qsmachine_t * mach, qsptr p)
+{
+  return qscport_get_writeable(mach, p);
+}
+
+qsptr qscharpport_set_writeable (qsmachine_t * mach, qsptr p, bool val)
+{
+  return qscport_set_writeable(mach, p, val);
+}
+
+int qscharpport_read_u8 (qsmachine_t * mach, qsptr p)
+{
+  int retval = -1;
+  if (! qscharpport(mach, p)) return -1;
+  int pos = qscport_get_pos(mach, p);
+  int max = qscport_get_max(mach, p);
+  qsptr cptr = qscport_get_resource(mach, p);
+  if (pos >= max) return -1;
+  if (pos < 0) return -1;
+  uint8_t * s = qscptr_get(mach, cptr);
+  if (! s) return -1;
+  retval = s[pos];
+  ++pos;
+  qscport_set_pos(mach, p, pos);
+  return retval;
+}
+
+bool qscharpport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
+{
+  if (! qscharpport(mach, p)) return false;
+  int pos = qscport_get_pos(mach, p);
+  int max = qscport_get_max(mach, p);
+  qsptr cptr = qscport_get_resource(mach, p);
+  if (pos >= max) return false;
+  if (pos < 0) return false;
+  uint8_t * s = qscptr_get(mach, cptr);
+  if (! s) return false;
+  s[pos] = byte;
+  ++pos;
+  qscport_set_pos(mach, p, pos);
+  return true;
+}
+
+bool qscharpport_close (qsmachine_t * mach, qsptr p)
+{
+  if (! qscharpport(mach, p)) return false;
+  qscport_set_max(mach, p, 0);
+  qscport_set_pos(mach, p, 0);
+  qscport_set_resource(mach, p, QSNIL);  /* unlink resource. */
+  qscport_set_pathspec(mach, p, QSNIL);
+  qscport_set_writeable(mach, p, false);
+  /* then wait for garbage collection. */
+  return true;
+}
+
+
+
 /* QsIter: wrapper around Pair and Array. */
 /* Make iterator from memory address, no checks.
    For constructing from object, see _iter() for the associated object.

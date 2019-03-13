@@ -175,6 +175,25 @@ qsptr qsclosure_ref_lam (const qsmachine_t *, qsptr p);
 qsptr qsclosure_ref_env (const qsmachine_t *, qsptr p);
 int qsclosure_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
+
+/* OctetVector (utf-8 string) ports. */
+qsptr qsovport_make (qsmachine_t *, qsptr s);
+int qsovport_read_u8 (qsmachine_t *, qsptr p);
+bool qsovport_write_u8 (qsmachine_t *, qsptr p, int byte);
+qsptr qsovport_close (qsmachine_t *);
+int qsovport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+
+/* C Character Pointer (String) ports. */
+qsptr qscharpport_make (qsmachine_t *, uint8_t * buf, int buflen);
+bool qscharpport_p (qsmachine_t *, qsptr p);
+bool qscharpport_get_writeable (qsmachine_t *, qsptr p);
+qsptr qscharpport_set_writeable (qsmachine_t *, qsptr p, bool val);
+int qscharpport_read_u8 (qsmachine_t *, qsptr p);
+bool qscharpport_write_u8 (qsmachine_t *, qsptr p, int byte);
+bool qscharpport_close (qsmachine_t *, qsptr p);
+int qscharpport_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
+
+
 /* the iterator type allows for iterating both pairs and arrays as a list.
 */
 qsptr qsiter_make (const qsmachine_t *, qsaddr addr);
@@ -184,6 +203,7 @@ qsptr qsiter_head (const qsmachine_t *, qsptr p);
 qsptr qsiter_tail (const qsmachine_t *, qsptr p);
 int qsiter_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
+/* Abstraction of QsSym and QsName */
 bool qssymbol_p (const qsmachine_t *, qsptr p);
 /* convert string object to interned symbol; returns QsSym pointer. */
 qsptr qssymbol_bless (qsmachine_t *, qsptr s);
@@ -195,6 +215,7 @@ qsptr qssymbol_intern_c (qsmachine_t *, const char * cstr);
 const char * qssymbol_get (const qsmachine_t *, qsptr p);
 int qssymbol_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 qscmp_t qssymbol_cmp (const qsmachine_t *, qsptr x, qsptr y);
+
 
 /* Generalized stringification. */
 int qsptr_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);

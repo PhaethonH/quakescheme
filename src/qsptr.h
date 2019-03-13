@@ -150,6 +150,8 @@ Word-Pointer expanding-tag encoding
 #define QSNAN           QSCONST(12)
 #define QSNNAN          QSCONST(13)
 
+#define QSPORT_CHARP    QSCONST(26)
+
 /*  Numeric tower types, for type coercion. */
 #define QSNUM_INT       QSCONST(1000)   /* word, int30 */
 #define QSNUM_FLOAT     QSCONST(1001)   /* word, float31 */

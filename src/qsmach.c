@@ -284,7 +284,7 @@ int qsmachine_step (qsmachine_t * mach)
 	    }
 	  else
 	    {
-	      /* evaluated as aexp, proceed with continuation. */
+	      /* evaluated as aexp, proceed with continuation (return). */
 	      mach->A = A;
 	      qsmachine_applykont(mach, mach->K, mach->A);
 	    }
