@@ -35,8 +35,22 @@ qsptr qsconst_make (qsmachine_t *, int const_id);
 bool qsconst_p (const qsmachine_t *, qsptr p);
 int qsconst_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
-qsptr qsfd_make (qsmachine_t *, int val);
+/* File Descriptor directly encoded into Pointer (up to 20b values). */
+/*
+  Platforms missing Standard C File support may provide a file interface
+  based on numeric handles similar to POSIX File Descriptors.
+  File state information would be stored in host-space, relieving Scheme heap.
+  Presumably 0,1,2 correpond to stdin,stdout,stderr; but not assumed.
+
+  Main use case is to allow writing to fd 2 (stderr) after heap exhaustion.
+*/
+qsptr qsfd_make (qsmachine_t *, int fd);
+qsptr qsfd_open (qsmachine_t *, const char * path, int flags, int mode);
 bool qsfd_p (const qsmachine_t *, qsptr p);
+int qsfd_id (const qsmachine_t *, qsptr p);
+int qsfd_read_u8 (const qsmachine_t *, qsptr p);
+bool qsfd_write_u8 (const qsmachine_t *, qsptr p, int byte);
+bool qsfd_close (const qsmachine_t *, qsptr p);
 int qsfd_crepr (const qsmachine_t *, qsptr p, char * buf, int buflen);
 
 qsptr qsprim_make (qsmachine_t *, qsword primid);

@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "qsval.h"
 #include "qsobj.h"
@@ -221,9 +223,47 @@ qsptr qsfd_make (qsmachine_t * mach, int val)
   return QSFD(val);
 }
 
+qsptr qsfd_open (qsmachine_t * mach, const char  * path, int flags, int mode)
+{
+  int fd = open(path, flags, mode);
+  if (fd < 0) return QSERR_FAULT;
+  return qsfd_make(mach, fd);
+}
+
 bool qsfd_p (const qsmachine_t * mach, qsptr p)
 {
   return ISFD20(p);
+}
+
+int qsfd_id (const qsmachine_t * mach, qsptr p)
+{
+  return CFD20(p);
+}
+
+int qsfd_read_u8 (const qsmachine_t * mach, qsptr p)
+{
+  uint8_t byte;
+  int fd = qsfd_id(mach, p);
+  ssize_t res = read(fd, &byte, 1);
+  if (res > 0)
+    return byte;
+  else
+    return -1;
+}
+
+bool qsfd_write_u8 (const qsmachine_t * mach, qsptr p, int byte)
+{
+  uint8_t buf = (uint8_t)byte;
+  int fd = qsfd_id(mach, p);
+  ssize_t res = write(fd, &buf, 1);
+  return (res > 0);
+}
+
+bool qsfd_close (const qsmachine_t * mach, qsptr p)
+{
+  int fd = qsfd_id(mach, p);
+  int res = close(fd);
+  return (res == 0);
 }
 
 int qsfd_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
