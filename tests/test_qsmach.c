@@ -247,6 +247,39 @@ START_TEST(test_step2)
   /* First-class Continuation. */
 
   /* Procedure call. */
+  int primid = qsprimreg_register(machine, op_plus_one);
+  qsptr o_plusone = qsprim_make(machine, primid);
+  qsptr y_plusone = qssymbol_intern_c(machine, "+1");
+  E = qsenv_make(machine, QSNIL);
+  E = qsenv_insert(machine, E, y_plusone, o_plusone);
+  exp = qspair_make(machine, y_plusone,
+	qspair_make(machine, QSINT(2), QSNIL));
+  C = exp;
+  K = QSNIL;
+  qsmachine_load(machine, C, E, K);
+  qsmachine_step(machine);  /* eval to list of atomics */
+  qsptr_crepr(machine, machine->C, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(#<prim 0> 2)");
+  qsmachine_step(machine);  /* eval operator. */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "3");
+  ck_assert_int_eq(machine->A, QSINT(3));
+
+  qsptr param = qspair_make(machine, y_x, QSNIL);
+  qsptr body = y_x;
+  qsptr lam = qslambda_make(machine, param, body);
+  qsptr clo = qsclosure_make(machine, lam, QSNIL);
+  E = qsenv_make(machine, QSNIL);
+  E = qsenv_insert(machine, E, y_z, clo);
+  exp = qspair_make(machine, y_z,
+	qspair_make(machine, QSINT(32), QSNIL));
+  C = exp;
+  K = QSNIL;
+  qsmachine_load(machine, C, E, K);
+  qsmachine_step(machine);  /* turn (z 32) into (#<closure> 32) */
+  qsmachine_step(machine);  /* evaluate closure. */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "32");
 }
 END_TEST
 

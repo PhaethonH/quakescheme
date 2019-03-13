@@ -59,7 +59,7 @@ int qsmachine_applyproc (qsmachine_t * mach, qsptr proc, qsptr values)
 {
   if (qsclosure_p(mach, proc))
     {
-      qsptr env = qsclosure_ref_lam(mach, proc);
+      qsptr env = qsclosure_ref_env(mach, proc);
       qsptr frame = qsenv_make(mach, env);
       qsptr lam = qsclosure_ref_lam(mach, proc);
       qsptr param = qslambda_ref_param(mach, lam);
@@ -239,12 +239,15 @@ int qsmachine_step (qsmachine_t * mach)
 	  if (ISERR20(A))
 	    {
 	      /* evaluate individual list members. */
+	      qsptr head = QSBLACKHOLE;
 	      qsptr root = QSNIL, build = QSNIL;
 	      qsptr curr = qsiter_begin(mach, C);
 	      while (ISITER28(curr))
 		{
-		  qsptr aexp = qsiter_head(mach, C);
+		  qsptr aexp = qsiter_head(mach, curr);
 		  qsptr a = qsmachine_eval_atomic(mach, aexp);
+		  if (head == QSBLACKHOLE)
+		    head = a;
 		  if (ISNIL(root))
 		    build = root = qspair_make(mach, a, QSNIL);
 		  else
@@ -257,6 +260,18 @@ int qsmachine_step (qsmachine_t * mach)
 		  curr = qsiter_tail(mach, curr);
 		}
 	      mach->A = root;
+	      if (qsprim_p(mach, head))
+		{
+		  /* shift to C to evaluate next cycle. */
+		  mach->C = mach->A;
+		}
+	      else if (qsclosure_p(mach, head))
+		{
+		  /* evaluate closure. */
+		  qsptr proc = CAR(mach->A);
+		  qsptr args = CDR(mach->A);
+		  qsmachine_applyproc(mach, proc, args);
+		}
 	    }
 	  else
 	    {
