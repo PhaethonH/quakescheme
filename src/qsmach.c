@@ -94,6 +94,7 @@ int qsmachine_applykont (qsmachine_t * mach, qsptr k, qsptr value)
   if (ISNIL(k))
     {
       /* halt */
+      mach->A = value;
       mach->halt = true;
       return 0;
     }
@@ -226,11 +227,11 @@ int qsmachine_step (qsmachine_t * mach)
 	}
       else if (0 == strcmp(headname, "call/cc"))
 	{
-	  qsptr aexp = args;
+	  qsptr aexp = CAR(args);
 	  qsptr proc = qsmachine_eval_atomic(mach, aexp);
 	  qsptr cc = qskont_make_current(mach);
 	  qsptr args = qspair_make(mach, cc, QSNIL);
-	  mach->A = qsmachine_applyproc(mach, proc, args);
+	  qsmachine_applyproc(mach, proc, args);
 	}
       else
 	{
@@ -271,6 +272,14 @@ int qsmachine_step (qsmachine_t * mach)
 		  qsptr proc = CAR(mach->A);
 		  qsptr args = CDR(mach->A);
 		  qsmachine_applyproc(mach, proc, args);
+		}
+	      else if (qskont_p(mach, head))
+		{
+		  /* evaluate continuation. */
+		  qsptr cc = CAR(mach->A);
+		  qsptr a = CAR(CDR(mach->A));
+		  qsptr k = qskont_ref_k(mach, cc);
+		  qsmachine_applykont(mach, k, a);
 		}
 	    }
 	  else

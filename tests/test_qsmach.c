@@ -244,7 +244,29 @@ START_TEST(test_step2)
   ck_assert_str_eq(buf, "122");
   ck_assert_int_eq(machine->A, QSINT(122));
 
+  qsptr param, body, lam, clo;
+
   /* First-class Continuation. */
+  qsptr y_testcc = qssymbol_intern_c(machine, "testcc");
+  param = qspair_make(machine, y_x, QSNIL);
+  body = qspair_make(machine, y_x,
+	 qspair_make(machine, QSINT(5), QSNIL));
+  lam = qslambda_make(machine, param, body);
+  clo = qsclosure_make(machine, lam, QSNIL);
+  exp = qspair_make(machine, y_callcc,
+	qspair_make(machine, y_testcc, QSNIL));
+  C = exp;
+  E = qsenv_make(machine, QSNIL);
+  E = qsenv_insert(machine, E, y_testcc, clo);
+  K = QSNIL;
+  qsmachine_load(machine, C, E, K);
+  qsmachine_step(machine);  /* evaluate to C <- (x 5) */
+  qsptr_crepr(machine, machine->C, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(x 5)");
+  qsmachine_step(machine);  /* evaluates (#<kont> 5) */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "5");
+  ck_assert(machine->halt);
 
   /* Procedure call. */
   int primid = qsprimreg_register(machine, op_plus_one);
@@ -265,10 +287,10 @@ START_TEST(test_step2)
   ck_assert_str_eq(buf, "3");
   ck_assert_int_eq(machine->A, QSINT(3));
 
-  qsptr param = qspair_make(machine, y_x, QSNIL);
-  qsptr body = y_x;
-  qsptr lam = qslambda_make(machine, param, body);
-  qsptr clo = qsclosure_make(machine, lam, QSNIL);
+  param = qspair_make(machine, y_x, QSNIL);
+  body = y_x;
+  lam = qslambda_make(machine, param, body);
+  clo = qsclosure_make(machine, lam, QSNIL);
   E = qsenv_make(machine, QSNIL);
   E = qsenv_insert(machine, E, y_z, clo);
   exp = qspair_make(machine, y_z,
