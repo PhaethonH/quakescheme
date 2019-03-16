@@ -355,6 +355,20 @@ bool _qssymstore_find_cmp_str (const qsmachine_t * mach, qsptr probe, void * cri
   return (0 == qsname_strcmp(mach, probe, (const char *)criterion));
 }
 
+/* Find symbol in symbol store based on a search criterion and a comparator
+   function.
+
+   Search criterion may be:
+   * C string (const char *) cast to void*
+     matched with comparator _qssymtore_find_cmp_str
+   * Scheme string (qsptr) cast to void*
+     matched with comparator _qssymstore_find_cmp_utf8s
+
+   This function is a result of combining find-by-C-string and
+   find-by-Scheme-string.  The types used to represent a C string and a Scheme
+   string are combined into the generalized "void *", and casting back is
+   presumed by the comparator.
+ */
 qsptr _qssymstore_find (const qsmachine_t * mach, void * criterion, bool (*eq)(const qsmachine_t *, qsptr, void *))
 {
   qsptr symstore = mach->Y;
@@ -377,11 +391,13 @@ qsptr _qssymstore_find (const qsmachine_t * mach, void * criterion, bool (*eq)(c
   return QSNIL;
 }
 
+/* Find symbol in symbol store based on C string. */
 qsptr qssymstore_find_c (const qsmachine_t * mach, const char * s)
 {
   return _qssymstore_find(mach, (void*)s, _qssymstore_find_cmp_str);
 }
 
+/* Find symbol in symbol store based on Scheme string (UTF-8) object. */
 qsptr qssymstore_find_utf8 (const qsmachine_t * mach, qsptr utf8s)
 {
   /* bypass warning about casting 32b int to 64b pointer. */
@@ -389,6 +405,7 @@ qsptr qssymstore_find_utf8 (const qsmachine_t * mach, qsptr utf8s)
   return _qssymstore_find(mach, (void*)stuffed, _qssymstore_find_cmp_utf8s);
 }
 
+/* Intern symbol: insert symbol object into symbol store. */
 qsptr qssymstore_insert (qsmachine_t * mach, qsptr symstore, qsptr symobj)
 {
   qsptr pair = qspair_make(mach, symobj, symstore);

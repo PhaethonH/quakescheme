@@ -454,6 +454,11 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 	      /* cross-boundary. */
 	      if (MGMT_IS_OCT(obj->mgmt))
 		{
+		  /* trace byte-vector. */
+		  MGMT_SET_MARK(obj->mgmt);
+		}
+	      else
+		{
 		  qsword max = 1 << qsobj_get_allocscale(obj);
 		  qsword ofs;
 		  qsaddr eltaddr;
@@ -488,11 +493,6 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 		      obj->fields[3] = QSNIL;
 		      MGMT_SET_MARK(obj->mgmt);
 		    }
-		}
-	      else
-		{
-		  /* trace byte-vector. */
-		  MGMT_SET_MARK(obj->mgmt);
 		}
 	    }
 	}
