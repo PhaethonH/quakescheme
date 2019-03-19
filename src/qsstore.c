@@ -117,6 +117,43 @@ qsaddr _qssegment_fit (qssegment_t * segment, qsword spanbounds)
   return QSFREE_SENTINEL;
 }
 
+int qssegment_sweep (qssegment_t * segment)
+{
+  qsaddr curr;
+  curr = 0;
+  while (curr < segment->cap)
+    {
+      qsaddr skip = sizeof(qsobj_t);
+      qsword mgmt = *(qsword*)(segment->space + curr);
+      if (MGMT_IS_USED(mgmt))
+	{
+	  if (MGMT_IS_MARK(mgmt))
+	    {
+	      /* object in use, pass over. */
+	      skip = (1 << MGMT_GET_ALLOC(mgmt)) * sizeof(qsobj_t);
+	    }
+	  else
+	    {
+	      /* collect, convert to freelist, merge. */
+	      skip = (1 << MGMT_GET_ALLOC(mgmt)) * sizeof(qsobj_t);
+	      MGMT_CLR_MARK(mgmt);
+	      qsfreelist_t * freelist = (qsfreelist_t*)(segment->space + curr);
+	      freelist->length = skip;
+	      /* TODO: link into freelist. */
+	      freelist->prev = QSFREE_SENTINEL;
+	      freelist->next = QSFREE_SENTINEL;
+	      /* TODO: merge with adjacent freelist. */
+	    }
+	}
+      else
+	{
+	  /* freelist, pass over. */
+	  skip = ((qsfreelist_t*)(segment->space + curr))->length;
+	}
+      curr += skip;
+    }
+  return 0;
+}
 
 
 
@@ -498,6 +535,11 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 	}
     }
   return QSERR_OK;
+}
+
+qserr qsstore_sweep (qsstore_t * store)
+{
+  return QSERR_NOIMPL;
 }
 
 

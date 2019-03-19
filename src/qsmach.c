@@ -413,3 +413,15 @@ qsptr qssymstore_insert (qsmachine_t * mach, qsptr symstore, qsptr symobj)
   return pair;
 }
 
+
+
+qserr qsgc_trace (qsmachine_t * mach, qsptr root)
+{
+  return QSERR_OK;
+}
+
+qserr qsgc_sweep (qsmachine_t * mach)
+{
+  return QSERR_OK;
+}
+

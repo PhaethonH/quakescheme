@@ -50,4 +50,8 @@ qsptr qssymstore_find_c (const qsmachine_t *, const char * s);
 qsptr qssymstore_find_utf8 (const qsmachine_t *, qsptr utf8s);
 qsptr qssymstore_insert (qsmachine_t *, qsptr symstore, qsptr symobj);
 
+/* Garbage collection. */
+qserr qsgc_trace (qsmachine_t *, qsptr root);
+qserr qsgc_sweep (qsmachine_t *);
+
 #endif /* QSMACHINE_H_ */
