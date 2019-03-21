@@ -131,6 +131,7 @@ START_TEST(test_sweep1)
   cells[0] = qspair_make(machine, QSINT(10), QSNIL);
 
   gcmark(cells[3]);
+  gcmark(cells[5]);
 
   gcsweep();
 
@@ -138,6 +139,40 @@ START_TEST(test_sweep1)
   ck_assert(! is_used(cells[1]));
   ck_assert(! is_used(cells[2]));
   ck_assert(is_used(cells[3]));
+  ck_assert(! is_used(cells[4]));
+  ck_assert(is_used(cells[5]));
+  ck_assert(! is_used(cells[6]));
+  ck_assert(! is_used(cells[7]));
+  ck_assert(! is_used(cells[8]));
+
+
+  /* test sweeping list. */
+  init ();
+
+  cells[7] = qspair_make(machine, QSINT(17), QSNIL);
+  cells[6] = qspair_make(machine, QSINT(16), cells[7]);
+  cells[5] = qspair_make(machine, QSINT(15), cells[6]);
+  cells[4] = qspair_make(machine, QSINT(14), cells[5]);
+  cells[3] = qspair_make(machine, QSINT(13), cells[4]);
+  cells[2] = qspair_make(machine, QSINT(12), cells[3]);
+  cells[1] = qspair_make(machine, QSINT(11), cells[2]);
+  cells[0] = qspair_make(machine, QSINT(10), cells[1]);
+
+  qsword addr;
+  qsword mgmt;
+  gcmark(cells[3]);
+  gcsweep();
+
+  ck_assert(is_used(cells[3]));
+  ck_assert(is_used(cells[4]));
+  ck_assert(is_used(cells[5]));
+  ck_assert(is_used(cells[6]));
+  ck_assert(is_used(cells[7]));
+  ck_assert(! is_used(cells[8]));
+
+  ck_assert(! is_used(cells[0]));
+  ck_assert(! is_used(cells[1]));
+  ck_assert(! is_used(cells[2]));
 }
 END_TEST
 
