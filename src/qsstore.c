@@ -117,6 +117,94 @@ qsaddr _qssegment_fit (qssegment_t * segment, qsword spanbounds)
   return QSFREE_SENTINEL;
 }
 
+int _qssegment_stat (qssegment_t * segment, qsaddr addr, qsword ** out_mgmtptr, qsword * out_width)
+{
+  qsword width = sizeof(qsobj_t);
+  qsword * refmgmt = (qsword*)(segment->space + addr);
+  if (out_width) *out_width =  width;
+  if (out_mgmtptr) *out_mgmtptr = refmgmt;
+  return 0;
+}
+
+qsaddr _qssegment_visit_dealloc (qssegment_t * segment, qsaddr prev, qsaddr curr)
+{
+  qsword width, *refmgmt;
+  _qssegment_stat(segment, curr, &refmgmt, &width);
+  if (MGMT_IS_USED(*refmgmt) && ! MGMT_IS_MARK(*refmgmt))
+    {
+      /* collect, convert to freelist.  Coalesce in second pass. */
+      width = (1 << MGMT_GET_ALLOC(*refmgmt)) * sizeof(qsobj_t);
+      MGMT_CLR_USED(*refmgmt);
+      qsfreelist_t * freelist = (qsfreelist_t*)(segment->space + curr);
+      freelist->length = width;
+      /* TODO: link into freelist. */
+      freelist->prev = QSFREE_SENTINEL;
+      freelist->next = QSFREE_SENTINEL;
+      /* coalesce adjacent freelist in second pass. */
+    }
+  /* pass over: marked (in use and live); not in use (is freelist) */
+  return curr;
+}
+
+/* Returns new value of prev after mutations (typically 'curr'). */
+qsaddr _qssegment_visit_coalesce (qssegment_t * segment, qsaddr prev, qsaddr curr)
+{
+  qsword width, *refmgmt;
+  _qssegment_stat(segment, curr, &refmgmt, &width);
+  if (MGMT_IS_USED(*refmgmt))
+    {
+      /* in use; clear marked flag. */
+      MGMT_CLR_MARK(*refmgmt);
+    }
+  else if (prev != QSFREE_SENTINEL)
+    {
+      /* freelist; check if coalescence needed. */
+      qsword prevwidth;
+      _qssegment_stat(segment, prev, NULL, &prevwidth);
+      if (curr == (prev + prevwidth))
+	{
+	  /* coalesce. */
+	  qsfreelist_t * prevfree = (qsfreelist_t*)(segment->space + prev);
+	  qsfreelist_t * currfree = (qsfreelist_t*)(segment->space + curr);
+	  prevfree->length += currfree->length;
+	  prevfree->next = currfree->next;
+	  currfree->length = 0;
+	  currfree->next = 0;
+	  currfree->prev = 0;
+	  currfree->mgmt = 0;
+	}
+    }
+  return curr;
+}
+
+typedef qsaddr (*gcvisitor)(qssegment_t *, qsaddr, qsaddr);
+
+int qssegment_sweep (qssegment_t * segment)
+{
+  qsaddr skip;
+  qsaddr prev, curr;
+  skip = 0;
+  prev = QSFREE_SENTINEL;
+  curr = 0;
+  while ((curr != QSFREE_SENTINEL) && (curr < segment->cap))
+    {
+      qsword skip, *refmgmt;
+      _qssegment_stat(segment, curr, &refmgmt, &skip);
+      prev = _qssegment_visit_dealloc(segment, prev, curr);
+      curr += skip;
+    }
+  curr = 0;
+  while ((curr != QSFREE_SENTINEL) && (curr < segment->cap))
+    {
+      qsword skip, *refmgmt;
+      _qssegment_stat(segment, curr, &refmgmt, &skip);
+      prev = _qssegment_visit_coalesce(segment, prev, curr);
+      curr += skip;
+    }
+  return 0;
+}
+
+#if 0
 int qssegment_sweep (qssegment_t * segment)
 {
   qsaddr curr;
@@ -154,6 +242,7 @@ int qssegment_sweep (qssegment_t * segment)
     }
   return 0;
 }
+#endif //0
 
 
 
@@ -539,7 +628,10 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 
 qserr qsstore_sweep (qsstore_t * store)
 {
-  return QSERR_NOIMPL;
+  qssegment_sweep(&(store->smem));
+  if (store->wmem)
+    qssegment_sweep(store->wmem);
+  return QSERR_OK;
 }
 
 
