@@ -159,9 +159,10 @@ qsaddr _qssegment_visit_coalesce (qssegment_t * segment, qsaddr prev, qsaddr cur
   else if (prev != QSFREE_SENTINEL)
     {
       /* freelist; check if coalescence needed. */
+      qsword * prevrefmgmt;
       qsword prevwidth;
-      _qssegment_stat(segment, prev, NULL, &prevwidth);
-      if (curr == (prev + prevwidth))
+      _qssegment_stat(segment, prev, &prevrefmgmt, &prevwidth);
+      if ((! MGMT_IS_USED(*prevrefmgmt)) && (curr == (prev + prevwidth)))
 	{
 	  /* coalesce. */
 	  qsfreelist_t * prevfree = (qsfreelist_t*)(segment->space + prev);
@@ -511,7 +512,7 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 		  qsptr temp;
 		  qsptr parent = prev;
 #define LD(ptr)  ((COBJ26(ptr)) << 4)
-#define ST(addr) ((QSOBJ(addr)) >> 4)
+#define ST(addr) ((QSOBJ(addr >> 4)))
 		  /* normalize parent. */
 		  switch (reverse)
 		    {
@@ -568,9 +569,9 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 		      /* fallthrough. */
 		    case 3: /* done. */
 		      MGMT_SET_REVERS(obj->mgmt, 0);
+		      MGMT_SET_MARK(obj->mgmt);
 		      prev = curr;		  /* true child. */
 		      curr = parent;		  /* true parent. */
-		      MGMT_SET_MARK(obj->mgmt);
 		      break;
 		    }
 		}
@@ -585,12 +586,14 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 		}
 	      else
 		{
-		  qsword max = 1 << qsobj_get_allocscale(obj);
+		  const qsword ptrs_per_bound = sizeof(qsobj_t) / sizeof(qsptr);
+		  qsword max = (1 << qsobj_get_allocscale(obj)) * ptrs_per_bound;
 		  qsword ofs;
 		  qsaddr eltaddr;
 		  qsptr elt;
 		  /* trace word-vector. */
-		  if (obj->fields[2] == QSNIL)
+		  qsptr gcback = obj->fields[2];
+		  if (ISNIL(gcback))
 		    {
 		      /* start iteration. */
 		      obj->fields[2] = prev;
@@ -598,26 +601,30 @@ qserr qsstore_trace (qsstore_t * store, qsaddr root, int mark)
 		    }
 		  else
 		    {
+		      /* reversal pointer established, continue iteration. */
 		      ofs = CINT30(obj->fields[3]);
+		      prev = gcback;
 		    }
-		  eltaddr = (curr + sizeof(qsobj_t)) + ofs * sizeof(qsptr);
-		  elt = (qsptr)(qsstore_get_word(store, eltaddr));
-		  if (ISOBJ26(elt))
-		    {
-		      prev = curr;
-		      curr = LD(elt);
-		    }
-		  ++ofs;
 		  if (ofs < max)
 		    {
+		      /* in range, recurse. */
+		      eltaddr = (curr + sizeof(qsobj_t)) + ofs * sizeof(qsptr);
+		      elt = (qsptr)(qsstore_get_word(store, eltaddr));
+		      if (ISOBJ26(elt))
+			{
+			  prev = curr;
+			  curr = LD(elt);
+			}
+		      ++ofs;
 		      obj->fields[3] = QSINT(ofs);
 		    }
 		  else
 		    {
-		      /* done. */
+		      /* Out of bounds.  Terminate.  Backtrack. */
 		      obj->fields[2] = QSNIL;
 		      obj->fields[3] = QSNIL;
 		      MGMT_SET_MARK(obj->mgmt);
+		      curr = gcback;
 		    }
 		}
 	    }

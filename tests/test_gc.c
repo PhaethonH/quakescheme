@@ -111,6 +111,40 @@ START_TEST(test_mark1)
   ck_assert(! is_marked(cells[0]));
   ck_assert(! is_marked(cells[1]));
   ck_assert(! is_marked(cells[2]));
+
+  /* test chain-marking pairs from vector. */
+  init ();
+  cells[7] = qspair_make(machine, QSINT(17), QSNIL);
+  cells[6] = qspair_make(machine, QSINT(16), QSNIL);
+  cells[5] = qspair_make(machine, QSINT(15), QSNIL);
+  cells[4] = qspair_make(machine, QSINT(14), QSNIL);
+  cells[3] = qspair_make(machine, QSINT(13), QSNIL);
+  cells[2] = qspair_make(machine, QSINT(12), QSNIL);
+  cells[1] = qspair_make(machine, QSINT(11), QSNIL);
+  cells[0] = qspair_make(machine, QSINT(10), QSNIL);
+  qsptr v0 = qsvector_make(machine, 4, QSNIL);
+  qsvector_setq(machine, v0, 0, cells[1]);
+  qsvector_setq(machine, v0, 1, cells[3]);
+  qsvector_setq(machine, v0, 2, cells[5]);
+  qsvector_setq(machine, v0, 3, cells[7]);
+
+  ck_assert(! is_marked(cells[0]));
+  ck_assert(! is_marked(cells[1]));
+  ck_assert(! is_marked(cells[2]));
+  ck_assert(! is_marked(cells[3]));
+  ck_assert(! is_marked(cells[4]));
+  ck_assert(! is_marked(cells[5]));
+  ck_assert(! is_marked(cells[6]));
+  ck_assert(! is_marked(cells[7]));
+  gcmark(v0);
+  ck_assert(! is_marked(cells[0]));
+  ck_assert(is_marked(cells[1]));
+  ck_assert(! is_marked(cells[2]));
+  ck_assert(is_marked(cells[3]));
+  ck_assert(! is_marked(cells[4]));
+  ck_assert(is_marked(cells[5]));
+  ck_assert(! is_marked(cells[6]));
+  ck_assert(is_marked(cells[7]));
 }
 END_TEST
 
@@ -130,11 +164,14 @@ START_TEST(test_sweep1)
   cells[1] = qspair_make(machine, QSINT(11), QSNIL);
   cells[0] = qspair_make(machine, QSINT(10), QSNIL);
 
+  ck_assert_int_eq(qspair_ref_head(machine, cells[3]), QSINT(13));
+
   gcmark(cells[3]);
   gcmark(cells[5]);
 
   gcsweep();
 
+  /*  check freeing */
   ck_assert(! is_used(cells[0]));
   ck_assert(! is_used(cells[1]));
   ck_assert(! is_used(cells[2]));
@@ -144,6 +181,12 @@ START_TEST(test_sweep1)
   ck_assert(! is_used(cells[6]));
   ck_assert(! is_used(cells[7]));
   ck_assert(! is_used(cells[8]));
+
+  /*  check content validity. */
+  ck_assert_int_eq(qspair_ref_head(machine, cells[3]), QSINT(13));
+  ck_assert_int_eq(qspair_ref_tail(machine, cells[3]), QSNIL);
+  ck_assert_int_eq(qspair_ref_head(machine, cells[5]), QSINT(15));
+  ck_assert_int_eq(qspair_ref_tail(machine, cells[5]), QSNIL);
 
 
   /* test sweeping list. */
@@ -157,6 +200,8 @@ START_TEST(test_sweep1)
   cells[2] = qspair_make(machine, QSINT(12), cells[3]);
   cells[1] = qspair_make(machine, QSINT(11), cells[2]);
   cells[0] = qspair_make(machine, QSINT(10), cells[1]);
+
+  ck_assert_int_eq( qspair_ref_tail(machine,cells[3]), cells[4]);
 
   qsword addr;
   qsword mgmt;
@@ -173,6 +218,18 @@ START_TEST(test_sweep1)
   ck_assert(! is_used(cells[0]));
   ck_assert(! is_used(cells[1]));
   ck_assert(! is_used(cells[2]));
+
+  /* check data integrity. */
+  ck_assert_int_eq( qspair_ref_head(machine,cells[3]), QSINT(13) );
+  ck_assert_int_eq( qspair_ref_tail(machine,cells[3]), cells[4]);
+  ck_assert_int_eq( qspair_ref_head(machine,cells[4]), QSINT(14) );
+  ck_assert_int_eq( qspair_ref_tail(machine,cells[4]), cells[5]);
+  ck_assert_int_eq( qspair_ref_head(machine,cells[5]), QSINT(15) );
+  ck_assert_int_eq( qspair_ref_tail(machine,cells[5]), cells[6]);
+  ck_assert_int_eq( qspair_ref_head(machine,cells[6]), QSINT(16) );
+  ck_assert_int_eq( qspair_ref_tail(machine,cells[6]), cells[7]);
+  ck_assert_int_eq( qspair_ref_head(machine,cells[7]), QSINT(17) );
+  ck_assert_int_eq( qspair_ref_tail(machine,cells[7]), QSNIL);
 }
 END_TEST
 
