@@ -113,7 +113,7 @@ void qsobj_set_allocscale (qsobj_t * obj, int val)
 
 
 /* Prototype 1: Single-bounds pointer-content (Triplet). */
-qstriplet_t * qstriplet_init (qstriplet_t * triplet, qsptr first, qsptr second, qsptr third)
+qstriplet_t * qstriplet_init (qstriplet_t * triplet, qsptr_t first, qsptr_t second, qsptr_t third)
 {
   qsobj_init((qsobj_t*)triplet, 0, false);
   triplet->first = first;
@@ -122,34 +122,34 @@ qstriplet_t * qstriplet_init (qstriplet_t * triplet, qsptr first, qsptr second, 
   return triplet;
 }
 
-qsptr qstriplet_ref_first (const qstriplet_t * triplet)
+qsptr_t qstriplet_ref_first (const qstriplet_t * triplet)
 {
   return triplet->first;
 }
 
-qsptr qstriplet_ref_second (const qstriplet_t * triplet)
+qsptr_t qstriplet_ref_second (const qstriplet_t * triplet)
 {
   return triplet->second;
 }
 
-qsptr qstriplet_ref_third (const qstriplet_t * triplet)
+qsptr_t qstriplet_ref_third (const qstriplet_t * triplet)
 {
   return triplet->third;
 }
 
-qserr qstriplet_setq_first (qstriplet_t * triplet, qsptr val)
+qserr_t qstriplet_setq_first (qstriplet_t * triplet, qsptr_t val)
 {
   triplet->first = val;
   return QSERR_OK;
 }
 
-qserr qstriplet_setq_second (qstriplet_t * triplet, qsptr val)
+qserr_t qstriplet_setq_second (qstriplet_t * triplet, qsptr_t val)
 {
   triplet->second = val;
   return QSERR_OK;
 }
 
-qserr qstriplet_setq_third (qstriplet_t * triplet, qsptr val)
+qserr_t qstriplet_setq_third (qstriplet_t * triplet, qsptr_t val)
 {
   triplet->third = val;
   return QSERR_OK;
@@ -157,19 +157,19 @@ qserr qstriplet_setq_third (qstriplet_t * triplet, qsptr val)
 
 
 /* Prototype 2: Cross-bounds pointer-content (PointerVector). */
-qspvec_t * qspvec_init (qspvec_t * pvec, int allocscale, qsptr len)
+qspvec_t * qspvec_init (qspvec_t * pvec, int allocscale, qsptr_t len)
 {
   qsobj_init((qsobj_t*)pvec, allocscale, false);
   pvec->length = len;
   return pvec;
 }
 
-qsptr qspvec_ref_length (const qspvec_t * pvec)
+qsptr_t qspvec_ref_length (const qspvec_t * pvec)
 {
   return pvec->length;
 }
 
-qsptr qspvec_ref (const qspvec_t * pvec, qsword k)
+qsptr_t qspvec_ref (const qspvec_t * pvec, qsword k)
 {
   qsword lim = (1 << qsobj_get_allocscale((qsobj_t*)pvec));
   if (k < lim)
@@ -178,13 +178,13 @@ qsptr qspvec_ref (const qspvec_t * pvec, qsword k)
     return QSNIL;  /* TODO: out of bounds exception. */
 }
 
-qserr qspvec_setq_length (qspvec_t * pvec, qsptr len)
+qserr_t qspvec_setq_length (qspvec_t * pvec, qsptr_t len)
 {
   pvec->length = len;
   return QSERR_OK;
 }
 
-qsptr qspvec_setq (qspvec_t * pvec, qsword k, qsptr val)
+qsptr_t qspvec_setq (qspvec_t * pvec, qsword k, qsptr_t val)
 {
   qsword lim = (1 << qsobj_get_allocscale((qsobj_t*)pvec));
   if (k < lim)
@@ -197,7 +197,7 @@ qsptr qspvec_setq (qspvec_t * pvec, qsword k, qsptr val)
 
 
 /* Prototype 3: Single-bounds octet content (WideWord). */
-qswideword_t * qswideword_init (qswideword_t * wideword, qsptr subtype, union qswidepayload_u * initsrc)
+qswideword_t * qswideword_init (qswideword_t * wideword, qsptr_t subtype, union qswidepayload_u * initsrc)
 {
   qsobj_init((qsobj_t*)wideword, 0, true);
   wideword->subtype = subtype;
@@ -208,7 +208,7 @@ qswideword_t * qswideword_init (qswideword_t * wideword, qsptr subtype, union qs
   return wideword;
 }
 
-qsptr qswideword_ref_subtype (const qswideword_t * wideword)
+qsptr_t qswideword_ref_subtype (const qswideword_t * wideword)
 {
   return wideword->subtype;
 }
@@ -224,7 +224,7 @@ int qswideword_fetch_payload (const qswideword_t * wideword, union qswidepayload
   return 1;
 }
 
-qserr qswideword_setq_subtype (qswideword_t * wideword, qsptr subtype)
+qserr_t qswideword_setq_subtype (qswideword_t * wideword, qsptr_t subtype)
 {
   wideword->subtype = subtype;
   return QSERR_OK;
@@ -243,7 +243,7 @@ int qswideword_put_payload (qswideword_t * wideword, const union qswidepayload_u
 
 
 /* Prototype 4: Cross-bounds octet content (OctetVector). */
-qsovec_t * qsovec_init (qsovec_t * ovec, int allocscale, qsptr length)
+qsovec_t * qsovec_init (qsovec_t * ovec, int allocscale, qsptr_t length)
 {
   qsobj_init((qsobj_t*)ovec, allocscale, true);
   ovec->length = length;
@@ -252,7 +252,7 @@ qsovec_t * qsovec_init (qsovec_t * ovec, int allocscale, qsptr length)
   return ovec;
 }
 
-qsptr qsovec_ref_length (const qsovec_t * ovec)
+qsptr_t qsovec_ref_length (const qsovec_t * ovec)
 {
   return ovec->length;
 }
@@ -272,13 +272,13 @@ qsbyte qsovec_ref (const qsovec_t * ovec, qsword k)
   return 0;
 }
 
-qserr qsovec_setq_length (qsovec_t * ovec, qsptr len)
+qserr_t qsovec_setq_length (qsovec_t * ovec, qsptr_t len)
 {
   ovec->length = len;
   return QSERR_OK;
 }
 
-qserr qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val)
+qserr_t qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val)
 {
   qsword lim = (1 << qsobj_get_allocscale((qsobj_t*)ovec));
   if (k < lim)
@@ -293,20 +293,20 @@ qserr qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val)
 }
 
 /* TODO: implement. */
-qserr qsovec_incr_refcount (qsovec_t * ovec)
+qserr_t qsovec_incr_refcount (qsovec_t * ovec)
 {
   return QSERR_OK;
 }
 
 /* TODO: implement. */
-qserr qsovec_decr_refcount (qsovec_t * ovec)
+qserr_t qsovec_decr_refcount (qsovec_t * ovec)
 {
   return QSERR_OK;
 }
 
 
 
-qsfreelist_t * qsfreelist_init (qsfreelist_t * freelist, qsword length, qsaddr prev, qsaddr next)
+qsfreelist_t * qsfreelist_init (qsfreelist_t * freelist, qsword length, qsaddr_t prev, qsaddr_t next)
 {
   freelist->mgmt = (TAG_SYNC29);  /* not-Used. */
   freelist->length = length;
@@ -325,12 +325,12 @@ qsword qsfreelist_length (qsfreelist_t * freelist)
   return freelist->length;
 }
 
-qsaddr qsfreelist_prev (qsfreelist_t * freelist)
+qsaddr_t qsfreelist_prev (qsfreelist_t * freelist)
 {
   return freelist->prev;
 }
 
-qsaddr qsfreelist_next (qsfreelist_t * freelist)
+qsaddr_t qsfreelist_next (qsfreelist_t * freelist)
 {
   return freelist->next;
 }

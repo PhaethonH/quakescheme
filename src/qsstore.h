@@ -10,7 +10,7 @@
 typedef struct qssegment_s {
     qsword baseaddr;   /* Base address for address mapping. */
     qsword cap;	  /* Total bytes available in space. */
-    qsaddr freelist;   /* Start of freelist. */
+    qsaddr_t freelist;   /* Start of freelist. */
     qsword reserved3;  /* reserved words to align 'space' on 128b boundary. */
     qsbyte space[SMEM_SIZE];  /* variable-length array. */
 } qssegment_t;
@@ -20,9 +20,9 @@ qssegment_t * qssegment_destroy (qssegment_t *);
 qssegment_t * qssegment_clear (qssegment_t *);
 #ifdef DEBUG_QSSEGMENT
 /* only expose for debug and unit-testing. */
-int _qssegment_unfree (qssegment_t *, qsaddr local_addr);
-qsaddr _qssegment_split (qssegment_t *, qsaddr local_addr, qsword nth_boundary);
-qsaddr _qssegment_fit (qssegment_t *, qsword spanbounds);
+int _qssegment_unfree (qssegment_t *, qsaddr_t local_addr);
+qsaddr_t _qssegment_split (qssegment_t *, qsaddr_t local_addr, qsword nth_boundary);
+qsaddr_t _qssegment_fit (qssegment_t *, qsword spanbounds);
 #endif /* DEBUG_QSSEGMENT */
 
 
@@ -36,39 +36,39 @@ typedef struct qsstore_s {
 qsstore_t * qsstore_init (qsstore_t *);
 qsstore_t * qsstore_destroy (qsstore_t *);
 /* Accessor, get content byte as return value. */
-qsbyte qsstore_get_byte (const qsstore_t *, qsaddr addr);
+qsbyte qsstore_get_byte (const qsstore_t *, qsaddr_t addr);
 /* Accessor, get content word as return value. */
-qsword qsstore_get_word (const qsstore_t *, qsaddr addr);
+qsword qsstore_get_word (const qsstore_t *, qsaddr_t addr);
 /* Accessor, copy contents to buffer, return successful copy count. */
-qsword qsstore_fetch_words (const qsstore_t *, qsaddr addr, qsword * dest, qsword count);
+qsword qsstore_fetch_words (const qsstore_t *, qsaddr_t addr, qsword * dest, qsword count);
 /* Accessor, pointer into memory region. */
-const qsword * qsstore_word_at_const (const qsstore_t *, qsaddr addr);
+const qsword * qsstore_word_at_const (const qsstore_t *, qsaddr_t addr);
 
 /* Mutator, attach working memory. */
-qserr qsstore_attach_wmem (qsstore_t *, qssegment_t * wmem, qsaddr baseaddr);
+qserr_t qsstore_attach_wmem (qsstore_t *, qssegment_t * wmem, qsaddr_t baseaddr);
 /* Mutator, attach readonly memory. */
-qserr qsstore_attach_rmem (qsstore_t *, const qssegment_t * rmem, qsaddr baseaddr);
+qserr_t qsstore_attach_rmem (qsstore_t *, const qssegment_t * rmem, qsaddr_t baseaddr);
 
 /* Mutator, blindly set content byte. */
-qserr qsstore_set_byte (qsstore_t *, qsaddr addr, qsbyte val);
+qserr_t qsstore_set_byte (qsstore_t *, qsaddr_t addr, qsbyte val);
 /* Mutator, blindly set content word. */
-qserr qsstore_set_word (qsstore_t *, qsaddr addr, qsword val);
+qserr_t qsstore_set_word (qsstore_t *, qsaddr_t addr, qsword val);
 /* Mutator, copy into memory, return successful copy count. */
-qsword qsstore_put_words (qsstore_t *, qsaddr addr, qsword * src, qsword count);
+qsword qsstore_put_words (qsstore_t *, qsaddr_t addr, qsword * src, qsword count);
 /* Mutable, pointer into memory region. */
-qsword * qsstore_word_at (qsstore_t *, qsaddr addr);
+qsword * qsstore_word_at (qsstore_t *, qsaddr_t addr);
 
 
 /* Memory allocation. */
-qserr qsstore_alloc (qsstore_t *, qsword allocscale, qsaddr * out_addr);
-qserr qsstore_alloc_nbounds (qsstore_t *, qsword nbounds, qsaddr * out_addr);
-qserr qsstore_alloc_nwords (qsstore_t *, qsword nwords, qsaddr * out_addr);
-qserr qsstore_alloc_nbytes (qsstore_t *, qsword nbytes, qsaddr * out_addr);
+qserr_t qsstore_alloc (qsstore_t *, qsword allocscale, qsaddr_t * out_addr);
+qserr_t qsstore_alloc_nbounds (qsstore_t *, qsword nbounds, qsaddr_t * out_addr);
+qserr_t qsstore_alloc_nwords (qsstore_t *, qsword nwords, qsaddr_t * out_addr);
+qserr_t qsstore_alloc_nbytes (qsstore_t *, qsword nbytes, qsaddr_t * out_addr);
 
 
 /* Memory allocation. */
-qserr qsstore_trace (qsstore_t *, qsaddr root, int mark);
-qserr qsstore_sweep (qsstore_t *);
+qserr_t qsstore_trace (qsstore_t *, qsaddr_t root, int mark);
+qserr_t qsstore_sweep (qsstore_t *);
 
 
 #endif /* QSSTORE_H_ */

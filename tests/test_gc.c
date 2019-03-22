@@ -21,7 +21,7 @@ void init ()
 }
 
 
-bool is_used (qsptr p)
+bool is_used (qsptr_t p)
 {
   if (! ISOBJ26(p)) return false;
   qsword addr = COBJ26(p) << 4;
@@ -31,7 +31,7 @@ bool is_used (qsptr p)
   return MGMT_IS_USED(mgmt) ? true : false;
 }
 
-bool is_marked (qsptr p)
+bool is_marked (qsptr_t p)
 {
   if (! ISOBJ26(p)) return false;
   qsword addr = COBJ26(p) << 4;
@@ -42,7 +42,7 @@ bool is_marked (qsptr p)
   return MGMT_IS_MARK(mgmt) ? true : false;
 }
 
-int gcmark (qsptr p)
+int gcmark (qsptr_t p)
 {
   if (! COBJ26(p)) return false;
   qsword addr = COBJ26(p) << 4;
@@ -61,7 +61,7 @@ START_TEST(test_mark1)
   init();
 
   /* test marking one of many pairs. */
-  qsptr cells[16];
+  qsptr_t cells[16];
 
   cells[7] = qspair_make(machine, QSINT(17), QSNIL);
   cells[6] = qspair_make(machine, QSINT(16), QSNIL);
@@ -122,7 +122,7 @@ START_TEST(test_mark1)
   cells[2] = qspair_make(machine, QSINT(12), QSNIL);
   cells[1] = qspair_make(machine, QSINT(11), QSNIL);
   cells[0] = qspair_make(machine, QSINT(10), QSNIL);
-  qsptr v0 = qsvector_make(machine, 4, QSNIL);
+  qsptr_t v0 = qsvector_make(machine, 4, QSNIL);
   qsvector_setq(machine, v0, 0, cells[1]);
   qsvector_setq(machine, v0, 1, cells[3]);
   qsvector_setq(machine, v0, 2, cells[5]);
@@ -153,7 +153,7 @@ START_TEST(test_sweep1)
   init();
 
   /* test sweeping disparate pairs. */
-  qsptr cells[16];
+  qsptr_t cells[16];
 
   cells[7] = qspair_make(machine, QSINT(17), QSNIL);
   cells[6] = qspair_make(machine, QSINT(16), QSNIL);
@@ -233,7 +233,7 @@ START_TEST(test_sweep1)
 
 
   /* test reuse */
-  qsptr p = qspair_make(machine, QSINT(33), QSNIL);
+  qsptr_t p = qspair_make(machine, QSINT(33), QSNIL);
   ck_assert(ISOBJ26(p));
   ck_assert_int_le(p, cells[1]);
 }

@@ -77,54 +77,54 @@ typedef struct qsfreelist_s {
     qsword mgmt;
     qsword length;
     /* double-linked list. */
-    qsaddr prev;
-    qsaddr next;
+    qsaddr_t prev;
+    qsaddr_t next;
 } qsfreelist_t;
 
-qsfreelist_t * qsfreelist_init (qsfreelist_t *, qsword length, qsaddr prev, qsaddr next);
+qsfreelist_t * qsfreelist_init (qsfreelist_t *, qsword length, qsaddr_t prev, qsaddr_t next);
 qsfreelist_t * qsfreelist_destroy (qsfreelist_t *);
 qsword qsfreelist_get_length (qsfreelist_t *);
-qsaddr qsfreelist_get_prev (qsfreelist_t *);
-qsaddr qsfreelist_get_next (qsfreelist_t *);
+qsaddr_t qsfreelist_get_prev (qsfreelist_t *);
+qsaddr_t qsfreelist_get_next (qsfreelist_t *);
 
 
 /* Prototype 1: Single-bounds pointer-content (Triplet). */
 typedef struct qstriplet_s {
     qsword mgmt;
-    qsptr first;
-    qsptr second;
-    qsptr third;
+    qsptr_t first;
+    qsptr_t second;
+    qsptr_t third;
 } qstriplet_t;
 
-qstriplet_t * qstriplet_init (qstriplet_t * triplet, qsptr first, qsptr second, qsptr third);
-qsptr qstriplet_ref_first (const qstriplet_t * triplet);
-qsptr qstriplet_ref_second (const qstriplet_t * triplet);
-qsptr qstriplet_ref_third (const qstriplet_t * triplet);
-qserr qstriplet_setq_first (qstriplet_t * triplet, qsptr val);
-qserr qstriplet_setq_second (qstriplet_t * triplet, qsptr val);
-qserr qstriplet_setq_third (qstriplet_t * triplet, qsptr val);
+qstriplet_t * qstriplet_init (qstriplet_t * triplet, qsptr_t first, qsptr_t second, qsptr_t third);
+qsptr_t qstriplet_ref_first (const qstriplet_t * triplet);
+qsptr_t qstriplet_ref_second (const qstriplet_t * triplet);
+qsptr_t qstriplet_ref_third (const qstriplet_t * triplet);
+qserr_t qstriplet_setq_first (qstriplet_t * triplet, qsptr_t val);
+qserr_t qstriplet_setq_second (qstriplet_t * triplet, qsptr_t val);
+qserr_t qstriplet_setq_third (qstriplet_t * triplet, qsptr_t val);
 
 
 /* Prototype 2: Cross-bounds pointer-content (PointerVector). */
 typedef struct qspvec_s {
     qsword mgmt;
-    qsptr length;
-    qsptr gcback;
-    qsptr gciter;
-    qsptr elt[0]; /* variable length. */
+    qsptr_t length;
+    qsptr_t gcback;
+    qsptr_t gciter;
+    qsptr_t elt[0]; /* variable length. */
 } qspvec_t;
 
-qspvec_t * qspvec_init (qspvec_t * pvec, int allocscale, qsptr len);
-qsptr qspvec_ref_length (const qspvec_t * pvec);
-qsptr qspvec_ref (const qspvec_t * pvec, qsword k);
-qserr qspvec_setq_length (qspvec_t * pvec, qsptr len);
-qserr qspvec_setq (qspvec_t * pvec, qsword k, qsptr val);
+qspvec_t * qspvec_init (qspvec_t * pvec, int allocscale, qsptr_t len);
+qsptr_t qspvec_ref_length (const qspvec_t * pvec);
+qsptr_t qspvec_ref (const qspvec_t * pvec, qsword k);
+qserr_t qspvec_setq_length (qspvec_t * pvec, qsptr_t len);
+qserr_t qspvec_setq (qspvec_t * pvec, qsword k, qsptr_t val);
 
 
 /* Prototype 3: Single-bounds octet content (WideWord). */
 typedef struct qswideword_s {
     qsword mgmt;
-    qsptr subtype;
+    qsptr_t subtype;
     union qswidepayload_u {
 	double d;
 	int64_t l;
@@ -141,11 +141,11 @@ typedef struct qswideword_s {
     } payload;
 } qswideword_t;
 
-qswideword_t * qswideword_init (qswideword_t * wideword, qsptr subtype, union qswidepayload_u * initsrc);
-qsptr qswideword_ref_subtype (const qswideword_t * wideword);
+qswideword_t * qswideword_init (qswideword_t * wideword, qsptr_t subtype, union qswidepayload_u * initsrc);
+qsptr_t qswideword_ref_subtype (const qswideword_t * wideword);
 const union qswidepayload_u * qswideword_at_const (const qswideword_t * wideword);
 int qswideword_fetch_payload (const qswideword_t * wideword, union qswidepayload_u * buf);
-qserr qswideword_setq_subtype (qswideword_t * wideword, qsptr subtype);
+qserr_t qswideword_setq_subtype (qswideword_t * wideword, qsptr_t subtype);
 union qswidepayload_u * qswideword_at (qswideword_t * wideword);
 int qswideword_put_payload (qswideword_t * wideword, const union qswidepayload_u * buf);
 
@@ -153,20 +153,20 @@ int qswideword_put_payload (qswideword_t * wideword, const union qswidepayload_u
 /* Prototype 4: Cross-bounds octet content (OctetVector). */
 typedef struct qsovec_s {
     qsword mgmt;
-    qsptr length;
+    qsptr_t length;
     qsword refcount;
     qsword reflock;
     qsbyte elt[0];  /* variable length. */
 } qsovec_t;
 
-qsovec_t * qsovec_init (qsovec_t * ovec, int allocscale, qsptr len);
-qsptr qsovec_ref_length (const qsovec_t * ovec);
+qsovec_t * qsovec_init (qsovec_t * ovec, int allocscale, qsptr_t len);
+qsptr_t qsovec_ref_length (const qsovec_t * ovec);
 qsword qsovec_get_refcount (const qsovec_t * ovec);
 qsbyte qsovec_ref (const qsovec_t * ovec, qsword k);
-qserr qsovec_setq_length (qsovec_t * ovec, qsptr len);
-qserr qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val);
-qserr qsovec_incr_refcount (qsovec_t * ovec);
-qserr qsovec_decr_refcount (qsovec_t * ovec);
+qserr_t qsovec_setq_length (qsovec_t * ovec, qsptr_t len);
+qserr_t qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val);
+qserr_t qsovec_incr_refcount (qsovec_t * ovec);
+qserr_t qsovec_decr_refcount (qsovec_t * ovec);
 
 
 #endif /* QSOBJ_H_ */

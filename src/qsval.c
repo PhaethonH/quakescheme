@@ -32,26 +32,26 @@ int qs_snprintf (char * buf, int buflen, char * fmt, ...)
 }
 
 
-qsptr qsptr_make (qsmachine_t * mach, qsaddr mapped_addr)
+qsptr_t qsptr_make (qsmachine_t * mach, qsaddr_t mapped_addr)
 {
-  qsptr retval = QSOBJ(mapped_addr >> 4);
+  qsptr_t retval = QSOBJ(mapped_addr >> 4);
   return retval;
 }
 
 
 /* Directly encoded values. */
 
-qsptr qsbool_make (qsmachine_t * mach, int val)
+qsptr_t qsbool_make (qsmachine_t * mach, int val)
 {
   return val ? QSTRUE : QSFALSE;
 }
 
-bool qsbool_p (const qsmachine_t * mach, qsptr p)
+bool qsbool_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (p == QSTRUE) || (p == QSFALSE);
 }
 
-int qsbool_crepr (const qsmachine_t * mach, qsptr p, char *buf, int buflen)
+int qsbool_crepr (const qsmachine_t * mach, qsptr_t p, char *buf, int buflen)
 {
   int n = 0;
 
@@ -67,23 +67,23 @@ int qsbool_crepr (const qsmachine_t * mach, qsptr p, char *buf, int buflen)
 }
 
 
-qsptr qsfloat_make (qsmachine_t * mach, float val)
+qsptr_t qsfloat_make (qsmachine_t * mach, float val)
 {
   return QSFLOAT(val);
 }
 
-bool qsfloat_p (const qsmachine_t * mach, qsptr p)
+bool qsfloat_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISFLOAT31(p);
 }
 
-float qsfloat_get (const qsmachine_t * mach, qsptr p)
+float qsfloat_get (const qsmachine_t * mach, qsptr_t p)
 {
   float fval = CFLOAT31(p);
   return fval;
 }
 
-int qsfloat_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsfloat_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   float fval = CFLOAT31(p);
@@ -93,23 +93,23 @@ int qsfloat_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-qsptr qsint_make (qsmachine_t * mach, int32_t val)
+qsptr_t qsint_make (qsmachine_t * mach, int32_t val)
 {
   return QSINT(val);
 }
 
-bool qsint_p (const qsmachine_t * mach, qsptr p)
+bool qsint_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISINT30(p);
 }
 
-int32_t qsint_get (const qsmachine_t * mach, qsptr p)
+int32_t qsint_get (const qsmachine_t * mach, qsptr_t p)
 {
   int ival = CINT30(p);
   return ival;
 }
 
-int qsint_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsint_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   int ival = CINT30(p);
@@ -119,23 +119,23 @@ int qsint_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-qsptr qschar_make (qsmachine_t * mach, int val)
+qsptr_t qschar_make (qsmachine_t * mach, int val)
 {
   return QSCHAR(val);
 }
 
-bool qschar_p (const qsmachine_t * mach, qsptr p)
+bool qschar_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISCHAR24(p);
 }
 
-int qschar_get (const qsmachine_t * mach, qsptr p)
+int qschar_get (const qsmachine_t * mach, qsptr_t p)
 {
   int chval = CCHAR24(p);
   return chval;
 }
 
-int qschar_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qschar_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   int chval = CCHAR24(p);
@@ -166,22 +166,22 @@ int qschar_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-qsptr qsconst_make (qsmachine_t * mach, int const_id)
+qsptr_t qsconst_make (qsmachine_t * mach, int const_id)
 {
   return QSCONST(const_id);
 }
 
-bool qsconst_p (const qsmachine_t * mach, qsptr p)
+bool qsconst_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISCONST20(p);
 }
 
-int qsconst_id (const qsmachine_t * mach, qsptr p)
+int qsconst_id (const qsmachine_t * mach, qsptr_t p)
 {
   return CCONST20(p);
 }
 
-int qsconst_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsconst_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   int constval = CCONST20(p);
@@ -218,20 +218,20 @@ int qsconst_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-qsptr qsfd_make (qsmachine_t * mach, int val)
+qsptr_t qsfd_make (qsmachine_t * mach, int val)
 {
   /* TODO: check value too large. */
   return QSFD(val);
 }
 
-qsptr qsfd_open (qsmachine_t * mach, const char  * path, int flags, int mode)
+qsptr_t qsfd_open (qsmachine_t * mach, const char  * path, int flags, int mode)
 {
   int fd = open(path, flags, mode);
   if (fd < 0) return QSERR_FAULT;
   return qsfd_make(mach, fd);
 }
 
-bool qsfd_p (const qsmachine_t * mach, qsptr p)
+bool qsfd_p (const qsmachine_t * mach, qsptr_t p)
 {
   if (ISFD20(p))
     {
@@ -243,12 +243,12 @@ bool qsfd_p (const qsmachine_t * mach, qsptr p)
   return false;
 }
 
-int qsfd_id (const qsmachine_t * mach, qsptr p)
+int qsfd_id (const qsmachine_t * mach, qsptr_t p)
 {
   return CFD20(p);
 }
 
-bool qsfd_eof (const qsmachine_t * mach, qsptr p)
+bool qsfd_eof (const qsmachine_t * mach, qsptr_t p)
 {
   /* FDs allows for dynamic/variable EOF.
      For normal files, read() returns 0 on EOF.
@@ -256,7 +256,7 @@ bool qsfd_eof (const qsmachine_t * mach, qsptr p)
   return false;
 }
 
-int qsfd_read_u8 (const qsmachine_t * mach, qsptr p)
+int qsfd_read_u8 (const qsmachine_t * mach, qsptr_t p)
 {
   if (! qsfd_p(mach, p)) return -1;
   uint8_t byte;
@@ -268,7 +268,7 @@ int qsfd_read_u8 (const qsmachine_t * mach, qsptr p)
     return -1;
 }
 
-bool qsfd_write_u8 (const qsmachine_t * mach, qsptr p, int byte)
+bool qsfd_write_u8 (const qsmachine_t * mach, qsptr_t p, int byte)
 {
   if (! qsfd_p(mach, p)) return false;
   uint8_t buf = (uint8_t)byte;
@@ -277,14 +277,14 @@ bool qsfd_write_u8 (const qsmachine_t * mach, qsptr p, int byte)
   return (res > 0);
 }
 
-qsword qsfd_tell (const qsmachine_t * mach, qsptr p)
+qsword qsfd_tell (const qsmachine_t * mach, qsptr_t p)
 {
   if (! qsfd_p(mach, p)) return 0;
   int fd = qsfd_id(mach, p);
   return lseek(fd, 0, SEEK_CUR);
 }
 
-bool qsfd_seek (const qsmachine_t * mach, qsptr p, qsword pos)
+bool qsfd_seek (const qsmachine_t * mach, qsptr_t p, qsword pos)
 {
   if (! qsfd_p(mach, p)) return 0;
   int fd = qsfd_id(mach, p);
@@ -292,14 +292,14 @@ bool qsfd_seek (const qsmachine_t * mach, qsptr p, qsword pos)
   return (res >= 0);
 }
 
-bool qsfd_close (const qsmachine_t * mach, qsptr p)
+bool qsfd_close (const qsmachine_t * mach, qsptr_t p)
 {
   int fd = qsfd_id(mach, p);
   int res = close(fd);
   return (res == 0);
 }
 
-int qsfd_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsfd_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   int fdval = CFD20(p);
@@ -310,22 +310,22 @@ int qsfd_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-qsptr qsprim_make (qsmachine_t * mach, qsword primid)
+qsptr_t qsprim_make (qsmachine_t * mach, qsword primid)
 {
   return QSPRIM(primid);
 }
 
-bool qsprim_p (const qsmachine_t * mach, qsptr p)
+bool qsprim_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISPRIM20(p);
 }
 
-int qsprim_id (const qsmachine_t * mach, qsptr p)
+int qsprim_id (const qsmachine_t * mach, qsptr_t p)
 {
   return CPRIM20(p);
 }
 
-int qsprim_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsprim_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   int primid = CPRIM20(p);
@@ -336,22 +336,22 @@ int qsprim_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-qsptr qserr_make (qsmachine_t * mach, qsword errid)
+qsptr_t qserr_make (qsmachine_t * mach, qsword errid)
 {
   return QSERR(errid);
 }
 
-qsword qserr_p (const qsmachine_t * mach, qsptr p)
+qsword qserr_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISERR20(p);
 }
 
-qsword qserr_id (const qsmachine_t * mach, qsptr p)
+qsword qserr_id (const qsmachine_t * mach, qsptr_t p)
 {
   return CERR20(p);
 }
 
-int qserr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qserr_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   qsword err_id = CERR20(p);
@@ -380,32 +380,32 @@ int qserr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-qsptr qsobj_make (qsmachine_t * mach, qsword obj_id)
+qsptr_t qsobj_make (qsmachine_t * mach, qsword obj_id)
 {
   return QSOBJ(obj_id);
 }
 
-qsword qsobj_p (qsmachine_t * mach, qsptr p)
+qsword qsobj_p (qsmachine_t * mach, qsptr_t p)
 {
   return ISOBJ26(p);
 }
 
-qsword qsobj_id (qsmachine_t * mach, qsptr p)
+qsword qsobj_id (qsmachine_t * mach, qsptr_t p)
 {
   return COBJ26(p);
 }
 
-const qsobj_t * qsobj_const (const qsmachine_t * mach, qsptr p)
+const qsobj_t * qsobj_const (const qsmachine_t * mach, qsptr_t p)
 {
   qsword obj_id = COBJ26(p);
-  qsaddr mapped_addr = obj_id << 4;
+  qsaddr_t mapped_addr = obj_id << 4;
   const qsobj_t * obj = (const qsobj_t*)(qsstore_word_at_const(&(mach->S), mapped_addr));
   if (! obj) return NULL;
   if (! MGMT_IS_USED(obj->mgmt)) return NULL;
   return obj;
 }
 
-qsobj_t * qsobj (qsmachine_t * mach, qsptr p)
+qsobj_t * qsobj (qsmachine_t * mach, qsptr_t p)
 {
   if (qsobj_const(mach, p))
     {
@@ -424,38 +424,38 @@ qsobj_t * qsobj (qsmachine_t * mach, qsptr p)
 
 
 /* QsSym: symbols by id.  See qssymbol for storing name. */
-qsptr qssym_make (qsmachine_t * mach, qsword sym_id)
+qsptr_t qssym_make (qsmachine_t * mach, qsword sym_id)
 {
   return QSSYM(sym_id);
 }
 
-bool qssym_p (const qsmachine_t * mach, qsptr p)
+bool qssym_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISSYM26(p);
 }
 
-qsword qssym_id (const qsmachine_t * mach, qsptr p)
+qsword qssym_id (const qsmachine_t * mach, qsptr_t p)
 {
   return CSYM26(p);
 }
 
-int qssym_crepr (qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qssym_crepr (qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   return n;
 }
 
-qsptr qssym_symbol (const qsmachine_t * mach, qsptr p)
+qsptr_t qssym_symbol (const qsmachine_t * mach, qsptr_t p)
 {
   return QSOBJ(CSYM26(p));
 }
 
-qsptr qssym_name (const qsmachine_t * mach, qsptr p)
+qsptr_t qssym_name (const qsmachine_t * mach, qsptr_t p)
 {
   return QSOBJ(CSYM26(p));
 }
 
-qscmp_t qssym_cmp (qsmachine_t * mach, qsptr x, qsptr y)
+qscmp_t qssym_cmp (qsmachine_t * mach, qsptr_t x, qsptr_t y)
 {
   return (x == y) ? QSCMP_EQ : QSCMP_NE;
 }
@@ -464,7 +464,7 @@ qscmp_t qssym_cmp (qsmachine_t * mach, qsptr x, qsptr y)
 /* Heaped object */
 
 /* Heaped prototype: Triplet. */
-const qstriplet_t * qstriplet_const (const qsmachine_t * mach, qsptr p)
+const qstriplet_t * qstriplet_const (const qsmachine_t * mach, qsptr_t p)
 {
   if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
@@ -474,7 +474,7 @@ const qstriplet_t * qstriplet_const (const qsmachine_t * mach, qsptr p)
   return (const qstriplet_t*)obj;
 }
 
-qstriplet_t * qstriplet (qsmachine_t * mach, qsptr p)
+qstriplet_t * qstriplet (qsmachine_t * mach, qsptr_t p)
 {
   if (qstriplet_const(mach, p))
     {
@@ -483,10 +483,10 @@ qstriplet_t * qstriplet (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qstriplet_make (qsmachine_t * mach, qsptr first, qsptr second, qsptr third)
+qsptr_t qstriplet_make (qsmachine_t * mach, qsptr_t first, qsptr_t second, qsptr_t third)
 {
-  qsaddr mapped_addr = 0;
-  qserr err = qsstore_alloc(&(mach->S), 0, &mapped_addr);
+  qsaddr_t mapped_addr = 0;
+  qserr_t err = qsstore_alloc(&(mach->S), 0, &mapped_addr);
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at(&(mach->S), mapped_addr));
@@ -495,11 +495,11 @@ qsptr qstriplet_make (qsmachine_t * mach, qsptr first, qsptr second, qsptr third
   triplet->first = first;
   triplet->second = second;
   triplet->third = third;
-  qsptr retval = qsptr_make(mach, mapped_addr);
+  qsptr_t retval = qsptr_make(mach, mapped_addr);
   return retval;
 }
 
-qscmp_t qstriplet_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+qscmp_t qstriplet_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 {
   const qstriplet_t * tx = qstriplet_const(mach, x);
   const qstriplet_t * ty = qstriplet_const(mach, y);
@@ -513,7 +513,7 @@ qscmp_t qstriplet_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
 
 
 /* Heaped prototype: WideWord. */
-const qswideword_t * qswideword_const (const qsmachine_t * mach, qsptr p)
+const qswideword_t * qswideword_const (const qsmachine_t * mach, qsptr_t p)
 {
   if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
@@ -523,7 +523,7 @@ const qswideword_t * qswideword_const (const qsmachine_t * mach, qsptr p)
   return (const qswideword_t*)obj;
 }
 
-qswideword_t * qswideword (qsmachine_t * mach, qsptr p)
+qswideword_t * qswideword (qsmachine_t * mach, qsptr_t p)
 {
   if (qswideword_const(mach, p))
     {
@@ -532,10 +532,10 @@ qswideword_t * qswideword (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qswideword_make (qsmachine_t * mach, qsptr subtype)
+qsptr_t qswideword_make (qsmachine_t * mach, qsptr_t subtype)
 {
-  qsaddr mapped_addr = 0;
-  qserr err = qsstore_alloc(&(mach->S), 0, &mapped_addr);
+  qsaddr_t mapped_addr = 0;
+  qserr_t err = qsstore_alloc(&(mach->S), 0, &mapped_addr);
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at(&(mach->S), mapped_addr));
@@ -543,11 +543,11 @@ qsptr qswideword_make (qsmachine_t * mach, qsptr subtype)
   qswideword_t * wideword = (qswideword_t*)obj;
   wideword->subtype = subtype;
   wideword->payload.l = 0;
-  qsptr retval = qsptr_make(mach, mapped_addr);
+  qsptr_t retval = qsptr_make(mach, mapped_addr);
   return retval;
 }
 
-qscmp_t qswideword_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+qscmp_t qswideword_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 {
   const qswideword_t * wx = qswideword_const(mach, x);
   const qswideword_t * wy = qswideword_const(mach, y);
@@ -561,7 +561,7 @@ qscmp_t qswideword_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
 
 
 /* Heaped prototype: Pointer Vector. */
-const qspvec_t * qspvec_const (const qsmachine_t * mach, qsptr p)
+const qspvec_t * qspvec_const (const qsmachine_t * mach, qsptr_t p)
 {
   if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
@@ -571,7 +571,7 @@ const qspvec_t * qspvec_const (const qsmachine_t * mach, qsptr p)
   return (const qspvec_t*)obj;
 }
 
-qspvec_t * qspvec (qsmachine_t * mach, qsptr p)
+qspvec_t * qspvec (qsmachine_t * mach, qsptr_t p)
 {
   if (qspvec_const(mach, p))
     {
@@ -580,10 +580,10 @@ qspvec_t * qspvec (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qspvec_make (qsmachine_t * mach, qsptr payload_words, qsptr fillval)
+qsptr_t qspvec_make (qsmachine_t * mach, qsptr_t payload_words, qsptr_t fillval)
 {
-  qsaddr mapped_addr = 0;
-  qserr err = qsstore_alloc_nwords(&(mach->S), payload_words, &mapped_addr);
+  qsaddr_t mapped_addr = 0;
+  qserr_t err = qsstore_alloc_nwords(&(mach->S), payload_words, &mapped_addr);
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at(&(mach->S), mapped_addr));
@@ -598,11 +598,11 @@ qsptr qspvec_make (qsmachine_t * mach, qsptr payload_words, qsptr fillval)
     {
       pvec->elt[i] = fillval;
     }
-  qsptr retval = qsptr_make(mach, mapped_addr);
+  qsptr_t retval = qsptr_make(mach, mapped_addr);
   return retval;
 }
 
-qscmp_t qspvec_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+qscmp_t qspvec_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 {
   const qspvec_t * vx = qspvec_const(mach, x);
   const qspvec_t * vy = qspvec_const(mach, y);
@@ -610,7 +610,7 @@ qscmp_t qspvec_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
   if (x == y) return QSCMP_EQ;
   if (vx->length != vy->length) return QSCMP_NE;
   qsword i;
-  qsword m = (1 << qsobj_get_allocscale((qsobj_t*)vx)) * sizeof(qsobj_t)/sizeof(qsptr) - sizeof(qsobj_t);
+  qsword m = (1 << qsobj_get_allocscale((qsobj_t*)vx)) * sizeof(qsobj_t)/sizeof(qsptr_t) - sizeof(qsobj_t);
   for (i = 0; i < m; i++)
     if (vx->elt[i] != vy->elt[i]) return QSCMP_NE;
   return QSCMP_EQ;
@@ -618,7 +618,7 @@ qscmp_t qspvec_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
 
 
 /* Heaped prototype: Octet Vector. */
-const qsovec_t * qsovec_const (const qsmachine_t * mach, qsptr p)
+const qsovec_t * qsovec_const (const qsmachine_t * mach, qsptr_t p)
 {
   if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
@@ -628,7 +628,7 @@ const qsovec_t * qsovec_const (const qsmachine_t * mach, qsptr p)
   return (const qsovec_t*)obj;
 }
 
-qsovec_t * qsovec (qsmachine_t * mach, qsptr p)
+qsovec_t * qsovec (qsmachine_t * mach, qsptr_t p)
 {
   if (qsovec_const(mach, p))
     {
@@ -637,10 +637,10 @@ qsovec_t * qsovec (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qsovec_make (qsmachine_t * mach, qsptr len, qsbyte fillval)
+qsptr_t qsovec_make (qsmachine_t * mach, qsptr_t len, qsbyte fillval)
 {
-  qsaddr mapped_addr = 0;
-  qserr err = qsstore_alloc_nbytes(&(mach->S), len, &mapped_addr);
+  qsaddr_t mapped_addr = 0;
+  qserr_t err = qsstore_alloc_nbytes(&(mach->S), len, &mapped_addr);
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at_const(&(mach->S), mapped_addr));
@@ -650,11 +650,11 @@ qsptr qsovec_make (qsmachine_t * mach, qsptr len, qsbyte fillval)
   ovec->length = len;
   ovec->refcount = 0;
   ovec->reflock = 0;
-  qsptr retval = qsptr_make(mach, mapped_addr);
+  qsptr_t retval = qsptr_make(mach, mapped_addr);
   return retval;
 }
 
-qscmp_t qsovec_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+qscmp_t qsovec_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 {
   const qsovec_t * ox = qsovec_const(mach, x);
   const qsovec_t * oy = qsovec_const(mach, y);
@@ -674,7 +674,7 @@ qscmp_t qsovec_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
    * .first is nil
  */
 
-const qstriplet_t * qspair_const (const qsmachine_t * mach, qsptr p)
+const qstriplet_t * qspair_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * triplet = qstriplet_const(mach, p);
   if (! triplet) return NULL;
@@ -682,39 +682,39 @@ const qstriplet_t * qspair_const (const qsmachine_t * mach, qsptr p)
   return triplet;
 }
 
-qstriplet_t * qspair (qsmachine_t * mach, qsptr p)
+qstriplet_t * qspair (qsmachine_t * mach, qsptr_t p)
 {
   if (qspair_const(mach, p))
     return qstriplet(mach, p);
   return NULL;
 }
 
-qsptr qspair_make (qsmachine_t * mach, qsptr a, qsptr d)
+qsptr_t qspair_make (qsmachine_t * mach, qsptr_t a, qsptr_t d)
 {
-  qsptr p = qstriplet_make(mach, QSNIL, a, d);
+  qsptr_t p = qstriplet_make(mach, QSNIL, a, d);
   return p;
 }
 
-bool qspair_p (const qsmachine_t * mach, qsptr p)
+bool qspair_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qspair_const(mach, p) != NULL);
 }
 
-qsptr qspair_ref_head (const qsmachine_t * mach, qsptr p)
+qsptr_t qspair_ref_head (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * pair = qspair_const(mach, p);
   if (! pair) return QSERR_FAULT;
   return pair->second;
 }
 
-qsptr qspair_ref_tail (const qsmachine_t * mach, qsptr p)
+qsptr_t qspair_ref_tail (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * pair = qspair_const(mach, p);
   if (! pair) return QSERR_FAULT;
   return pair->third;
 }
 
-qsptr qspair_setq_head (qsmachine_t * mach, qsptr p, qsptr a)
+qsptr_t qspair_setq_head (qsmachine_t * mach, qsptr_t p, qsptr_t a)
 {
   qstriplet_t * pair = qspair(mach, p);
   if (! pair) return QSERR_FAULT;
@@ -722,7 +722,7 @@ qsptr qspair_setq_head (qsmachine_t * mach, qsptr p, qsptr a)
   return p;
 }
 
-qsptr qspair_setq_tail (qsmachine_t * mach, qsptr p, qsptr d)
+qsptr_t qspair_setq_tail (qsmachine_t * mach, qsptr_t p, qsptr_t d)
 {
   qstriplet_t * pair = qspair(mach, p);
   if (! pair) return QSERR_FAULT;
@@ -730,27 +730,27 @@ qsptr qspair_setq_tail (qsmachine_t * mach, qsptr p, qsptr d)
   return p;
 }
 
-qsptr qspair_iter (const qsmachine_t * mach, qsptr p)
+qsptr_t qspair_iter (const qsmachine_t * mach, qsptr_t p)
 {
   if (! qspair_const(mach, p)) return QSERR_FAULT;
-  qsaddr memaddr = COBJ26(p) << 4;
-  qsptr retval = qsiter_make(mach, memaddr);
+  qsaddr_t memaddr = COBJ26(p) << 4;
+  qsptr_t retval = qsiter_make(mach, memaddr);
   return retval;
 }
 
-int qspair_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qspair_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   const qstriplet_t * pair = NULL;
-  qsptr curr = p;
+  qsptr_t curr = p;
 
   n += qs_snprintf(buf+n, buflen-n, "%s", "(");
 
   while (! ISNIL(curr))
     {
       pair = qspair_const(mach, curr);
-      qsptr head = pair->second;
-      qsptr tail = pair->third;
+      qsptr_t head = pair->second;
+      qsptr_t tail = pair->third;
 
       n += qsptr_crepr(mach, head, buf+n, buflen-n);
 
@@ -786,7 +786,7 @@ int qspair_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
    * .length isa integer
  */
 
-const qspvec_t * qsvector_const (const qsmachine_t * mach, qsptr p)
+const qspvec_t * qsvector_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qspvec_const(mach, p);
   if (! pvec) return NULL;
@@ -794,34 +794,34 @@ const qspvec_t * qsvector_const (const qsmachine_t * mach, qsptr p)
   return pvec;
 }
 
-qspvec_t * qsvector (qsmachine_t * mach, qsptr p)
+qspvec_t * qsvector (qsmachine_t * mach, qsptr_t p)
 {
   if (qsvector_const(mach, p))
     return (qspvec_t*)(qspvec(mach, p));
   return NULL;
 }
 
-qsptr qsvector_make (qsmachine_t * mach, qsword len, qsptr fill)
+qsptr_t qsvector_make (qsmachine_t * mach, qsword len, qsptr_t fill)
 {
-  qsptr p = qspvec_make(mach, len, fill);
+  qsptr_t p = qspvec_make(mach, len, fill);
   qspvec_t * pvec = qspvec(mach, p);
   pvec->length = QSINT(len);
   return p;
 }
 
-bool qsvector_p (const qsmachine_t * mach, qsptr p)
+bool qsvector_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qsvector_const(mach, p) != NULL);
 }
 
-qsword qsvector_length (const qsmachine_t * mach, qsptr p)
+qsword qsvector_length (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qsvector_const(mach, p);
   if (! pvec) return 0;
   return CINT30(pvec->length);
 }
 
-qsptr qsvector_ref (const qsmachine_t * mach, qsptr p, qsword k)
+qsptr_t qsvector_ref (const qsmachine_t * mach, qsptr_t p, qsword k)
 {
   const qspvec_t * vec = qsvector_const(mach, p);
   if (! vec) return QSERR_FAULT;
@@ -829,7 +829,7 @@ qsptr qsvector_ref (const qsmachine_t * mach, qsptr p, qsword k)
   return vec->elt[k];
 }
 
-qsptr qsvector_setq (qsmachine_t * mach, qsptr p, qsword k, qsptr val)
+qsptr_t qsvector_setq (qsmachine_t * mach, qsptr_t p, qsword k, qsptr_t val)
 {
   qspvec_t * pvec = qsvector(mach, p);
   if (! pvec) return QSERR_FAULT;
@@ -838,7 +838,7 @@ qsptr qsvector_setq (qsmachine_t * mach, qsptr p, qsword k, qsptr val)
   return p;
 }
 
-int qsvector_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsvector_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   qsword i, m;
@@ -848,7 +848,7 @@ int qsvector_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
   m = qsvector_length(mach, p);
   for (i = 0; i < m; i++)
     {
-      qsptr x = qsvector_ref(mach, p, i);
+      qsptr_t x = qsvector_ref(mach, p, i);
       if (i > 0)
 	n += qs_snprintf(buf+n, buflen-n, " ");
       n += qsptr_crepr(mach, x, buf+n, buflen-n);
@@ -865,7 +865,7 @@ int qsvector_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
    * .length is nil
  */
 
-const qspvec_t * qsarray_const (const qsmachine_t * mach, qsptr p)
+const qspvec_t * qsarray_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qspvec_const(mach, p);
   if (! pvec) return NULL;
@@ -873,26 +873,26 @@ const qspvec_t * qsarray_const (const qsmachine_t * mach, qsptr p)
   return pvec;
 }
 
-qspvec_t * qsarray (qsmachine_t * mach, qsptr p)
+qspvec_t * qsarray (qsmachine_t * mach, qsptr_t p)
 {
   if (qsarray_const(mach, p))
     return (qspvec_t*)(qspvec(mach, p));
   return NULL;
 }
 
-qsptr qsarray_make (qsmachine_t * mach, qsword len)
+qsptr_t qsarray_make (qsmachine_t * mach, qsword len)
 {
-  qsptr p = qspvec_make(mach, len, QSNIL);
+  qsptr_t p = qspvec_make(mach, len, QSNIL);
   qspvec_t * pvec = qspvec(mach, p);
   pvec->length = QSNIL;
   return p;
 }
 
-qsptr qsarray_vinject (qsmachine_t * mach, va_list vp)
+qsptr_t qsarray_vinject (qsmachine_t * mach, va_list vp)
 {
   qsword nptrs = 0;
   va_list vp0;
-  qsptr elt;
+  qsptr_t elt;
 
   /* bookmark. */
   va_copy(vp0, vp);
@@ -901,7 +901,7 @@ qsptr qsarray_vinject (qsmachine_t * mach, va_list vp)
   int depth = 1;
   while (depth > 0)
     {
-      elt = va_arg(vp0, qsptr);
+      elt = va_arg(vp0, qsptr_t);
       if (elt == QSBOL)
 	depth++;
       else if (elt == QSEOL)
@@ -911,7 +911,7 @@ qsptr qsarray_vinject (qsmachine_t * mach, va_list vp)
   va_end(vp0);
 
   /* prepare memory. */
-  qsptr retval = qsarray_make(mach, nptrs);
+  qsptr_t retval = qsarray_make(mach, nptrs);
   if (! ISOBJ26(retval))
     return QSERR_FAULT;
 
@@ -919,7 +919,7 @@ qsptr qsarray_vinject (qsmachine_t * mach, va_list vp)
   qsword i;
   for (i = 0; i < nptrs; i++)
     {
-      elt = va_arg(vp, qsptr);
+      elt = va_arg(vp, qsptr_t);
       qsarray_setq(mach, retval, i, elt);
     }
   qsarray_setq(mach, retval, i, QSEOL);
@@ -927,10 +927,10 @@ qsptr qsarray_vinject (qsmachine_t * mach, va_list vp)
   return retval;
 }
 
-qsptr qsarray_inject (qsmachine_t * mach, ...)
+qsptr_t qsarray_inject (qsmachine_t * mach, ...)
 {
   va_list vp;
-  qsptr retval = QSNIL;
+  qsptr_t retval = QSNIL;
 
   va_start(vp, mach);
   retval = qsarray_vinject(mach, vp);
@@ -938,22 +938,22 @@ qsptr qsarray_inject (qsmachine_t * mach, ...)
   return retval;
 }
 
-bool qsarray_p (const qsmachine_t * mach, qsptr p)
+bool qsarray_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qsarray_const(mach, p) != NULL);
 }
 
-qsword qsarray_length (const qsmachine_t * mach, qsptr p)
+qsword qsarray_length (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qsarray_const(mach, p);
   if (! pvec) return 0;
-  const int words_per_boundary = sizeof(qsobj_t) / sizeof(qsptr);
-  qsaddr allocsize = (1 << qsobj_get_allocscale((const qsobj_t*)pvec));
+  const int words_per_boundary = sizeof(qsobj_t) / sizeof(qsptr_t);
+  qsaddr_t allocsize = (1 << qsobj_get_allocscale((const qsobj_t*)pvec));
   qsword retval = allocsize * words_per_boundary;
   return retval;
 }
 
-qsptr qsarray_ref (const qsmachine_t * mach, qsptr p, qsword k)
+qsptr_t qsarray_ref (const qsmachine_t * mach, qsptr_t p, qsword k)
 {
   const qspvec_t * vec = qsarray_const(mach, p);
   if (! vec) return QSERR_FAULT;
@@ -961,7 +961,7 @@ qsptr qsarray_ref (const qsmachine_t * mach, qsptr p, qsword k)
   return vec->elt[k];
 }
 
-qsptr qsarray_setq (qsmachine_t * mach, qsptr p, qsword k, qsptr val)
+qsptr_t qsarray_setq (qsmachine_t * mach, qsptr_t p, qsword k, qsptr_t val)
 {
   qspvec_t * pvec = qsarray(mach, p);
   if (! pvec) return QSERR_FAULT;
@@ -970,15 +970,15 @@ qsptr qsarray_setq (qsmachine_t * mach, qsptr p, qsword k, qsptr val)
   return p;
 }
 
-qsptr qsarray_iter (const qsmachine_t * mach, qsptr p)
+qsptr_t qsarray_iter (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qsarray_const(mach, p);
   if (! pvec) return QSERR_FAULT;
-  qsaddr memaddr = (COBJ26(p) + 1) << 4;  /* next boundary. */
+  qsaddr_t memaddr = (COBJ26(p) + 1) << 4;  /* next boundary. */
   return qsiter_make(mach, memaddr);
 }
 
-int qsarray_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsarray_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   qsword i, m;
@@ -988,7 +988,7 @@ int qsarray_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
   m = qsarray_length(mach, p);
   for (i = 0; i < m; i++)
     {
-      qsptr x = qsarray_ref(mach, p, i);
+      qsptr_t x = qsarray_ref(mach, p, i);
       if (i > 0)
 	n += qs_snprintf(buf+n, buflen-n, " ");
       n += qsptr_crepr(mach, x, buf+n, buflen-n);
@@ -1002,7 +1002,7 @@ int qsarray_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 /* C-Pointer: prototype 'wideword', 'subtype' == QSWIDE_CPTR. */
 
-const qswideword_t * qscptr_const (const qsmachine_t * mach, qsptr p)
+const qswideword_t * qscptr_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qswideword_t * cptr = qswideword_const(mach, p);
   if (! cptr) return NULL;
@@ -1010,7 +1010,7 @@ const qswideword_t * qscptr_const (const qsmachine_t * mach, qsptr p)
   return cptr;
 }
 
-qswideword_t * qscptr (qsmachine_t * mach, qsptr p)
+qswideword_t * qscptr (qsmachine_t * mach, qsptr_t p)
 {
   if (qscptr_const(mach, p))
     {
@@ -1019,27 +1019,27 @@ qswideword_t * qscptr (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qscptr_make (qsmachine_t * mach, void * val)
+qsptr_t qscptr_make (qsmachine_t * mach, void * val)
 {
-  qsptr p = qswideword_make(mach, QSWIDE_CPTR);
+  qsptr_t p = qswideword_make(mach, QSWIDE_CPTR);
   qswideword_t * cptr = qswideword(mach, p);
   cptr->payload.ptr = val;
   return p;
 }
 
-bool qscptr_p (const qsmachine_t * mach, qsptr p)
+bool qscptr_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qscptr_const(mach, p) != NULL);
 }
 
-void * qscptr_get (const qsmachine_t * mach, qsptr p)
+void * qscptr_get (const qsmachine_t * mach, qsptr_t p)
 {
   const qswideword_t * cptr = qscptr_const(mach, p);
   if (! cptr) return NULL;
   return cptr->payload.ptr;
 }
 
-int qscptr_fetch (const qsmachine_t * mach, qsptr p, void ** out)
+int qscptr_fetch (const qsmachine_t * mach, qsptr_t p, void ** out)
 {
   const qswideword_t * cptr = qscptr_const(mach, p);
   if (! cptr) return 0;
@@ -1047,7 +1047,7 @@ int qscptr_fetch (const qsmachine_t * mach, qsptr p, void ** out)
   return 1;
 }
 
-int qscptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qscptr_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   const qswideword_t * cptr = qscptr_const(mach, p);
@@ -1066,7 +1066,7 @@ int qscptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 /* Long (64b): prototype 'wideword', 'subtype' == QSNUM_LONG. */
 
-const qswideword_t * qslong_const (const qsmachine_t * mach, qsptr p)
+const qswideword_t * qslong_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qswideword_t * l = qswideword_const(mach, p);
   if (! l) return NULL;
@@ -1074,7 +1074,7 @@ const qswideword_t * qslong_const (const qsmachine_t * mach, qsptr p)
   return l;
 }
 
-qswideword_t * qslong (qsmachine_t * mach, qsptr p)
+qswideword_t * qslong (qsmachine_t * mach, qsptr_t p)
 {
   if (qslong_const(mach, p))
     {
@@ -1083,9 +1083,9 @@ qswideword_t * qslong (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qslong_make (qsmachine_t * mach, int64_t val)
+qsptr_t qslong_make (qsmachine_t * mach, int64_t val)
 {
-  qsptr p = qswideword_make(mach, QSNUM_LONG);
+  qsptr_t p = qswideword_make(mach, QSNUM_LONG);
   if (ISOBJ26(p))
     {
       qswideword_t * l = qswideword(mach, p);
@@ -1095,19 +1095,19 @@ qsptr qslong_make (qsmachine_t * mach, int64_t val)
   return p;
 }
 
-bool qslong_p (const qsmachine_t * mach, qsptr p)
+bool qslong_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qslong_const(mach, p) != NULL);
 }
 
-int64_t qslong_get (const qsmachine_t * mach, qsptr p)
+int64_t qslong_get (const qsmachine_t * mach, qsptr_t p)
 {
   const qswideword_t * l = qswideword_const(mach, p);
   if (! l) return 0;
   return l->payload.l;
 }
 
-int qslong_fetch (const qsmachine_t * mach, qsptr p, int64_t * out)
+int qslong_fetch (const qsmachine_t * mach, qsptr_t p, int64_t * out)
 {
   const qswideword_t * l = qswideword_const(mach, p);
   if (! l) return 0;
@@ -1115,7 +1115,7 @@ int qslong_fetch (const qsmachine_t * mach, qsptr p, int64_t * out)
   return 1;
 }
 
-int qslong_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qslong_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   const qswideword_t * l = qswideword_const(mach, p);
@@ -1131,7 +1131,7 @@ int qslong_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 
 /* Double-Precision Float (64b): prototype 'wideword', 'subtype' == QSNUM_DOUBLE. */
-const qswideword_t * qsdouble_const (const qsmachine_t * mach, qsptr p)
+const qswideword_t * qsdouble_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qswideword_t * d = qswideword_const(mach, p);
   if (! d) return NULL;
@@ -1139,7 +1139,7 @@ const qswideword_t * qsdouble_const (const qsmachine_t * mach, qsptr p)
   return d;
 }
 
-qswideword_t * qsdouble (qsmachine_t * mach, qsptr p)
+qswideword_t * qsdouble (qsmachine_t * mach, qsptr_t p)
 {
   if (qsdouble_const(mach, p))
     {
@@ -1148,9 +1148,9 @@ qswideword_t * qsdouble (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qsdouble_make (qsmachine_t * mach, double val)
+qsptr_t qsdouble_make (qsmachine_t * mach, double val)
 {
-  qsptr p = qswideword_make(mach, QSNUM_DOUBLE);
+  qsptr_t p = qswideword_make(mach, QSNUM_DOUBLE);
   if (ISOBJ26(p))
     {
       qswideword_t * d = qswideword(mach, p);
@@ -1159,19 +1159,19 @@ qsptr qsdouble_make (qsmachine_t * mach, double val)
   return p;
 }
 
-bool qsdouble_p (const qsmachine_t * mach, qsptr p)
+bool qsdouble_p (const qsmachine_t * mach, qsptr_t p)
 {
   if (qsdouble_const(mach, p) != NULL);
 }
 
-double qsdouble_get (const qsmachine_t * mach, qsptr p)
+double qsdouble_get (const qsmachine_t * mach, qsptr_t p)
 {
   const qswideword_t * d = qswideword_const(mach, p);
   if (! d) return 0;
   return d->payload.d;
 }
 
-int qsdouble_fetch (const qsmachine_t * mach, qsptr p, double * out)
+int qsdouble_fetch (const qsmachine_t * mach, qsptr_t p, double * out)
 {
   const qswideword_t * d = qswideword_const(mach, p);
   if (! d) return 0;
@@ -1179,7 +1179,7 @@ int qsdouble_fetch (const qsmachine_t * mach, qsptr p, double * out)
   return 1;
 }
 
-int qsdouble_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsdouble_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   const qswideword_t * d = qswideword_const(mach, p);
@@ -1198,7 +1198,7 @@ int qsdouble_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
    * prototype = ovec
    * .length isa char24
  */
-const qsovec_t * qsname_const (const qsmachine_t * mach, qsptr p)
+const qsovec_t * qsname_const (const qsmachine_t * mach, qsptr_t p)
 {
 //  if (ISSYM26(p)) p = qssym_symbol(mach, p);
   const qsovec_t * y = qsovec_const(mach, p);
@@ -1207,7 +1207,7 @@ const qsovec_t * qsname_const (const qsmachine_t * mach, qsptr p)
   return y;
 }
 
-qsovec_t * qsname (qsmachine_t * mach, qsptr p)
+qsovec_t * qsname (qsmachine_t * mach, qsptr_t p)
 {
 //  if (ISSYM26(p)) p = qssym_symbol(mach, p);
   if (qsname_const(mach, p))
@@ -1217,54 +1217,54 @@ qsovec_t * qsname (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qsname_make (qsmachine_t * mach, qsword namelen)
+qsptr_t qsname_make (qsmachine_t * mach, qsword namelen)
 {
-  qsptr p = qsovec_make(mach, namelen+1, 0);
+  qsptr_t p = qsovec_make(mach, namelen+1, 0);
   qsovec_t * y = qsovec(mach, p);
   if (!y) return QSERR_FAULT;
   y->length = QSCHAR(namelen);
   return p;
 }
 
-qsptr _qsname_make (qsmachine_t * mach, qsword namelen, qsovec_t ** out_sym)
+qsptr_t _qsname_make (qsmachine_t * mach, qsword namelen, qsovec_t ** out_sym)
 {
-  qsptr p = qsovec_make(mach, namelen+1, 0);
+  qsptr_t p = qsovec_make(mach, namelen+1, 0);
   qsovec_t * y = qsovec(mach, p);
   if (!y) return QSERR_FAULT;
   if (out_sym) *out_sym = y;
   return p;
 }
 
-qsptr qsname_inject (qsmachine_t * mach, const char * cstr)
+qsptr_t qsname_inject (qsmachine_t * mach, const char * cstr)
 {
   qsword slen = strlen(cstr);
-  qsptr p = qsname_make(mach, slen);
+  qsptr_t p = qsname_make(mach, slen);
   if (! ISOBJ26(p)) return QSERR_NOMEM;
   qsovec_t * y = qsname(mach, p);
   strcpy(y->elt, cstr);
   return p;
 }
 
-const char * qsname_get (const qsmachine_t * mach, qsptr p)
+const char * qsname_get (const qsmachine_t * mach, qsptr_t p)
 {
   const qsovec_t * y = qsname_const(mach, p);
   if (! y) return NULL;
   return y->elt;
 }
 
-bool qsname_p (const qsmachine_t * mach, qsptr p)
+bool qsname_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qsname_const(mach, p) != NULL);
 }
 
-qsptr qsname_sym (const qsmachine_t * mach, qsptr p)
+qsptr_t qsname_sym (const qsmachine_t * mach, qsptr_t p)
 {
   if (ISSYM26(p)) return p;
   if (! qsname_const(mach, p)) return QSNIL;
   return QSSYM(COBJ26(p));
 }
 
-qsword qsname_length (const qsmachine_t * mach, qsptr p)
+qsword qsname_length (const qsmachine_t * mach, qsptr_t p)
 {
   const qsovec_t * y = qsname_const(mach, p);
   if (!y) return 0;
@@ -1272,7 +1272,7 @@ qsword qsname_length (const qsmachine_t * mach, qsptr p)
   return retval;
 }
 
-int qsname_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsname_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   const qsovec_t * y = qsovec_const(mach, p);
@@ -1282,7 +1282,7 @@ int qsname_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
   return n;
 }
 
-int qsname_strcmp (const qsmachine_t * mach, qsptr x, const char * s)
+int qsname_strcmp (const qsmachine_t * mach, qsptr_t x, const char * s)
 {
   const qsovec_t * y = qsname_const(mach, x);
   if (! y) return 0;
@@ -1299,7 +1299,7 @@ int qsname_strcmp (const qsmachine_t * mach, qsptr x, const char * s)
   return 0; /* equal */
 }
 
-qscmp_t qsname_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+qscmp_t qsname_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 {
   const qsovec_t * y0 = qsname_const(mach, x);
   const qsovec_t * y1 = qsname_const(mach, y);
@@ -1320,7 +1320,7 @@ qscmp_t qsname_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
    * .length isa integer
  */
 
-const qsovec_t * qsutf8_const (const qsmachine_t * mach, qsptr p)
+const qsovec_t * qsutf8_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qsovec_t * s = qsovec_const(mach, p);
   if (! s) return NULL;
@@ -1329,7 +1329,7 @@ const qsovec_t * qsutf8_const (const qsmachine_t * mach, qsptr p)
   return s;
 }
 
-qsovec_t * qsutf8 (qsmachine_t * mach, qsptr p)
+qsovec_t * qsutf8 (qsmachine_t * mach, qsptr_t p)
 {
   if (qsutf8_const(mach, p))
     {
@@ -1338,10 +1338,10 @@ qsovec_t * qsutf8 (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qsutf8_make (qsmachine_t * mach, qsword len, int fill)
+qsptr_t qsutf8_make (qsmachine_t * mach, qsword len, int fill)
 {
   /* Allocate one more byte for terminating guard byte '\0'. */
-  qsptr p = qsovec_make(mach, len+1, fill);
+  qsptr_t p = qsovec_make(mach, len+1, fill);
   qsobj_t * obj = qsobj(mach, p);
   qsobj_set_score(obj, 8);
   qsovec_t * ovec = (qsovec_t*)obj;
@@ -1350,10 +1350,10 @@ qsptr qsutf8_make (qsmachine_t * mach, qsword len, int fill)
   return p;
 }
 
-qsptr qsutf8_inject_charp (qsmachine_t * mach, const char * cstr)
+qsptr_t qsutf8_inject_charp (qsmachine_t * mach, const char * cstr)
 {
   size_t slen = strlen(cstr);
-  qsptr retval = qsutf8_make(mach, slen, 0);
+  qsptr_t retval = qsutf8_make(mach, slen, 0);
   if (ISOBJ26(retval))
     {
       qsovec_t * st = qsutf8(mach, retval);
@@ -1362,9 +1362,9 @@ qsptr qsutf8_inject_charp (qsmachine_t * mach, const char * cstr)
   return retval;
 }
 
-qsptr qsutf8_inject_bytes (qsmachine_t * mach, uint8_t * buf, qsword buflen)
+qsptr_t qsutf8_inject_bytes (qsmachine_t * mach, uint8_t * buf, qsword buflen)
 {
-  qsptr retval = qsutf8_make(mach, buflen, 0);
+  qsptr_t retval = qsutf8_make(mach, buflen, 0);
   if (ISOBJ26(retval))
     {
       qsovec_t * st = qsutf8(mach, retval);
@@ -1373,19 +1373,19 @@ qsptr qsutf8_inject_bytes (qsmachine_t * mach, uint8_t * buf, qsword buflen)
   return retval;
 }
 
-bool qsutf8_p (const qsmachine_t * mach, qsptr p)
+bool qsutf8_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qsutf8_const(mach, p) != NULL);
 }
 
-qsword qsutf8_length (const qsmachine_t * mach, qsptr p)
+qsword qsutf8_length (const qsmachine_t * mach, qsptr_t p)
 {
   const qsovec_t * s = qsovec_const(mach, p);
   if (! s) return 0;
   return CINT30(s->length);
 }
 
-int qsutf8_ref (const qsmachine_t * mach, qsptr p, qsword k)
+int qsutf8_ref (const qsmachine_t * mach, qsptr_t p, qsword k)
 {
   const qsovec_t * s = qsovec_const(mach, p);
   if (! s) return 0;
@@ -1393,7 +1393,7 @@ int qsutf8_ref (const qsmachine_t * mach, qsptr p, qsword k)
   return s->elt[k];
 }
 
-qsptr qsutf8_setq (qsmachine_t * mach, qsptr p, qsword k, int ch)
+qsptr_t qsutf8_setq (qsmachine_t * mach, qsptr_t p, qsword k, int ch)
 {
   qsovec_t * s = qsovec(mach, p);
   if (! s) return QSERR_FAULT;
@@ -1404,7 +1404,7 @@ qsptr qsutf8_setq (qsmachine_t * mach, qsptr p, qsword k, int ch)
   return p;
 }
 
-int qsutf8_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsutf8_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   const qsovec_t * s = qsovec_const(mach, p);
@@ -1418,7 +1418,7 @@ int qsutf8_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
   return n;
 }
 
-qscmp_t qsutf8_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+qscmp_t qsutf8_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 {
   /* TODO: UTF-8 string-equivalents handling (e.g. overlong encoding). */
   bool bx = qsutf8_p(mach, x);
@@ -1442,7 +1442,7 @@ qscmp_t qsutf8_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
    * .score = 0
    * .length isa integer
  */
-const qsovec_t * qsbytevec_const (const qsmachine_t * mach, qsptr p)
+const qsovec_t * qsbytevec_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qsovec_t * ovec = qsovec_const(mach, p);
   if (! ovec) return NULL;
@@ -1450,7 +1450,7 @@ const qsovec_t * qsbytevec_const (const qsmachine_t * mach, qsptr p)
   return (const qsovec_t*)ovec;
 }
 
-qsovec_t * qsbytevec (qsmachine_t * mach, qsptr p)
+qsovec_t * qsbytevec (qsmachine_t * mach, qsptr_t p)
 {
   if (qsbytevec_const(mach, p))
     {
@@ -1459,27 +1459,27 @@ qsovec_t * qsbytevec (qsmachine_t * mach, qsptr p)
   return NULL;
 }
 
-qsptr qsbytevec_make (qsmachine_t * mach, qsword len, qsbyte fill)
+qsptr_t qsbytevec_make (qsmachine_t * mach, qsword len, qsbyte fill)
 {
-  qsptr p = qsovec_make(mach, QSINT(len), fill);
+  qsptr_t p = qsovec_make(mach, QSINT(len), fill);
   qsobj_t * obj = qsobj(mach, p);
   qsobj_set_score(obj, 0);
   return p;
 }
 
-bool qsbytevec_p (const qsmachine_t * mach, qsptr p)
+bool qsbytevec_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qsbytevec_const(mach, p) != NULL);
 }
 
-qsword qsbytevec_length (const qsmachine_t * mach, qsptr p)
+qsword qsbytevec_length (const qsmachine_t * mach, qsptr_t p)
 {
   const qsovec_t * ovec = qsovec_const(mach, p);
   if (! ovec) return 0;
   return CINT30(ovec->length);
 }
 
-bool qsbytevec_extract (const qsmachine_t * mach, qsptr p, const uint8_t ** out_uint8ptr, qsword * out_size)
+bool qsbytevec_extract (const qsmachine_t * mach, qsptr_t p, const uint8_t ** out_uint8ptr, qsword * out_size)
 {
   const qsovec_t * ovec = qsovec_const(mach, p);
   if (! ovec) return false;
@@ -1488,14 +1488,14 @@ bool qsbytevec_extract (const qsmachine_t * mach, qsptr p, const uint8_t ** out_
   return true;
 }
 
-qsbyte qsbytevec_ref (const qsmachine_t * mach, qsptr p, qsword k)
+qsbyte qsbytevec_ref (const qsmachine_t * mach, qsptr_t p, qsword k)
 {
   const qsovec_t * ovec = qsovec_const(mach, p);
   if (! ovec) return 0;
   return ovec->elt[k];
 }
 
-qsptr qsbytevec_setq (qsmachine_t * mach, qsptr p, qsword k, qsbyte val)
+qsptr_t qsbytevec_setq (qsmachine_t * mach, qsptr_t p, qsword k, qsbyte val)
 {
   qsovec_t * ovec = qsovec(mach, p);
   if (! ovec) return QSERR_FAULT;
@@ -1503,7 +1503,7 @@ qsptr qsbytevec_setq (qsmachine_t * mach, qsptr p, qsword k, qsbyte val)
   return p;
 }
 
-int qsbytevec_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsbytevec_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   qsword i, m;
@@ -1531,37 +1531,37 @@ int qsbytevec_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
    Where QsEnvFrame is alist of ( QsSym . QsValue )
    */
 
-qsptr qsenv_make (qsmachine_t * mach, qsptr next_env)
+qsptr_t qsenv_make (qsmachine_t * mach, qsptr_t next_env)
 {
-  qsptr retval = qspair_make(mach, QSNIL, next_env);
+  qsptr_t retval = qspair_make(mach, QSNIL, next_env);
   return retval;
 }
 
-qsptr qsenv_insert (qsmachine_t * mach, qsptr env, qsptr variable, qsptr binding)
+qsptr_t qsenv_insert (qsmachine_t * mach, qsptr_t env, qsptr_t variable, qsptr_t binding)
 {
   if (ISNIL(env))
     {
       env = qsenv_make(mach, QSNIL);
     }
-  qsptr frame = qspair_car(mach, env);
-  qsptr bind = qspair_make(mach, variable, binding);
-  qsptr link = qspair_make(mach, bind, frame);
+  qsptr_t frame = qspair_car(mach, env);
+  qsptr_t bind = qspair_make(mach, variable, binding);
+  qsptr_t link = qspair_make(mach, bind, frame);
   qspair_setq_head(mach, env, link);
   return env;
 }
 
-qsptr qsenv_lookup (qsmachine_t * mach, qsptr env, qsptr variable)
+qsptr_t qsenv_lookup (qsmachine_t * mach, qsptr_t env, qsptr_t variable)
 {
-  qsptr frameiter;
-  qsptr binditer;
+  qsptr_t frameiter;
+  qsptr_t binditer;
 
   frameiter = qsiter_begin(mach, env);
   while (ISITER28(frameiter))
     {
-      qsptr binditer = qsiter_begin(mach, qsiter_head(mach, frameiter));
+      qsptr_t binditer = qsiter_begin(mach, qsiter_head(mach, frameiter));
       while (ISITER28(binditer))
 	{
-	  qsptr bind = qsiter_head(mach, binditer);
+	  qsptr_t bind = qsiter_head(mach, binditer);
 	  if (qspair_ref_head(mach, bind) == variable)
 	    {
 	      return qspair_ref_tail(mach, bind);
@@ -1573,13 +1573,13 @@ qsptr qsenv_lookup (qsmachine_t * mach, qsptr env, qsptr variable)
   return QSERR_UNBOUND;
 }
 
-int qsenv_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsenv_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   return qspair_crepr(mach, p, buf, buflen);
 }
 
 
-const qstriplet_t * qslambda_const (const qsmachine_t * mach, qsptr p)
+const qstriplet_t * qslambda_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * triplet = qstriplet_const(mach, p);
   if (! triplet) return NULL;
@@ -1587,7 +1587,7 @@ const qstriplet_t * qslambda_const (const qsmachine_t * mach, qsptr p)
   return triplet;
 }
 
-qstriplet_t * qslambda (qsmachine_t * mach, qsptr p)
+qstriplet_t * qslambda (qsmachine_t * mach, qsptr_t p)
 {
   if (qslambda_const(mach, p))
     {
@@ -1597,32 +1597,32 @@ qstriplet_t * qslambda (qsmachine_t * mach, qsptr p)
 }
 
 /* Combine list of formal parameters with body. */
-qsptr qslambda_make (qsmachine_t * mach, qsptr param, qsptr body)
+qsptr_t qslambda_make (qsmachine_t * mach, qsptr_t param, qsptr_t body)
 {
-  qsptr p = qstriplet_make(mach, QSLAMBDA, param, body);
+  qsptr_t p = qstriplet_make(mach, QSLAMBDA, param, body);
   return p;
 }
 
-bool qslambda_p (const qsmachine_t * mach, qsptr p)
+bool qslambda_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qslambda_const(mach, p) != NULL);
 }
 
-qsptr qslambda_ref_param (const qsmachine_t * mach, qsptr p)
+qsptr_t qslambda_ref_param (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * lam = qslambda_const(mach, p);
   if (! lam) return QSERR_FAULT;
   return lam->second;
 }
 
-qsptr qslambda_ref_body (const qsmachine_t * mach, qsptr p)
+qsptr_t qslambda_ref_body (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * lam = qslambda_const(mach, p);
   if (! lam) return QSERR_FAULT;
   return lam->third;
 }
 
-qsptr qslambda_setq_param (qsmachine_t * mach, qsptr p, qsptr val)
+qsptr_t qslambda_setq_param (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qstriplet_t * lam = qslambda(mach, p);
   if (! lam) return QSERR_FAULT;
@@ -1630,7 +1630,7 @@ qsptr qslambda_setq_param (qsmachine_t * mach, qsptr p, qsptr val)
   return p;
 }
 
-qsptr qslambda_setq_body (qsmachine_t * mach, qsptr p, qsptr val)
+qsptr_t qslambda_setq_body (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qstriplet_t * lam = qslambda(mach, p);
   if (! lam) return QSERR_FAULT;
@@ -1638,15 +1638,15 @@ qsptr qslambda_setq_body (qsmachine_t * mach, qsptr p, qsptr val)
   return p;
 }
 
-int qslambda_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qslambda_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
 //  n += qs_snprintf(buf+n, buflen-n, "#<lambda 0x%08x>", COBJ26(p));
   const qstriplet_t * lam = qstriplet_const(mach, p);
   if (! lam) return n;
   n += qs_snprintf(buf+n, buflen-n, "(lambda ");
-  qsptr param = lam->second;
-  qsptr body = lam->third;
+  qsptr_t param = lam->second;
+  qsptr_t body = lam->third;
   n += qsptr_crepr(mach, param, buf+n, buflen-n);
   if (! ISNIL(body))
     {
@@ -1658,7 +1658,7 @@ int qslambda_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-const qstriplet_t * qsclosure_const (const qsmachine_t * mach, qsptr p)
+const qstriplet_t * qsclosure_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * triplet = qstriplet_const(mach, p);
   if (! triplet) return NULL;
@@ -1666,7 +1666,7 @@ const qstriplet_t * qsclosure_const (const qsmachine_t * mach, qsptr p)
   return triplet;
 }
 
-qstriplet_t * qsclosure (qsmachine_t * mach, qsptr p)
+qstriplet_t * qsclosure (qsmachine_t * mach, qsptr_t p)
 {
   if (qsclosure_const(mach, p))
     {
@@ -1676,46 +1676,46 @@ qstriplet_t * qsclosure (qsmachine_t * mach, qsptr p)
 }
 
 /* Combine lambda with environment. */
-qsptr qsclosure_make (qsmachine_t * mach, qsptr lam, qsptr env)
+qsptr_t qsclosure_make (qsmachine_t * mach, qsptr_t lam, qsptr_t env)
 {
-  qsptr p = qstriplet_make(mach, QSCLO, lam, env);
+  qsptr_t p = qstriplet_make(mach, QSCLO, lam, env);
   return p;
 }
 
-bool qsclosure_p (const qsmachine_t * mach, qsptr p)
+bool qsclosure_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qsclosure_const(mach, p) != NULL);
 }
 
-qsptr qsclosure_ref_lam (const qsmachine_t * mach, qsptr p)
+qsptr_t qsclosure_ref_lam (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * clo = qsclosure_const(mach, p);
   if (! clo) return QSERR_FAULT;
   return clo->second;
 }
 
-qsptr qsclosure_ref_env (const qsmachine_t * mach, qsptr p)
+qsptr_t qsclosure_ref_env (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * clo = qsclosure_const(mach, p);
   if (! clo) return QSERR_FAULT;
   return clo->third;
 }
 
-qsptr qsclosure_setq_lam (qsmachine_t * mach, qsptr p, qsptr val)
+qsptr_t qsclosure_setq_lam (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qstriplet_t * clo = qsclosure(mach, p);
   if (! clo) return QSERR_FAULT;
   clo->second = val;
 }
 
-qsptr qsclosure_setq_env (qsmachine_t * mach, qsptr p, qsptr val)
+qsptr_t qsclosure_setq_env (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qstriplet_t * clo = qsclosure(mach, p);
   if (! clo) return QSERR_FAULT;
   clo->third = val;
 }
 
-int qsclosure_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsclosure_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   n += qs_snprintf(buf+n, buflen-n, "#<closure 0x%08x>", COBJ26(p));
@@ -1723,7 +1723,7 @@ int qsclosure_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 }
 
 
-const qspvec_t * qskont_const (const qsmachine_t * mach, qsptr p)
+const qspvec_t * qskont_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qspvec_const(mach, p);
   if (!pvec) return NULL;
@@ -1731,7 +1731,7 @@ const qspvec_t * qskont_const (const qsmachine_t * mach, qsptr p)
   return pvec;
 }
 
-qspvec_t * qskont (qsmachine_t * mach, qsptr p)
+qspvec_t * qskont (qsmachine_t * mach, qsptr_t p)
 {
   if (qskont_const(mach, p))
     {
@@ -1741,9 +1741,9 @@ qspvec_t * qskont (qsmachine_t * mach, qsptr p)
 }
 
 /* arbitrary continuation */
-qsptr qskont_make (qsmachine_t * mach, qsptr variant, qsptr c, qsptr e, qsptr k)
+qsptr_t qskont_make (qsmachine_t * mach, qsptr_t variant, qsptr_t c, qsptr_t e, qsptr_t k)
 {
-  qsptr p = qspvec_make(mach, 4, QSNIL);
+  qsptr_t p = qspvec_make(mach, 4, QSNIL);
   qspvec_t * pvec = qspvec(mach, p);
   if (! pvec) return QSERR_NOMEM;
   pvec->length = QSKONT;
@@ -1755,45 +1755,45 @@ qsptr qskont_make (qsmachine_t * mach, qsptr variant, qsptr c, qsptr e, qsptr k)
 }
 
 /* current-continuation */
-qsptr qskont_make_current (qsmachine_t * mach)
+qsptr_t qskont_make_current (qsmachine_t * mach)
 {
   return qskont_make(mach, QSNIL, mach->C, mach->E, mach->K);
 }
 
-bool qskont_p (const qsmachine_t * mach, qsptr p)
+bool qskont_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qskont_const(mach, p) != NULL);
 }
 
-qsptr qskont_ref_v (const qsmachine_t * mach, qsptr p)
+qsptr_t qskont_ref_v (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * kont = qskont_const(mach, p);
   if (!kont) return QSERR_FAULT;
   return kont->elt[0];
 }
 
-qsptr qskont_ref_c (const qsmachine_t * mach, qsptr p)
+qsptr_t qskont_ref_c (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * kont = qskont_const(mach, p);
   if (!kont) return QSERR_FAULT;
   return kont->elt[1];
 }
 
-qsptr qskont_ref_e (const qsmachine_t * mach, qsptr p)
+qsptr_t qskont_ref_e (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * kont = qskont_const(mach, p);
   if (!kont) return QSERR_FAULT;
   return kont->elt[2];
 }
 
-qsptr qskont_ref_k (const qsmachine_t * mach, qsptr p)
+qsptr_t qskont_ref_k (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * kont = qskont_const(mach, p);
   if (!kont) return QSERR_FAULT;
   return kont->elt[3];
 }
 
-int qskont_fetch (const qsmachine_t * mach, qsptr p, qsptr * out_v, qsptr * out_c, qsptr * out_e, qsptr * out_k)
+int qskont_fetch (const qsmachine_t * mach, qsptr_t p, qsptr_t * out_v, qsptr_t * out_c, qsptr_t * out_e, qsptr_t * out_k)
 {
   int n = 0;
   if (out_v) { *out_v = qskont_ref_v(mach, p); n++; }
@@ -1803,7 +1803,7 @@ int qskont_fetch (const qsmachine_t * mach, qsptr p, qsptr * out_v, qsptr * out_
   return n;
 }
 
-qsptr qskont_setq_v (qsmachine_t * mach, qsptr p, qsptr val)
+qsptr_t qskont_setq_v (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qspvec_t * kont = qskont(mach, p);
   if (!kont) return QSERR_FAULT;
@@ -1811,7 +1811,7 @@ qsptr qskont_setq_v (qsmachine_t * mach, qsptr p, qsptr val)
   return p;
 }
 
-qsptr qskont_setq_c (qsmachine_t * mach, qsptr p, qsptr val)
+qsptr_t qskont_setq_c (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qspvec_t * kont = qskont(mach, p);
   if (!kont) return QSERR_FAULT;
@@ -1819,7 +1819,7 @@ qsptr qskont_setq_c (qsmachine_t * mach, qsptr p, qsptr val)
   return p;
 }
 
-qsptr qskont_setq_e (qsmachine_t * mach, qsptr p, qsptr val)
+qsptr_t qskont_setq_e (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qspvec_t * kont = qskont(mach, p);
   if (!kont) return QSERR_FAULT;
@@ -1827,7 +1827,7 @@ qsptr qskont_setq_e (qsmachine_t * mach, qsptr p, qsptr val)
   return p;
 }
 
-qsptr qskont_setq_k (qsmachine_t * mach, qsptr p, qsptr val)
+qsptr_t qskont_setq_k (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qspvec_t * kont = qskont(mach, p);
   if (!kont) return QSERR_FAULT;
@@ -1835,7 +1835,7 @@ qsptr qskont_setq_k (qsmachine_t * mach, qsptr p, qsptr val)
   return p;
 }
 
-int qskont_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qskont_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   const qspvec_t * kont = qskont_const(mach, p);
@@ -1849,7 +1849,7 @@ int qskont_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
    Ports where state information has to be stored in Scheme objects.
    No const versions as ports can only exist in writeable memory.
  */
-qspvec_t * qscport (qsmachine_t * mach, qsptr p)
+qspvec_t * qscport (qsmachine_t * mach, qsptr_t p)
 {
   qspvec_t * port = qspvec(mach, p);
   if (! port) return NULL;
@@ -1864,9 +1864,9 @@ qspvec_t * qscport (qsmachine_t * mach, qsptr p)
     }
 }
 
-qsptr qscport_make (qsmachine_t * mach, qsptr variant, qsptr pathspec, bool writeable, qsptr host_resource)
+qsptr_t qscport_make (qsmachine_t * mach, qsptr_t variant, qsptr_t pathspec, bool writeable, qsptr_t host_resource)
 {
-  qsptr p = qsvector_make(mach, 4, QSNIL);
+  qsptr_t p = qsvector_make(mach, 4, QSNIL);
   qspvec_t * vec = qspvec(mach, p);
   if (! vec) return QSERR_FAULT;
   vec->length = variant;
@@ -1890,12 +1890,12 @@ qsptr qscport_make (qsmachine_t * mach, qsptr variant, qsptr pathspec, bool writ
   return p;
 }
 
-bool qscport_p (qsmachine_t * mach, qsptr p)
+bool qscport_p (qsmachine_t * mach, qsptr_t p)
 {
   return (qscport(mach, p) != NULL);
 }
 
-bool qscport_get_writeable (qsmachine_t * mach, qsptr p)
+bool qscport_get_writeable (qsmachine_t * mach, qsptr_t p)
 {
   const qsobj_t * obj = qsobj_const(mach, p);
   if (qsobj_get_score(obj) & 1)
@@ -1905,7 +1905,7 @@ bool qscport_get_writeable (qsmachine_t * mach, qsptr p)
   return false;
 }
 
-qsptr qscport_set_writeable (qsmachine_t * mach, qsptr p, bool val)
+qsptr_t qscport_set_writeable (qsmachine_t * mach, qsptr_t p, bool val)
 {
   qsobj_t * obj = qsobj(mach, p);
   if (val)
@@ -1919,14 +1919,14 @@ qsptr qscport_set_writeable (qsmachine_t * mach, qsptr p, bool val)
   return p;
 }
 
-qsptr qscport_get_pathspec (qsmachine_t * mach, qsptr p)
+qsptr_t qscport_get_pathspec (qsmachine_t * mach, qsptr_t p)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return QSNIL;
   return port->elt[0];
 }
 
-qsptr qscport_set_pathspec (qsmachine_t * mach, qsptr p, qsptr s)
+qsptr_t qscport_set_pathspec (qsmachine_t * mach, qsptr_t p, qsptr_t s)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return QSNIL;
@@ -1934,14 +1934,14 @@ qsptr qscport_set_pathspec (qsmachine_t * mach, qsptr p, qsptr s)
   return p;
 }
 
-int qscport_get_pos (qsmachine_t * mach, qsptr p)
+int qscport_get_pos (qsmachine_t * mach, qsptr_t p)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return QSNIL;
   return CINT30(port->elt[1]);
 }
 
-qsptr qscport_set_pos (qsmachine_t * mach, qsptr p, int pos)
+qsptr_t qscport_set_pos (qsmachine_t * mach, qsptr_t p, int pos)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return QSNIL;
@@ -1949,14 +1949,14 @@ qsptr qscport_set_pos (qsmachine_t * mach, qsptr p, int pos)
   return p;
 }
 
-int qscport_get_max (qsmachine_t * mach, qsptr p)
+int qscport_get_max (qsmachine_t * mach, qsptr_t p)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return QSNIL;
   return CINT30(port->elt[2]);
 }
 
-qsptr qscport_set_max (qsmachine_t * mach, qsptr p, int max)
+qsptr_t qscport_set_max (qsmachine_t * mach, qsptr_t p, int max)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return QSNIL;
@@ -1964,14 +1964,14 @@ qsptr qscport_set_max (qsmachine_t * mach, qsptr p, int max)
   return p;
 }
 
-qsptr qscport_get_resource (qsmachine_t * mach, qsptr p)
+qsptr_t qscport_get_resource (qsmachine_t * mach, qsptr_t p)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return QSNIL;
   return port->elt[3];
 }
 
-qsptr qscport_set_resource (qsmachine_t * mach, qsptr p, qsptr val)
+qsptr_t qscport_set_resource (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return QSNIL;
@@ -1984,7 +1984,7 @@ qsptr qscport_set_resource (qsmachine_t * mach, qsptr p, qsptr val)
    port reading from C char array (string),
    writing to C char array (string).
  */
-qspvec_t * qscharpport (qsmachine_t * mach, qsptr p)
+qspvec_t * qscharpport (qsmachine_t * mach, qsptr_t p)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return NULL;
@@ -1992,26 +1992,26 @@ qspvec_t * qscharpport (qsmachine_t * mach, qsptr p)
   return port;
 }
 
-qsptr qscharpport_make (qsmachine_t * mach, uint8_t * buf, int buflen)
+qsptr_t qscharpport_make (qsmachine_t * mach, uint8_t * buf, int buflen)
 {
-  qsptr variant = QSPORT_CHARP;
+  qsptr_t variant = QSPORT_CHARP;
   bool writeable = false;
-  qsptr pathspec = QSNIL;
-  qsptr cptr = qscptr_make(mach, (void*)buf);
+  qsptr_t pathspec = QSNIL;
+  qsptr_t cptr = qscptr_make(mach, (void*)buf);
   if (! qscptr_p(mach, cptr)) return QSERR_NOMEM;
 
-  qsptr p = qscport_make(mach, variant, pathspec, writeable, cptr);
+  qsptr_t p = qscport_make(mach, variant, pathspec, writeable, cptr);
   if (! qscport_p(mach, p)) return QSERR_NOMEM;
   qscport_set_max(mach, p, buflen);
   return p;
 }
 
-bool qscharpport_p (qsmachine_t * mach, qsptr p)
+bool qscharpport_p (qsmachine_t * mach, qsptr_t p)
 {
   return (qscharpport(mach, p) != NULL);
 }
 
-bool qscharpport_eof (qsmachine_t * mach, qsptr p)
+bool qscharpport_eof (qsmachine_t * mach, qsptr_t p)
 {
   int retval = -1;
   if (! qscharpport(mach, p)) return -1;
@@ -2020,13 +2020,13 @@ bool qscharpport_eof (qsmachine_t * mach, qsptr p)
   return (pos >= max);
 }
 
-int qscharpport_read_u8 (qsmachine_t * mach, qsptr p)
+int qscharpport_read_u8 (qsmachine_t * mach, qsptr_t p)
 {
   int retval = -1;
   if (! qscharpport(mach, p)) return -1;
   int pos = qscport_get_pos(mach, p);
   int max = qscport_get_max(mach, p);
-  qsptr cptr = qscport_get_resource(mach, p);
+  qsptr_t cptr = qscport_get_resource(mach, p);
   if (pos >= max) return -1;
   if (pos < 0) return -1;
   uint8_t * s = qscptr_get(mach, cptr);
@@ -2037,13 +2037,13 @@ int qscharpport_read_u8 (qsmachine_t * mach, qsptr p)
   return retval;
 }
 
-bool qscharpport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
+bool qscharpport_write_u8 (qsmachine_t * mach, qsptr_t p, int byte)
 {
   if (! qscharpport(mach, p)) return false;
   if (! qscport_get_writeable(mach, p)) return false;
   int pos = qscport_get_pos(mach, p);
   int max = qscport_get_max(mach, p);
-  qsptr cptr = qscport_get_resource(mach, p);
+  qsptr_t cptr = qscport_get_resource(mach, p);
   if (pos >= max) return false;
   if (pos < 0) return false;
   uint8_t * s = qscptr_get(mach, cptr);
@@ -2054,20 +2054,20 @@ bool qscharpport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
   return true;
 }
 
-qsword qscharpport_tell (qsmachine_t * mach, qsptr p)
+qsword qscharpport_tell (qsmachine_t * mach, qsptr_t p)
 {
   if (! qscharpport(mach, p)) return 0;
   return qscport_get_pos(mach, p);
 }
 
-bool qscharpport_seek (qsmachine_t * mach, qsptr p, qsword pos)
+bool qscharpport_seek (qsmachine_t * mach, qsptr_t p, qsword pos)
 {
   if (! qscharpport(mach, p)) return false;
   qscport_set_pos(mach, p, pos);
   return true;
 }
 
-bool qscharpport_close (qsmachine_t * mach, qsptr p)
+bool qscharpport_close (qsmachine_t * mach, qsptr_t p)
 {
   if (! qscharpport(mach, p)) return false;
   qscport_set_max(mach, p, 0);
@@ -2085,7 +2085,7 @@ bool qscharpport_close (qsmachine_t * mach, qsptr p)
    writing to Scheme bytevec.
  */
 
-qspvec_t * qsovport (qsmachine_t * mach, qsptr p)
+qspvec_t * qsovport (qsmachine_t * mach, qsptr_t p)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return NULL;
@@ -2093,25 +2093,25 @@ qspvec_t * qsovport (qsmachine_t * mach, qsptr p)
   return port;
 }
 
-qsptr qsovport_make (qsmachine_t * mach, qsptr bv)
+qsptr_t qsovport_make (qsmachine_t * mach, qsptr_t bv)
 {
-  qsptr variant = QSPORT_BYTEVEC;
+  qsptr_t variant = QSPORT_BYTEVEC;
   bool writeable = false;
-  qsptr pathspec = QSNIL;
+  qsptr_t pathspec = QSNIL;
 
   if (! qsbytevec_p(mach, bv)) return QSERR_FAULT;
-  qsptr p = qscport_make(mach, variant, pathspec, writeable, bv);
+  qsptr_t p = qscport_make(mach, variant, pathspec, writeable, bv);
   if (! qscport_p(mach, p)) return QSERR_FAULT;
   qscport_set_max(mach, p, qsbytevec_length(mach, bv));
   return p;
 }
 
-bool qsovport_p (qsmachine_t * mach, qsptr p)
+bool qsovport_p (qsmachine_t * mach, qsptr_t p)
 {
   return (qsovport(mach, p) != NULL);
 }
 
-bool qsovport_eof (qsmachine_t * mach, qsptr p)
+bool qsovport_eof (qsmachine_t * mach, qsptr_t p)
 {
   int retval = -1;
   if (! qsovport(mach, p)) return -1;
@@ -2120,26 +2120,26 @@ bool qsovport_eof (qsmachine_t * mach, qsptr p)
   return (pos >= max);
 }
 
-int qsovport_read_u8 (qsmachine_t * mach, qsptr p)
+int qsovport_read_u8 (qsmachine_t * mach, qsptr_t p)
 {
   int retval = -1;
   if (! qsovport(mach, p)) return -1;
   int pos = qscport_get_pos(mach, p);
   int max = qscport_get_max(mach, p);
-  qsptr bv = qscport_get_resource(mach, p);
+  qsptr_t bv = qscport_get_resource(mach, p);
   if (pos >= max) return -1;
   if (pos < 0) return -1;
   retval = qsbytevec_ref(mach, bv, pos);
   return retval;
 }
 
-bool qsovport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
+bool qsovport_write_u8 (qsmachine_t * mach, qsptr_t p, int byte)
 {
   if (! qsovport(mach, p)) return false;
   if (! qscport_get_writeable(mach, p)) return false;
   int pos = qscport_get_pos(mach, p);
   int max = qscport_get_max(mach, p);
-  qsptr bv = qscport_get_resource(mach, p);
+  qsptr_t bv = qscport_get_resource(mach, p);
   if (pos >= max) return false;
   if (pos < 0) return false;
   /* TODO: expand. */
@@ -2149,20 +2149,20 @@ bool qsovport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
   return true;
 }
 
-qsword qsovport_tell (qsmachine_t * mach, qsptr p)
+qsword qsovport_tell (qsmachine_t * mach, qsptr_t p)
 {
   if (! qsovport(mach, p)) return 0;
   return qscport_get_pos(mach, p);
 }
 
-bool qsovport_seek (qsmachine_t * mach, qsptr p, qsword pos)
+bool qsovport_seek (qsmachine_t * mach, qsptr_t p, qsword pos)
 {
   if (! qsovport(mach, p)) return false;
   qscport_set_pos(mach, p, pos);
   return true;
 }
 
-bool qsovport_close (qsmachine_t * mach, qsptr p)
+bool qsovport_close (qsmachine_t * mach, qsptr_t p)
 {
   if (! qsovport(mach, p)) return false;
   qscport_set_max(mach, p, 0);
@@ -2176,7 +2176,7 @@ bool qsovport_close (qsmachine_t * mach, qsptr p)
 
 
 /* Backed by Standard C File. */
-qspvec_t * qsfport (qsmachine_t * mach, qsptr p)
+qspvec_t * qsfport (qsmachine_t * mach, qsptr_t p)
 {
   qspvec_t * port = qscport(mach, p);
   if (! port) return NULL;
@@ -2184,9 +2184,9 @@ qspvec_t * qsfport (qsmachine_t * mach, qsptr p)
   return port;
 }
 
-qsptr qsfport_make (qsmachine_t * mach, const char * path, const char * mode)
+qsptr_t qsfport_make (qsmachine_t * mach, const char * path, const char * mode)
 {
-  qsptr variant = QSPORT_CFILE;
+  qsptr_t variant = QSPORT_CFILE;
   bool writeable = false;
   if (mode)
     {
@@ -2196,33 +2196,33 @@ qsptr qsfport_make (qsmachine_t * mach, const char * path, const char * mode)
     {
       mode = "r";
     }
-  qsptr pathspec = qsutf8_inject_charp(mach, path);
+  qsptr_t pathspec = qsutf8_inject_charp(mach, path);
   if (! qsutf8_p(mach, pathspec)) return QSERR_NOMEM;
 
   FILE * f = fopen(path, mode);
   if (! f) return QSERR_FAULT;
-  qsptr fptr = qscptr_make(mach, (void*)f);
+  qsptr_t fptr = qscptr_make(mach, (void*)f);
   if (! qscptr_p(mach, fptr)) return QSERR_NOMEM;
-  qsptr p = qscport_make(mach, variant, pathspec, writeable, fptr);
+  qsptr_t p = qscport_make(mach, variant, pathspec, writeable, fptr);
   if (! qscport_p(mach, p)) return QSERR_NOMEM;
   return p;
 }
 
-bool qsfport_p (qsmachine_t * mach, qsptr p)
+bool qsfport_p (qsmachine_t * mach, qsptr_t p)
 {
   return (qsfport(mach, p) != NULL);
 }
 
-FILE * qsfport_get (qsmachine_t * mach, qsptr p)
+FILE * qsfport_get (qsmachine_t * mach, qsptr_t p)
 {
   if (! qsfport(mach, p)) return NULL;
-  qsptr fptr = qscport_get_resource(mach, p);
+  qsptr_t fptr = qscport_get_resource(mach, p);
   if (! qscptr_p(mach, fptr)) return NULL;
   FILE * f = (FILE*)(qscptr_get(mach, fptr));
   return f;
 }
 
-bool qsfport_eof (qsmachine_t * mach, qsptr p)
+bool qsfport_eof (qsmachine_t * mach, qsptr_t p)
 {
   int retval = -1;
   FILE * f = qsfport_get(mach, p);
@@ -2230,7 +2230,7 @@ bool qsfport_eof (qsmachine_t * mach, qsptr p)
   return feof(f);
 }
 
-int qsfport_read_u8 (qsmachine_t * mach, qsptr p)
+int qsfport_read_u8 (qsmachine_t * mach, qsptr_t p)
 {
   int retval = -1;
   FILE * f = qsfport_get(mach, p);
@@ -2240,7 +2240,7 @@ int qsfport_read_u8 (qsmachine_t * mach, qsptr p)
   return retval;
 }
 
-bool qsfport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
+bool qsfport_write_u8 (qsmachine_t * mach, qsptr_t p, int byte)
 {
   FILE * f = qsfport_get(mach, p);
   if (! f) return false;
@@ -2248,14 +2248,14 @@ bool qsfport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
   return (res > 0);
 }
 
-qsword qsfport_tell (qsmachine_t * mach, qsptr p)
+qsword qsfport_tell (qsmachine_t * mach, qsptr_t p)
 {
   FILE * f = qsfport_get(mach, p);
   if (! f) return false;
   return ftell(f);
 }
 
-bool qsfport_seek (qsmachine_t * mach, qsptr p, qsword pos)
+bool qsfport_seek (qsmachine_t * mach, qsptr_t p, qsword pos)
 {
   FILE * f = qsfport_get(mach, p);
   if (! f) return false;
@@ -2263,13 +2263,13 @@ bool qsfport_seek (qsmachine_t * mach, qsptr p, qsword pos)
   return (newpos == pos);
 }
 
-bool qsfport_close (qsmachine_t * mach, qsptr p)
+bool qsfport_close (qsmachine_t * mach, qsptr_t p)
 {
   if (! qsfport(mach, p)) return false;
 
   /* Finalizer */
     {
-      qsptr fptr = qscport_get_resource(mach, p);
+      qsptr_t fptr = qscport_get_resource(mach, p);
       FILE * f = (FILE*)(qscptr_get(mach, p));
       if (f) fclose(f);
     }
@@ -2283,9 +2283,9 @@ bool qsfport_close (qsmachine_t * mach, qsptr p)
 
 
 /* Overall Port wrapper. */
-qsptr qsport_make_c (qsmachine_t * mach, qsptr variant, const uint8_t * spec, int speclen, bool writeable, bool appending)
+qsptr_t qsport_make_c (qsmachine_t * mach, qsptr_t variant, const uint8_t * spec, int speclen, bool writeable, bool appending)
 {
-  qsptr retval = QSERR_FAULT;
+  qsptr_t retval = QSERR_FAULT;
   switch (variant)
     {
     case QSPORT_FD:
@@ -2333,9 +2333,9 @@ qsptr qsport_make_c (qsmachine_t * mach, qsptr variant, const uint8_t * spec, in
   return retval;
 }
 
-qsptr qsport_make (qsmachine_t * mach, qsptr variant, qsptr path, bool writeable, bool appending)
+qsptr_t qsport_make (qsmachine_t * mach, qsptr_t variant, qsptr_t path, bool writeable, bool appending)
 {
-  qsptr retval = QSERR_FAULT;
+  qsptr_t retval = QSERR_FAULT;
   switch (variant)
     {
     case QSPORT_FD:
@@ -2378,14 +2378,14 @@ qsptr qsport_make (qsmachine_t * mach, qsptr variant, qsptr path, bool writeable
   return retval;
 }
 
-bool qsport_p (qsmachine_t * mach, qsptr p)
+bool qsport_p (qsmachine_t * mach, qsptr_t p)
 {
   if (qsfd_p(mach, p)) return true; /* TODO: check still open. */
   if (! qscport_p(mach, p)) return false;
   return true;
 }
 
-bool qsport_eof (qsmachine_t * mach, qsptr p)
+bool qsport_eof (qsmachine_t * mach, qsptr_t p)
 {
   if (qsfd_p(mach, p)) return qsfd_eof(mach, p);
   if (qsfport_p(mach, p)) return qsfport_eof(mach, p);
@@ -2394,7 +2394,7 @@ bool qsport_eof (qsmachine_t * mach, qsptr p)
   return true; /* not a port => eof. */
 }
 
-int qsport_read_u8 (qsmachine_t * mach, qsptr p)
+int qsport_read_u8 (qsmachine_t * mach, qsptr_t p)
 {
   if (qsfd_p(mach, p)) return qsfd_read_u8(mach, p);
   if (qsfport_p(mach, p)) return qsfport_read_u8(mach, p);
@@ -2403,7 +2403,7 @@ int qsport_read_u8 (qsmachine_t * mach, qsptr p)
   return -1;
 }
 
-bool qsport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
+bool qsport_write_u8 (qsmachine_t * mach, qsptr_t p, int byte)
 {
   if (qsfd_p(mach, p)) return qsfd_write_u8(mach, p, byte);
   if (qsfport_p(mach, p)) return qsfport_write_u8(mach, p, byte);
@@ -2412,7 +2412,7 @@ bool qsport_write_u8 (qsmachine_t * mach, qsptr p, int byte)
   return -1;
 }
 
-qsword qsport_tell (qsmachine_t * mach, qsptr p)
+qsword qsport_tell (qsmachine_t * mach, qsptr_t p)
 {
   if (qsfd_p(mach, p)) return qsfd_tell(mach, p);
   if (qsfport_p(mach, p)) return qsfport_tell(mach, p);
@@ -2421,7 +2421,7 @@ qsword qsport_tell (qsmachine_t * mach, qsptr p)
   return 0;
 }
 
-bool qsport_seek (qsmachine_t * mach, qsptr p, qsword pos)
+bool qsport_seek (qsmachine_t * mach, qsptr_t p, qsword pos)
 {
   if (qsfd_p(mach, p)) return qsfd_seek(mach, p, pos);
   if (qsfport_p(mach, p)) return qsfport_seek(mach, p, pos);
@@ -2436,13 +2436,13 @@ bool qsport_seek (qsmachine_t * mach, qsptr p, qsword pos)
 /* Make iterator from memory address, no checks.
    For constructing from object, see _iter() for the associated object.
  */
-qsptr qsiter_make (const qsmachine_t * mach, qsaddr addr)
+qsptr_t qsiter_make (const qsmachine_t * mach, qsaddr_t addr)
 {
-  qsptr retval = QSITER(addr >> 2);
+  qsptr_t retval = QSITER(addr >> 2);
   return retval;
 }
 
-qsptr qsiter_begin (const qsmachine_t * mach, qsptr p)
+qsptr_t qsiter_begin (const qsmachine_t * mach, qsptr_t p)
 {
   if (qsiter_p(mach, p))
     {
@@ -2459,23 +2459,23 @@ qsptr qsiter_begin (const qsmachine_t * mach, qsptr p)
   return QSNIL;
 }
 
-bool qsiter_p (const qsmachine_t * mach, qsptr p)
+bool qsiter_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISITER28(p);
 }
 
-qsaddr _qsiter_memaddr (const qsmachine_t * mach, qsptr p)
+qsaddr_t _qsiter_memaddr (const qsmachine_t * mach, qsptr_t p)
 {
-  qsaddr memaddr = CITER28(p) << 2;
+  qsaddr_t memaddr = CITER28(p) << 2;
   return memaddr;
 }
 
-bool _qsiter_on_pair (const qsmachine_t * mach, qsptr p, qsptr * out_pair)
+bool _qsiter_on_pair (const qsmachine_t * mach, qsptr_t p, qsptr_t * out_pair)
 {
   bool retval = false;
-  qsaddr memaddr = _qsiter_memaddr(mach, p);
+  qsaddr_t memaddr = _qsiter_memaddr(mach, p);
   if ((memaddr & 0xf) != 0) return false; /* not aligned, cannot be object. */
-  qsptr maybe_pair = QSOBJ( memaddr >> 4 );
+  qsptr_t maybe_pair = QSOBJ( memaddr >> 4 );
   if (qspair_const(mach, maybe_pair))
     {
       if (out_pair) *out_pair = maybe_pair;
@@ -2484,18 +2484,18 @@ bool _qsiter_on_pair (const qsmachine_t * mach, qsptr p, qsptr * out_pair)
   return retval;
 }
 
-qsptr _qsiter_word (const qsmachine_t * mach, qsptr p)
+qsptr_t _qsiter_word (const qsmachine_t * mach, qsptr_t p)
 {
-  qsaddr memaddr = _qsiter_memaddr(mach, p);
-  qsptr retval = qsstore_get_word(&(mach->S), memaddr);
+  qsaddr_t memaddr = _qsiter_memaddr(mach, p);
+  qsptr_t retval = qsstore_get_word(&(mach->S), memaddr);
   return retval;
 }
 
 /* returns contents of list head (car). */
-qsptr qsiter_head (const qsmachine_t * mach, qsptr p)
+qsptr_t qsiter_head (const qsmachine_t * mach, qsptr_t p)
 {
-  qsptr retval;
-  qsptr pair = QSNIL;
+  qsptr_t retval;
+  qsptr_t pair = QSNIL;
 
   if (! qsiter_p(mach, p)) return QSERR_FAULT;
   if (_qsiter_on_pair(mach, p, &pair))
@@ -2515,16 +2515,16 @@ qsptr qsiter_head (const qsmachine_t * mach, qsptr p)
 }
 
 /* returns next iter in the list (cdr). */
-qsptr qsiter_tail (const qsmachine_t * mach, qsptr p)
+qsptr_t qsiter_tail (const qsmachine_t * mach, qsptr_t p)
 {
-  qsptr retval;
-  qsptr pair = QSNIL;
+  qsptr_t retval;
+  qsptr_t pair = QSNIL;
   int depth = 0;
 
   if (! qsiter_p(mach, p)) return QSERR_FAULT;
   if (_qsiter_on_pair(mach, p, &pair))
     {
-      qsptr next = qspair_ref_tail(mach, pair);
+      qsptr_t next = qspair_ref_tail(mach, pair);
       if (ISOBJ26(next))
 	retval = QSITER( COBJ26(next) << 2 );
       else if (ISNIL(next))
@@ -2535,14 +2535,14 @@ qsptr qsiter_tail (const qsmachine_t * mach, qsptr p)
   else
     {
       qsword skip = 1;
-      qsptr head = _qsiter_word(mach, p);
+      qsptr_t head = _qsiter_word(mach, p);
       if (head == QSBOL)
 	{
 	  /* skip to matching QSEOL */
 	  depth = 1;
 	  while (depth > 0)
 	    {
-	      qsptr elt = _qsiter_word(mach, p + (skip << SHIFT_TAG28));
+	      qsptr_t elt = _qsiter_word(mach, p + (skip << SHIFT_TAG28));
 	      if (elt == QSBOL)
 		{
 		  depth++;
@@ -2554,9 +2554,9 @@ qsptr qsiter_tail (const qsmachine_t * mach, qsptr p)
 	      skip++;
 	    }
 	}
-      qsptr next = QSITER(CITER28(p) + skip);
+      qsptr_t next = QSITER(CITER28(p) + skip);
       /* peek for end of iteration. */
-      qsptr peek = _qsiter_word(mach, next);
+      qsptr_t peek = _qsiter_word(mach, next);
       if ((CITER28(next) & 0x3) == 0)
 	{
 	  /* aligned (4th word); is-sync => start of new object, ends list. */
@@ -2574,7 +2574,7 @@ qsptr qsiter_tail (const qsmachine_t * mach, qsptr p)
   return retval;
 }
 
-int qsiter_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsiter_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   if (! ISITER28(p)) return 0;
@@ -2584,12 +2584,12 @@ int qsiter_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
     }
   else
     {
-      qsptr it = p;
+      qsptr_t it = p;
 
       n += qs_snprintf(buf+n, buflen-n, "(");
       while (ISITER28(it))
 	{
-	  qsptr x = qsiter_head(mach, it);
+	  qsptr_t x = qsiter_head(mach, it);
 	  if (it != p)
 	    n += qs_snprintf(buf+n, buflen-n, " ");
 	  n += qsptr_crepr(mach, x, buf+n, buflen-n);
@@ -2603,19 +2603,19 @@ int qsiter_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
 
 /* QsSymbol: wrapper/combiner of QsSym and QsName */
 
-bool qssymbol_p (const qsmachine_t * mach, qsptr p)
+bool qssymbol_p (const qsmachine_t * mach, qsptr_t p)
 {
   return (qssym_p(mach,p) || qsname_p(mach,p));
 }
 
 /* convert string to (interned) symbol. */
-qsptr qssymbol_bless (qsmachine_t * mach, qsptr s)
+qsptr_t qssymbol_bless (qsmachine_t * mach, qsptr_t s)
 {
   if (! qsutf8_p(mach, s))
     return QSERR_FAULT;
   qsword slen = qsutf8_length(mach, s);
 
-  qsptr p = qsname_make(mach, slen);
+  qsptr_t p = qsname_make(mach, slen);
   if (! ISOBJ26(p)) return QSERR_FAULT;
 
   qsovec_t * y = qsname(mach, p);
@@ -2630,28 +2630,28 @@ qsptr qssymbol_bless (qsmachine_t * mach, qsptr s)
   /* intern symbol. */
   qssymstore_insert(mach, mach->Y, p);
 
-  qsptr retval = qsname_sym(mach, p);
+  qsptr_t retval = qsname_sym(mach, p);
   return retval;
 }
 
 /* intern a Name object into symbol table. */
-qsptr qssymbol_intern (qsmachine_t * mach, qsptr p)
+qsptr_t qssymbol_intern (qsmachine_t * mach, qsptr_t p)
 {
   if (! qsname_p(mach, p)) return QSERR_FAULT;
   qssymstore_insert(mach, mach->Y, p);
-  qsptr retval = qsname_sym(mach, p);
+  qsptr_t retval = qsname_sym(mach, p);
   return retval;
 }
 
-qsptr qssymbol_intern_c (qsmachine_t * mach, const char * cstr)
+qsptr_t qssymbol_intern_c (qsmachine_t * mach, const char * cstr)
 {
   /* 1. find already interned symbol. */
-  qsptr extant = qssymstore_find_c(mach, cstr);
+  qsptr_t extant = qssymstore_find_c(mach, cstr);
   if (qssymbol_p(mach, extant))
     return extant;
 
   /* 2. fallback to constructing symbol object. */
-  qsptr p;
+  qsptr_t p;
   p = qsname_inject(mach, cstr);
 
   /* 3. then interning symbol object. */
@@ -2660,9 +2660,9 @@ qsptr qssymbol_intern_c (qsmachine_t * mach, const char * cstr)
   return p;
 }
 
-const char * qssymbol_get (const qsmachine_t * mach, qsptr p)
+const char * qssymbol_get (const qsmachine_t * mach, qsptr_t p)
 {
-  qsptr x;
+  qsptr_t x;
   if (qssym_p(mach, p)) x = qssym_name(mach, p);
   if (! qsname_p(mach, x)) return NULL;
   const qsovec_t * st = qsname_const(mach, x);
@@ -2670,10 +2670,10 @@ const char * qssymbol_get (const qsmachine_t * mach, qsptr p)
   return st->elt;
 }
 
-int qssymbol_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qssymbol_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
-  qsptr x = p;
+  qsptr_t x = p;
   if (qssym_p(mach, p)) x = qssym_name(mach, p);
   if (! qsname_p(mach, x)) return 0;
   const char * symname = qssymbol_get(mach, x);
@@ -2681,7 +2681,7 @@ int qssymbol_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
   return n;
 }
 
-qscmp_t qssymbol_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
+qscmp_t qssymbol_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 {
   return (x == y) ? QSCMP_EQ : QSCMP_NE;
 }
@@ -2689,7 +2689,7 @@ qscmp_t qssymbol_cmp (const qsmachine_t * mach, qsptr x, qsptr y)
 
 
 
-int qsptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
+int qsptr_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
 
@@ -2758,7 +2758,7 @@ int qsptr_crepr (const qsmachine_t * mach, qsptr p, char * buf, int buflen)
     }
   else if (ISSYM26(p))
     {
-      qsptr symobj = QSOBJ(CSYM26(p));
+      qsptr_t symobj = QSOBJ(CSYM26(p));
       n += qsname_crepr(mach, symobj, buf+n, buflen-n);
     }
   else if (ISFD20(p))

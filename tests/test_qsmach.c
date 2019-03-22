@@ -26,9 +26,9 @@ START_TEST(test_inject1)
 {
   init();
 
-  qsptr C = QSINT(5);
-  qsptr E = QSNIL;
-  qsptr K = QSNIL;
+  qsptr_t C = QSINT(5);
+  qsptr_t E = QSNIL;
+  qsptr_t K = QSNIL;
 
   int res = qsmachine_load(machine, C, E, K);
   ck_assert_int_eq(res, 0);
@@ -36,10 +36,10 @@ START_TEST(test_inject1)
 END_TEST
 
 /* sample qsprim_f */
-qsptr op_plus_one (qsmachine_t * mach, qsptr args)
+qsptr_t op_plus_one (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr retval = QSNIL;
-  qsptr x = qspair_p(mach, args) ? qspair_car(mach, args) :
+  qsptr_t retval = QSNIL;
+  qsptr_t x = qspair_p(mach, args) ? qspair_car(mach, args) :
     qsiter_p(mach, args) ? qsiter_head(mach, args) : QSNIL;
   if (ISINT30(x))
     {
@@ -52,8 +52,8 @@ START_TEST(test_atomeval1)
 {
   init();
 
-  qsptr C, E, K;
-  qsptr p;
+  qsptr_t C, E, K;
+  qsptr_t p;
   int res;
 
   /* Evaluate integer. */
@@ -61,7 +61,7 @@ START_TEST(test_atomeval1)
   ck_assert_int_eq(p, QSINT(5));
 
   /* Evaluate variable. */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t y_x = qssymbol_intern_c(machine, "x");
   E = qsenv_make(machine, QSNIL);
   E = qsenv_insert(machine, E, qsname_sym(machine, y_x), QSINT(7));
   machine->E = E;
@@ -69,14 +69,14 @@ START_TEST(test_atomeval1)
   ck_assert_int_eq(p, QSINT(7));
 
   /* Evaluate lambda. */
-  qsptr lam = qslambda_make(machine, QSNIL, QSINT(9));
+  qsptr_t lam = qslambda_make(machine, QSNIL, QSINT(9));
   p = qsmachine_eval_atomic(machine, lam);
   ck_assert(qsclosure_p(machine, p));
 
   /* Evaluate operation (primitive). */
   int primid = qsprimreg_register(machine, op_plus_one);
-  qsptr op = qsprim_make(machine, primid);
-  qsptr exp = qspair_make(machine, op, qspair_make(machine, QSINT(11), QSNIL));
+  qsptr_t op = qsprim_make(machine, primid);
+  qsptr_t exp = qspair_make(machine, op, qspair_make(machine, QSINT(11), QSNIL));
   p = qsmachine_eval_atomic(machine, exp);
   ck_assert_int_eq(p, QSINT(12));
 }
@@ -87,8 +87,8 @@ START_TEST(test_step1)
   /* Atomic Evaluation as step. */
   init();
 
-  qsptr C, E, K;
-  qsptr p;
+  qsptr_t C, E, K;
+  qsptr_t p;
   int res;
 
   /* Evaluate integer. */
@@ -101,7 +101,7 @@ START_TEST(test_step1)
   ck_assert(machine->halt);
 
   /* Evaluate variable. */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t y_x = qssymbol_intern_c(machine, "x");
   C = y_x;
   E = qsenv_make(machine, QSNIL);
   E = qsenv_insert(machine, E, qsname_sym(machine, y_x), QSINT(7));
@@ -112,7 +112,7 @@ START_TEST(test_step1)
   ck_assert(machine->halt);
 
   /* Evaluate lambda. */
-  qsptr lam = qslambda_make(machine, QSNIL, QSINT(9));
+  qsptr_t lam = qslambda_make(machine, QSNIL, QSINT(9));
   C = lam;
   E = QSNIL;
   K = QSNIL;
@@ -123,7 +123,7 @@ START_TEST(test_step1)
 
   /* Evaluate operation (primitive). */
   int primid = qsprimreg_register(machine, op_plus_one);
-  qsptr op = qsprim_make(machine, primid);
+  qsptr_t op = qsprim_make(machine, primid);
   C = qspair_make(machine, op, qspair_make(machine, QSINT(11), QSNIL));
   E = QSNIL;
   K = QSNIL;
@@ -139,18 +139,18 @@ START_TEST(test_step2)
   /* Non-atomic steps. */
   init();
 
-  qsptr C, E, K;
-  qsptr p, exp;
+  qsptr_t C, E, K;
+  qsptr_t p, exp;
   int res;
 
-  qsptr y_if = qssymbol_intern_c(machine, "if");
-  qsptr y_let = qssymbol_intern_c(machine, "let");
-  qsptr y_letrec = qssymbol_intern_c(machine, "letrec");
-  qsptr y_setq = qssymbol_intern_c(machine, "set!");
-  qsptr y_callcc = qssymbol_intern_c(machine, "call/cc");
-  qsptr y_x = qssymbol_intern_c(machine, "x");
-  qsptr y_y = qssymbol_intern_c(machine, "y");
-  qsptr y_z = qssymbol_intern_c(machine, "z");
+  qsptr_t y_if = qssymbol_intern_c(machine, "if");
+  qsptr_t y_let = qssymbol_intern_c(machine, "let");
+  qsptr_t y_letrec = qssymbol_intern_c(machine, "letrec");
+  qsptr_t y_setq = qssymbol_intern_c(machine, "set!");
+  qsptr_t y_callcc = qssymbol_intern_c(machine, "call/cc");
+  qsptr_t y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t y_y = qssymbol_intern_c(machine, "y");
+  qsptr_t y_z = qssymbol_intern_c(machine, "z");
 
   /* Conditional. */
   exp = qspair_make(machine, y_if,
@@ -219,7 +219,7 @@ START_TEST(test_step2)
   ck_assert_int_eq(p, QSINT(38));
 
   /* Recursive Let. */
-  qsptr lis;
+  qsptr_t lis;
   lis = qsarray_inject(machine,
           y_letrec,
 	  QSBOL,
@@ -244,10 +244,10 @@ START_TEST(test_step2)
   ck_assert_str_eq(buf, "122");
   ck_assert_int_eq(machine->A, QSINT(122));
 
-  qsptr param, body, lam, clo;
+  qsptr_t param, body, lam, clo;
 
   /* First-class Continuation. */
-  qsptr y_testcc = qssymbol_intern_c(machine, "testcc");
+  qsptr_t y_testcc = qssymbol_intern_c(machine, "testcc");
   param = qspair_make(machine, y_x, QSNIL);
   body = qspair_make(machine, y_x,
 	 qspair_make(machine, QSINT(5), QSNIL));
@@ -270,8 +270,8 @@ START_TEST(test_step2)
 
   /* Procedure call. */
   int primid = qsprimreg_register(machine, op_plus_one);
-  qsptr o_plusone = qsprim_make(machine, primid);
-  qsptr y_plusone = qssymbol_intern_c(machine, "+1");
+  qsptr_t o_plusone = qsprim_make(machine, primid);
+  qsptr_t y_plusone = qssymbol_intern_c(machine, "+1");
   E = qsenv_make(machine, QSNIL);
   E = qsenv_insert(machine, E, y_plusone, o_plusone);
   exp = qspair_make(machine, y_plusone,

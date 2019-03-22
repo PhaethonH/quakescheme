@@ -65,8 +65,8 @@ START_TEST(test_store2)
 {
   init();
 
-  qserr err = QSERR_OK;
-  qsptr val = QSINT(1024);
+  qserr_t err = QSERR_OK;
+  qsptr_t val = QSINT(1024);
   err = qsstore_set_word(store, 0x0004, val);
   ck_assert_int_eq(err, QSERR_OK);
   qsword w = qsstore_get_word(store, 0x0004);
@@ -92,9 +92,9 @@ START_TEST(test_lowalloc)
 
   /* allocate one boundary. */
   qsword allocsize = 1;
-  qsaddr fit0 = _qssegment_fit(segment, allocsize);
+  qsaddr_t fit0 = _qssegment_fit(segment, allocsize);
   ck_assert_int_eq(fit0, 0);
-  qsaddr region2 = _qssegment_split(segment, fit0, allocsize);
+  qsaddr_t region2 = _qssegment_split(segment, fit0, allocsize);
   ck_assert_int_ne(region2, 0);
   int res = _qssegment_unfree(segment, fit0);
   ck_assert_int_eq(res, 0);
@@ -102,7 +102,7 @@ START_TEST(test_lowalloc)
 
   /* allocate sixteen boundaries. */
   allocsize = 16;
-  qsaddr fit1 = _qssegment_fit(segment, allocsize);
+  qsaddr_t fit1 = _qssegment_fit(segment, allocsize);
   ck_assert_int_gt(fit1, 1);
   region2 = _qssegment_split(segment, fit1, allocsize);
   ck_assert_int_gt(region2, 1);
@@ -112,7 +112,7 @@ START_TEST(test_lowalloc)
 
   /* allocate too large. */
   allocsize = 99999;
-  qsaddr fit99 = _qssegment_fit(segment, allocsize);
+  qsaddr_t fit99 = _qssegment_fit(segment, allocsize);
   ck_assert_int_eq(fit99, QSFREE_SENTINEL);
 }
 END_TEST
@@ -127,8 +127,8 @@ START_TEST(test_highalloc)
   qssegment_init(wmem, 0x10000, wmem_size - 16);
   store->wmem = wmem;
 
-  qsaddr addr = 0;
-  qserr err = QSERR_OK;
+  qsaddr_t addr = 0;
+  qserr_t err = QSERR_OK;
 
   /* allocate one boundary (no-crossing). */
   err = qsstore_alloc_nbounds(store, 0, &addr);

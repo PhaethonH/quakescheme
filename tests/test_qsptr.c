@@ -25,23 +25,23 @@ START_TEST(test_int)
 
   init();
 
-  qsptr int1 = QSINT(17);
+  qsptr_t int1 = QSINT(17);
   ival = CINT30(int1);
   ck_assert_int_eq(ival, 17);
 
-  qsptr int2 = QSINT(42);
+  qsptr_t int2 = QSINT(42);
   ival = CINT30(int2);
   ck_assert_int_eq(ival, 42);
 
-  qsptr int3 = QSINT(119);
+  qsptr_t int3 = QSINT(119);
   ival = CINT30(int3);
   ck_assert_int_eq(ival, 119);
 
-  qsptr int4 = QSINT(-1023);
+  qsptr_t int4 = QSINT(-1023);
   ival = CINT30(int4);
   ck_assert_int_eq(ival, -1023);
 
-  qsptr int5 = QSINT(-10);
+  qsptr_t int5 = QSINT(-10);
   ival = CINT30(int5);
   ck_assert_int_eq(ival, -10);
 }
@@ -55,19 +55,19 @@ START_TEST(test_float)
   int res = 0;
   float fval = 0;
 
-  qsptr flo1 = QSFLOAT(1);
+  qsptr_t flo1 = QSFLOAT(1);
   fval = CFLOAT31(flo1);
   ck_assert(fval == 1.0);
 
-  qsptr flo2 = QSFLOAT(2);
+  qsptr_t flo2 = QSFLOAT(2);
   fval = CFLOAT31(flo2);
   ck_assert(fval == 2.0);
 
-  qsptr flo3 = QSFLOAT(3);
+  qsptr_t flo3 = QSFLOAT(3);
   fval = CFLOAT31(flo3);
   ck_assert(fval == 3.0);
 
-  qsptr flo4 = QSFLOAT(3.141592);
+  qsptr_t flo4 = QSFLOAT(3.141592);
   fval = CFLOAT31(flo4);
   ck_assert(fabs(3.141592-fval) < 0.00001);
 }
@@ -81,15 +81,15 @@ START_TEST(test_char)
   int res = 0;
   int chval = 0;
 
-  qsptr chr1 = QSCHAR('a');
+  qsptr_t chr1 = QSCHAR('a');
   chval = CCHAR24(chr1);
   ck_assert_int_eq(chval, 'a');
 
-  qsptr chr2 = QSCHAR('A');
+  qsptr_t chr2 = QSCHAR('A');
   chval = CCHAR24(chr2);
   ck_assert_int_eq(chval, 'A');
 
-  qsptr chr3 = QSCHAR(' ');
+  qsptr_t chr3 = QSCHAR(' ');
   chval = CCHAR24(chr3);
   ck_assert_int_eq(chval, ' ');
 }
@@ -121,7 +121,7 @@ START_TEST(test_iter)
   int res = 0;
 
 #if 0
-  qsptr anchor = QSOBJ(8);
+  qsptr_t anchor = QSOBJ(8);
   ck_assert(ISOBJ26(anchor));
   qsbay0_t * heapcell = qsstore_get(heap1, 8);
   qsobj_t * obj = (qsobj_t*)heapcell;
@@ -132,7 +132,7 @@ START_TEST(test_iter)
   obj->_0 = QSNIL;
   obj->_1 = QSNIL;
   obj->_2 = QSNIL;
-  qsptr * _d = (qsptr*)(obj+1);
+  qsptr_t * _d = (qsptr_t*)(obj+1);
   // (10 20 30 (11 22))
   _d[0] = QSINT(10);
   _d[1] = QSINT(20);
@@ -150,15 +150,15 @@ START_TEST(test_iter)
   _d[13] = QSEOL;
 
   qsword word_addr = (8 * 4) + 0  +  4;
-  qsptr iter1 = QSITER(word_addr);
+  qsptr_t iter1 = QSITER(word_addr);
   ck_assert(ISITER28(iter1));
   ck_assert_int_eq(CITER28(iter1), word_addr);
 
-  qsptr ref1 = 0;
+  qsptr_t ref1 = 0;
   qsstore_fetch_word(heap1, word_addr, &ref1);
   ck_assert(ISINT30(ref1));
 
-  qsptr itern = iter1;
+  qsptr_t itern = iter1;
   ck_assert(ISITER28(itern));
   ref1 = qsiter_item(heap1, itern);
   ck_assert_int_eq(ref1, QSINT(10));

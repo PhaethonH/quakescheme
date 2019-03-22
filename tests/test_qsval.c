@@ -29,7 +29,7 @@ START_TEST(test_test1)
 
   /* Directly-encoded values. */
 
-  qsptr p;
+  qsptr_t p;
   int n;
 
 
@@ -117,7 +117,7 @@ START_TEST(test_test2)
   init();
 
   /* Generalized printing. */
-  qsptr p;
+  qsptr_t p;
   int n;
 
   p = qsint_make(machine, 17);
@@ -130,7 +130,7 @@ START_TEST(test_pairs)
 {
   init();
 
-  qsptr p;
+  qsptr_t p;
   int n;
 
   /* pairs (improper list) */
@@ -150,7 +150,7 @@ START_TEST(test_pairs)
   ck_assert_str_eq(buf, "(2 . 3)");
 
   /* proper list. */
-  qsptr pp[8];
+  qsptr_t pp[8];
   pp[3] = qspair_make(machine, QSINT(30), QSNIL);
   pp[2] = qspair_make(machine, QSINT(20), pp[3]);
   pp[1] = qspair_make(machine, QSINT(10), pp[2]);
@@ -171,8 +171,8 @@ START_TEST(test_vectors)
 {
   init();
 
-  qsptr p;
-  qserr err;
+  qsptr_t p;
+  qserr_t err;
   int n;
 
   /* vector of 5. */
@@ -209,8 +209,8 @@ START_TEST(test_widenums)
 {
   init();
 
-  qsptr p;
-  qserr err;
+  qsptr_t p;
+  qserr_t err;
   int n;
 
   /* longs */
@@ -250,8 +250,8 @@ START_TEST(test_voidptrs)
 {
   init();
 
-  qsptr p;
-  qserr err;
+  qsptr_t p;
+  qserr_t err;
   int n;
   int b;
 
@@ -284,8 +284,8 @@ START_TEST(test_bytevecs)
 {
   init();
 
-  qsptr p;
-  qserr err;
+  qsptr_t p;
+  qserr_t err;
   int n;
   int b;
 
@@ -311,19 +311,19 @@ START_TEST(test_arrays)
 {
   init();
 
-  qsptr p;
-  qserr err;
+  qsptr_t p;
+  qserr_t err;
   int n;
   int b;
-  qsptr it;
-  qsptr probe;
+  qsptr_t it;
+  qsptr_t probe;
 
   /* arrays. */
 
   /* Test manual setup and iteration. */
   p = qsarray_make(machine, 12);
   /* 12 ptrs need 3 boundaries, +1 for header => 4 boundaries total. */
-  ck_assert_int_eq( qsarray_length(machine,p), 4*(sizeof(qsobj_t)/sizeof(qsptr)) );
+  ck_assert_int_eq( qsarray_length(machine,p), 4*(sizeof(qsobj_t)/sizeof(qsptr_t)) );
   qsarray_setq(machine, p, 0, QSINT(101));
   qsarray_setq(machine, p, 1, QSINT(102));
   qsarray_setq(machine, p, 2, QSINT(103));
@@ -379,7 +379,7 @@ START_TEST(test_arrays)
   /* Test iteration from injection call. */
   p = qsarray_inject(machine, QSINT(1001), QSINT(1002), QSINT(1003), QSEOL);
   /* 1 bounds for payload, plus 1 for header, rounded to 2 bounds total. */
-  ck_assert_int_eq( qsarray_length(machine,p), 2*(sizeof(qsobj_t)/sizeof(qsptr)) );
+  ck_assert_int_eq( qsarray_length(machine,p), 2*(sizeof(qsobj_t)/sizeof(qsptr_t)) );
   it = qsarray_iter(machine, p);
   ck_assert(ISITER28(it));
   probe = qsiter_head(machine, it);
@@ -402,7 +402,7 @@ START_TEST(test_arrays)
   /* Test iterating with nested arrays. */
   p = qsarray_inject(machine, QSINT(2001), QSBOL, QSINT(2101), QSINT(2102),
 		     QSEOL, QSINT(2003), QSEOL);
-  ck_assert_int_eq( qsarray_length(machine,p), 4*(sizeof(qsobj_t)/sizeof(qsptr)) );
+  ck_assert_int_eq( qsarray_length(machine,p), 4*(sizeof(qsobj_t)/sizeof(qsptr_t)) );
   it = qsarray_iter(machine, p);
   ck_assert(ISITER28(it));
   probe = qsiter_head(machine, it);
@@ -416,7 +416,7 @@ START_TEST(test_arrays)
     {
       /* iterate nested list. */
 
-      qsptr it2 = probe;
+      qsptr_t it2 = probe;
       probe = qsiter_head(machine, it2);
       ck_assert_int_eq(probe, QSINT(2101));
 
@@ -449,16 +449,16 @@ START_TEST(test_iters)
 {
   init();
 
-  qsptr p;
-  qserr err;
+  qsptr_t p;
+  qserr_t err;
   int n;
   int b;
-  qsptr it;
-  qsptr probe;
+  qsptr_t it;
+  qsptr_t probe;
 
   /* iterators. */
 
-  qsptr pairs[16];
+  qsptr_t pairs[16];
 
   pairs[4] = qspair_make(machine, QSINT(4004), QSNIL);
   pairs[3] = qspair_make(machine, QSINT(4003), pairs[4]);
@@ -502,9 +502,9 @@ START_TEST(test_utf8)
 {
   init();
 
-  qsptr p;
-  qserr err;
-  qsptr probe;
+  qsptr_t p;
+  qserr_t err;
+  qsptr_t probe;
 
   /* UTF-8 encoded strings. */
 
@@ -545,8 +545,8 @@ START_TEST(test_symbols)
 {
   init();
 
-  qsptr p, q;
-  qserr err;
+  qsptr_t p, q;
+  qserr_t err;
   int n;
   int b;
 
@@ -586,20 +586,20 @@ START_TEST(test_envs)
 {
   init();
 
-  qsptr p, q;
-  qserr err;
+  qsptr_t p, q;
+  qserr_t err;
   int n;
   int b;
 
   /* environment (variable bindings). */
 
   /* ( (foo . 1) (bar . 2) (baz . 3) ) */
-  qsptr env = qsenv_make(machine, QSNIL);
+  qsptr_t env = qsenv_make(machine, QSNIL);
 
-  qsptr y_foo = qssymbol_intern_c(machine, "foo");
-  qsptr y_bar = qssymbol_intern_c(machine, "bar");
-  qsptr y_baz = qssymbol_intern_c(machine, "baz");
-  qsptr y_quux = qssymbol_intern_c(machine, "quux");
+  qsptr_t y_foo = qssymbol_intern_c(machine, "foo");
+  qsptr_t y_bar = qssymbol_intern_c(machine, "bar");
+  qsptr_t y_baz = qssymbol_intern_c(machine, "baz");
+  qsptr_t y_quux = qssymbol_intern_c(machine, "quux");
 
   env = qsenv_insert(machine, env, y_foo, QSINT(1));
   ck_assert_int_ne(env, QSNIL);
@@ -644,19 +644,19 @@ START_TEST(test_lambdas)
 {
   init();
 
-  qsptr p, q;
-  qserr err;
+  qsptr_t p, q;
+  qserr_t err;
   int n;
   int b;
 
   /* lambas. */
 
   /* (lambda (x) x) */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t y_x = qssymbol_intern_c(machine, "x");
 
-  qsptr param = qspair_make(machine, y_x, QSNIL);
-  qsptr body = y_x;
-  qsptr lam = qslambda_make(machine, param, body);
+  qsptr_t param = qspair_make(machine, y_x, QSNIL);
+  qsptr_t body = y_x;
+  qsptr_t lam = qslambda_make(machine, param, body);
 
   p = qslambda_ref_param(machine, lam);
   q = qslambda_ref_body(machine, lam);
@@ -670,8 +670,8 @@ START_TEST(test_lambdas)
   ck_assert_str_eq(buf, "(lambda (x) x)");
 
   /* (lambda (x y) (+ x y) */
-  qsptr y_y = qssymbol_intern_c(machine, "y");
-  qsptr y_plus = qssymbol_intern_c(machine, "+");
+  qsptr_t y_y = qssymbol_intern_c(machine, "y");
+  qsptr_t y_plus = qssymbol_intern_c(machine, "+");
 }
 END_TEST
 
@@ -679,21 +679,21 @@ START_TEST(test_closures)
 {
   init();
 
-  qsptr p, q;
-  qserr err;
+  qsptr_t p, q;
+  qserr_t err;
   int n;
   int b;
 
   /* closures. */
 
   /* (lambda (x) x) */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
-  qsptr param = qspair_make(machine, y_x, QSNIL);
-  qsptr body = y_x;
-  qsptr lam = qslambda_make(machine, param, body);
+  qsptr_t y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t param = qspair_make(machine, y_x, QSNIL);
+  qsptr_t body = y_x;
+  qsptr_t lam = qslambda_make(machine, param, body);
 
   /* (closure  (lambda (x) x)  ((x . 3))) */
-  qsptr env = qsenv_make(machine, QSNIL);
+  qsptr_t env = qsenv_make(machine, QSNIL);
   qsenv_insert(machine, env, y_x, QSINT(3));
 
   p = qsclosure_make(machine, lam, env);
@@ -705,16 +705,16 @@ START_TEST(test_konts)
 {
   init();
 
-  qsptr p, q;
-  qserr err;
+  qsptr_t p, q;
+  qserr_t err;
   int n;
   int b;
 
   /* kontinuations. */
 
   /* (make-continuation () x () ()) */
-  qsptr y_x = qssymbol_intern_c(machine, "x");
-  qsptr k = qskont_make(machine, QSNIL, y_x, QSNIL, QSNIL);
+  qsptr_t y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t k = qskont_make(machine, QSNIL, y_x, QSNIL, QSNIL);
 
   p = qskont_ref_v(machine, k);
   ck_assert_int_eq(p, QSNIL);
@@ -731,8 +731,8 @@ START_TEST(test_ports)
 {
   init();
 
-  qsptr p, q;
-  qserr err;
+  qsptr_t p, q;
+  qserr_t err;
   int n;
   int b;
 
@@ -740,7 +740,7 @@ START_TEST(test_ports)
 
   /* c-string port. */
   char * raw = "Bzr";
-  qsptr port = qscharpport_make(machine, raw, 3);
+  qsptr_t port = qscharpport_make(machine, raw, 3);
   ck_assert(qscharpport_p(machine, port));
   b = qscharpport_read_u8(machine, port);
   ck_assert_int_eq(b, 'B');
@@ -768,7 +768,7 @@ START_TEST(test_ports)
   ck_assert(! b);
   const uint8_t * bytes;
   qsword n_bytes;
-  qsptr ov = qscport_get_resource(machine, port);
+  qsptr_t ov = qscport_get_resource(machine, port);
   ck_assert_int_eq(p, ov);
   qsbytevec_extract(machine, ov, &bytes, &n_bytes);
   ck_assert_int_eq(n_bytes, 6);
@@ -838,7 +838,7 @@ START_TEST(test_ports)
 
 
   /* Port.bytevec */
-  qsptr bv = qsbytevec_make(machine, 100, 0);
+  qsptr_t bv = qsbytevec_make(machine, 100, 0);
   port = qsport_make(machine, QSPORT_BYTEVEC, bv, 1, 0);
   ck_assert(qsport_p(machine, port));
   b = qsport_write_u8(machine, port, 'd');
@@ -903,8 +903,8 @@ START_TEST(test_ports)
   b = qsport_read_u8(machine, port);
   ck_assert_int_eq(b, 'l');
 
-  qsptr s1 = qsutf8_inject_charp(machine, "read1.txt");
-  qsptr s2 = qsutf8_inject_charp(machine, "tests/read1.txt");
+  qsptr_t s1 = qsutf8_inject_charp(machine, "read1.txt");
+  qsptr_t s2 = qsutf8_inject_charp(machine, "tests/read1.txt");
   port = qsport_make(machine, QSPORT_FD, s1, 0, 0);
   if (! qsfd_p(machine, port))
     port = qsport_make(machine, QSPORT_FD, s2, 0, 0);
