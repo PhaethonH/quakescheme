@@ -159,11 +159,28 @@ qsaddr _qssegment_visit_free (qssegment_t * segment, qsaddr prevfree, qsaddr cur
       else
 	{
 	  /* collect, convert to free list, coalesce freelist. */
-	  width = (1 << MGMT_GET_ALLOC(*refmgmt)) * sizeof(qsobj_t);
+	  qsword allocscale = MGMT_GET_ALLOC(*refmgmt);
+	  width = (1 << allocscale) * sizeof(qsobj_t);
+	  if (allocscale > 0)
+	    {
+	      /* vector: if octetate, check for refcount. */
+	      if (MGMT_IS_OCT(*refmgmt))
+		{
+		  /* octet-vector, check refcount */
+		  qsobj_t * obj = (qsobj_t*)(segment->space + curr);
+		  qsptr refcount = obj->fields[2];
+		  if (ISINT30(refcount) && (CINT30(refcount) > 0))
+		    {
+		      /* unmarked, but with references - do not sweep. */
+		      return prevfree;
+		    }
+		}
+	      /* else pointer-vector. */
+	    }
 	  MGMT_CLR_USED(*refmgmt);
 	  currfreelist = (qsfreelist_t*)(segment->space + curr);
 	  currfreelist->length = width;
-	  /* initialize, link into freelist later. */
+	  /* initialize with sane values, link into freelist later. */
 	  currfreelist->prev = QSFREE_SENTINEL;
 	  currfreelist->next = QSFREE_SENTINEL;
 	}
@@ -181,7 +198,7 @@ qsaddr _qssegment_visit_free (qssegment_t * segment, qsaddr prevfree, qsaddr cur
 	  currfreelist = (qsfreelist_t*)(segment->space + curr);
 	  if (prevfree+prevwidth == curr)
 	    {
-	      /* coalesce. */
+	      /* coalesce into previous freelist. */
 	      prevfreelist->length += currfreelist->length;
 	      currfreelist->mgmt = 0;
 	      currfreelist->length = 0;
@@ -193,7 +210,7 @@ qsaddr _qssegment_visit_free (qssegment_t * segment, qsaddr prevfree, qsaddr cur
 	    }
 	  else
 	    {
-	      /* link */
+	      /* link into freelist. */
 	      currfreelist->next = prevfreelist->next;
 	      prevfreelist->next = curr;
 	      currfreelist->prev = prevfree;
@@ -202,7 +219,7 @@ qsaddr _qssegment_visit_free (qssegment_t * segment, qsaddr prevfree, qsaddr cur
       else
 	{
 	  /* no previous - start of freelist. */
-	  segment->freelist = curr;
+	  /* handle assignment outside of visitor. */
 	}
     }
 
@@ -216,12 +233,19 @@ int qssegment_sweep (qssegment_t * segment)
   qsaddr prev, curr;
   skip = 0;
   prev = QSFREE_SENTINEL;
+  bool startfree = true;
   curr = 0;
+  gcvisitor visitor = _qssegment_visit_free;
   while ((curr != QSFREE_SENTINEL) && (curr < segment->cap))
     {
       qsword skip, *refmgmt;
       _qssegment_stat(segment, curr, &refmgmt, &skip);
-      prev = _qssegment_visit_free(segment, prev, curr);
+      prev = visitor(segment, prev, curr);
+      if (startfree && (prev != QSFREE_SENTINEL))
+	{
+	  segment->freelist = curr;
+	  startfree = false;
+	}
       curr += skip;
     }
   return 0;

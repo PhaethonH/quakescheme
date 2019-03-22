@@ -230,6 +230,12 @@ START_TEST(test_sweep1)
   ck_assert_int_eq( qspair_ref_tail(machine,cells[6]), cells[7]);
   ck_assert_int_eq( qspair_ref_head(machine,cells[7]), QSINT(17) );
   ck_assert_int_eq( qspair_ref_tail(machine,cells[7]), QSNIL);
+
+
+  /* test reuse */
+  qsptr p = qspair_make(machine, QSINT(33), QSNIL);
+  ck_assert(ISOBJ26(p));
+  ck_assert_int_le(p, cells[1]);
 }
 END_TEST
 
