@@ -121,64 +121,94 @@ int _qssegment_stat (qssegment_t * segment, qsaddr addr, qsword ** out_mgmtptr, 
 {
   qsword width = sizeof(qsobj_t);
   qsword * refmgmt = (qsword*)(segment->space + addr);
+  if (MGMT_IS_USED(*refmgmt))
+    {
+      width = (1 << MGMT_GET_ALLOC(*refmgmt)) * sizeof(qsobj_t);
+    }
+  else
+    {
+      qsfreelist_t * freelist = (qsfreelist_t*)(segment->space + addr);
+      width = freelist->length;
+    }
   if (out_width) *out_width =  width;
   if (out_mgmtptr) *out_mgmtptr = refmgmt;
   return 0;
 }
 
-qsaddr _qssegment_visit_dealloc (qssegment_t * segment, qsaddr prev, qsaddr curr)
-{
-  qsword width, *refmgmt;
-  _qssegment_stat(segment, curr, &refmgmt, &width);
-  if (MGMT_IS_USED(*refmgmt) && ! MGMT_IS_MARK(*refmgmt))
-    {
-      /* collect, convert to freelist.  Coalesce in second pass. */
-      width = (1 << MGMT_GET_ALLOC(*refmgmt)) * sizeof(qsobj_t);
-      MGMT_CLR_USED(*refmgmt);
-      qsfreelist_t * freelist = (qsfreelist_t*)(segment->space + curr);
-      freelist->length = width;
-      /* TODO: link into freelist. */
-      freelist->prev = QSFREE_SENTINEL;
-      freelist->next = QSFREE_SENTINEL;
-      /* coalesce adjacent freelist in second pass. */
-    }
-  /* pass over: marked (in use and live); not in use (is freelist) */
-  return curr;
-}
+/* Visit memory boundary for sweeping.
+Given: address of most recent freelist,
+       address of current visit
+Returns: address of most-recent freelist.
+       (typ. returns prev for merged freelist, curr for disjointed freelist)
+*/
+typedef qsaddr (*gcvisitor)(qssegment_t *, qsaddr, qsaddr);
 
-/* Returns new value of prev after mutations (typically 'curr'). */
-qsaddr _qssegment_visit_coalesce (qssegment_t * segment, qsaddr prev, qsaddr curr)
+qsaddr _qssegment_visit_free (qssegment_t * segment, qsaddr prevfree, qsaddr curr)
 {
   qsword width, *refmgmt;
   _qssegment_stat(segment, curr, &refmgmt, &width);
+  qsfreelist_t * prevfreelist = NULL;
+  qsfreelist_t * currfreelist = NULL;
   if (MGMT_IS_USED(*refmgmt))
     {
-      /* in use; clear marked flag. */
-      MGMT_CLR_MARK(*refmgmt);
-    }
-  else if (prev != QSFREE_SENTINEL)
-    {
-      /* freelist; check if coalescence needed. */
-      qsword * prevrefmgmt;
-      qsword prevwidth;
-      _qssegment_stat(segment, prev, &prevrefmgmt, &prevwidth);
-      if ((! MGMT_IS_USED(*prevrefmgmt)) && (curr == (prev + prevwidth)))
+      if (MGMT_IS_MARK(*refmgmt))
 	{
-	  /* coalesce. */
-	  qsfreelist_t * prevfree = (qsfreelist_t*)(segment->space + prev);
-	  qsfreelist_t * currfree = (qsfreelist_t*)(segment->space + curr);
-	  prevfree->length += currfree->length;
-	  prevfree->next = currfree->next;
-	  currfree->length = 0;
-	  currfree->next = 0;
-	  currfree->prev = 0;
-	  currfree->mgmt = 0;
+	  /* no freeing; pass over. */
+	  return prevfree;
+	}
+      else
+	{
+	  /* collect, convert to free list, coalesce freelist. */
+	  width = (1 << MGMT_GET_ALLOC(*refmgmt)) * sizeof(qsobj_t);
+	  MGMT_CLR_USED(*refmgmt);
+	  currfreelist = (qsfreelist_t*)(segment->space + curr);
+	  currfreelist->length = width;
+	  /* initialize, link into freelist later. */
+	  currfreelist->prev = QSFREE_SENTINEL;
+	  currfreelist->next = QSFREE_SENTINEL;
 	}
     }
+
+  if (! MGMT_IS_USED(*refmgmt)) /* may have been just freed. */
+    {
+      /* freelist, check for coalesce. */
+      if (prevfree != QSFREE_SENTINEL)
+	{
+	  /* previous exists - link freelist. */
+	  qsword prevwidth, *prevmgmt;
+	  _qssegment_stat(segment, prevfree, &prevmgmt, &prevwidth);
+	  prevfreelist = (qsfreelist_t*)(segment->space + prevfree);
+	  currfreelist = (qsfreelist_t*)(segment->space + curr);
+	  if (prevfree+prevwidth == curr)
+	    {
+	      /* coalesce. */
+	      prevfreelist->length += currfreelist->length;
+	      currfreelist->mgmt = 0;
+	      currfreelist->length = 0;
+	      currfreelist->prev = 0;
+	      currfreelist->next = 0;
+	      /* preserve next? */
+	      /* repeated coalescence on next cycle. */
+	      return prevfree;  /* returned coalesced freelist. */
+	    }
+	  else
+	    {
+	      /* link */
+	      currfreelist->next = prevfreelist->next;
+	      prevfreelist->next = curr;
+	      currfreelist->prev = prevfree;
+	    }
+	}
+      else
+	{
+	  /* no previous - start of freelist. */
+	  segment->freelist = curr;
+	}
+    }
+
   return curr;
 }
 
-typedef qsaddr (*gcvisitor)(qssegment_t *, qsaddr, qsaddr);
 
 int qssegment_sweep (qssegment_t * segment)
 {
@@ -191,59 +221,11 @@ int qssegment_sweep (qssegment_t * segment)
     {
       qsword skip, *refmgmt;
       _qssegment_stat(segment, curr, &refmgmt, &skip);
-      prev = _qssegment_visit_dealloc(segment, prev, curr);
-      curr += skip;
-    }
-  curr = 0;
-  while ((curr != QSFREE_SENTINEL) && (curr < segment->cap))
-    {
-      qsword skip, *refmgmt;
-      _qssegment_stat(segment, curr, &refmgmt, &skip);
-      prev = _qssegment_visit_coalesce(segment, prev, curr);
+      prev = _qssegment_visit_free(segment, prev, curr);
       curr += skip;
     }
   return 0;
 }
-
-#if 0
-int qssegment_sweep (qssegment_t * segment)
-{
-  qsaddr curr;
-  curr = 0;
-  while (curr < segment->cap)
-    {
-      qsaddr skip = sizeof(qsobj_t);
-      qsword mgmt = *(qsword*)(segment->space + curr);
-      if (MGMT_IS_USED(mgmt))
-	{
-	  if (MGMT_IS_MARK(mgmt))
-	    {
-	      /* object in use, pass over. */
-	      skip = (1 << MGMT_GET_ALLOC(mgmt)) * sizeof(qsobj_t);
-	    }
-	  else
-	    {
-	      /* collect, convert to freelist, merge. */
-	      skip = (1 << MGMT_GET_ALLOC(mgmt)) * sizeof(qsobj_t);
-	      MGMT_CLR_MARK(mgmt);
-	      qsfreelist_t * freelist = (qsfreelist_t*)(segment->space + curr);
-	      freelist->length = skip;
-	      /* TODO: link into freelist. */
-	      freelist->prev = QSFREE_SENTINEL;
-	      freelist->next = QSFREE_SENTINEL;
-	      /* TODO: merge with adjacent freelist. */
-	    }
-	}
-      else
-	{
-	  /* freelist, pass over. */
-	  skip = ((qsfreelist_t*)(segment->space + curr))->length;
-	}
-      curr += skip;
-    }
-  return 0;
-}
-#endif //0
 
 
 
