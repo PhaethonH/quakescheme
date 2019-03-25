@@ -4,8 +4,19 @@
 #include <stdint.h>
 #include <string.h>
 
-/* Declare word-pointer types. */
+/* Bit-level formatting.
 
+   Scheme values are pointers into various spaces.
+   An expanding-tag system indicates the relevant space.
+
+   Most spaces have a one-to-one mapping with the untagged bits,
+   and thus the untagged value can be arithmetically determined.
+
+   The notable exception is the Object space, the value of which changes over
+   time and across sessions, subject to garbage collection.
+*/
+
+/* Declare word-pointer types. */
 /* Adopt the primitive integer type. */
 typedef uint32_t qsword;
 typedef uint8_t qsbyte;

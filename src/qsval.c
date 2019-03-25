@@ -41,6 +41,17 @@ qsptr_t qsptr_make (qsmachine_t * mach, qsaddr_t mapped_addr)
 
 /* Directly encoded values. */
 
+qsptr_t qsnil_make (qsmachine_t * mach)
+{
+  return QSNIL;
+}
+
+bool qsnil_p (const qsmachine_t * mach, qsptr_t p)
+{
+  return ISNIL(p);
+}
+
+
 qsptr_t qsbool_make (qsmachine_t * mach, int val)
 {
   return val ? QSTRUE : QSFALSE;
@@ -385,7 +396,7 @@ qsptr_t qsobj_make (qsmachine_t * mach, qsword obj_id)
   return QSOBJ(obj_id);
 }
 
-qsword qsobj_p (qsmachine_t * mach, qsptr_t p)
+qsword qsobj_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISOBJ26(p);
 }
@@ -397,6 +408,7 @@ qsword qsobj_id (qsmachine_t * mach, qsptr_t p)
 
 const qsobj_t * qsobj_const (const qsmachine_t * mach, qsptr_t p)
 {
+  if (! ISOBJ26(p)) return NULL;
   qsword obj_id = COBJ26(p);
   qsaddr_t mapped_addr = obj_id << 4;
   const qsobj_t * obj = (const qsobj_t*)(qsstore_word_at_const(&(mach->S), mapped_addr));
@@ -420,6 +432,26 @@ qsobj_t * qsobj (qsmachine_t * mach, qsptr_t p)
   retval = (qsobj_t*)(qsstore_word_at(&(mach->S), addr));
   return retval;
 #endif //0
+}
+
+bool _qsobj_is_octetate (const qsobj_t * obj)
+{
+  return MGMT_IS_OCT(obj->mgmt);
+}
+
+int _qsobj_get_allocscale (const qsobj_t * obj)
+{
+  return MGMT_GET_ALLOC(obj->mgmt);
+}
+
+int _qsobj_get_nbounds (const qsobj_t * obj)
+{
+  return (1 << _qsobj_get_allocscale(obj));
+}
+
+int _qsobj_get_allocsize (const qsobj_t * obj)
+{
+  return _qsobj_get_nbounds(obj) * sizeof(qsobj_t);
 }
 
 
@@ -466,11 +498,10 @@ qscmp_t qssym_cmp (qsmachine_t * mach, qsptr_t x, qsptr_t y)
 /* Heaped prototype: Triplet. */
 const qstriplet_t * qstriplet_const (const qsmachine_t * mach, qsptr_t p)
 {
-  if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
   if (! obj) return NULL;
-  if (MGMT_IS_OCT(obj->mgmt)) return NULL;
-  if (MGMT_GET_ALLOC(obj->mgmt) != 0) return NULL;
+  if (_qsobj_is_octetate(obj)) return NULL;
+  if (_qsobj_get_allocscale(obj) != 0) return NULL;
   return (const qstriplet_t*)obj;
 }
 
@@ -515,11 +546,10 @@ qscmp_t qstriplet_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 /* Heaped prototype: WideWord. */
 const qswideword_t * qswideword_const (const qsmachine_t * mach, qsptr_t p)
 {
-  if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
   if (! obj) return NULL;
-  if (! MGMT_IS_OCT(obj->mgmt)) return NULL;
-  if (MGMT_GET_ALLOC(obj->mgmt) != 0) return NULL;
+  if (! _qsobj_is_octetate(obj)) return NULL;
+  if (_qsobj_get_allocscale(obj) != 0) return NULL;
   return (const qswideword_t*)obj;
 }
 
@@ -563,11 +593,10 @@ qscmp_t qswideword_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 /* Heaped prototype: Pointer Vector. */
 const qspvec_t * qspvec_const (const qsmachine_t * mach, qsptr_t p)
 {
-  if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
   if (! obj) return NULL;
-  if (MGMT_IS_OCT(obj->mgmt)) return NULL;
-  if (MGMT_GET_ALLOC(obj->mgmt) == 0) return NULL;
+  if (_qsobj_is_octetate(obj)) return NULL;
+  if (_qsobj_get_allocscale(obj) == 0) return NULL;
   return (const qspvec_t*)obj;
 }
 
@@ -587,7 +616,7 @@ qsptr_t qspvec_make (qsmachine_t * mach, qsptr_t payload_words, qsptr_t fillval)
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at(&(mach->S), mapped_addr));
-  int a = MGMT_GET_ALLOC(obj->mgmt);
+  int a = _qsobj_get_allocscale(obj);
   qsobj_init(obj, a, false);
   qspvec_t * pvec = (qspvec_t*)obj;
   pvec->length = QSNIL;
@@ -620,11 +649,10 @@ qscmp_t qspvec_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 /* Heaped prototype: Octet Vector. */
 const qsovec_t * qsovec_const (const qsmachine_t * mach, qsptr_t p)
 {
-  if (! ISOBJ26(p)) return NULL;
   const qsobj_t * obj = qsobj_const(mach, p);
   if (! obj) return NULL;
-  if (! MGMT_IS_OCT(obj->mgmt)) return NULL;
-  if (MGMT_GET_ALLOC(obj->mgmt) == 0) return NULL;
+  if (! _qsobj_is_octetate(obj)) return NULL;
+  if (_qsobj_get_allocscale(obj) == 0) return NULL;
   return (const qsovec_t*)obj;
 }
 
@@ -644,7 +672,7 @@ qsptr_t qsovec_make (qsmachine_t * mach, qsptr_t len, qsbyte fillval)
   if (err != QSERR_OK)
     return err;
   qsobj_t * obj = (qsobj_t*)(qsstore_word_at_const(&(mach->S), mapped_addr));
-  int a = MGMT_GET_ALLOC(obj->mgmt);
+  int a = _qsobj_get_allocscale(obj);
   qsobj_init(obj, a, true);
   qsovec_t * ovec = (qsovec_t*)obj;
   ovec->length = len;
@@ -698,7 +726,7 @@ const qstriplet_t * qspair_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qstriplet_t * triplet = qstriplet_const(mach, p);
   if (! triplet) return NULL;
-  if (!ISNIL(triplet->first)) return NULL;
+  if (! qsnil_p(mach, triplet->first)) return NULL;
   return triplet;
 }
 
@@ -766,7 +794,7 @@ int qspair_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 
   n += qs_snprintf(buf+n, buflen-n, "%s", "(");
 
-  while (! ISNIL(curr))
+  while (! qsnil_p(mach, curr))
     {
       pair = qspair_const(mach, curr);
       qsptr_t head = pair->second;
@@ -774,7 +802,7 @@ int qspair_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 
       n += qsptr_crepr(mach, head, buf+n, buflen-n);
 
-      if (ISNIL(tail))
+      if (qsnil_p(mach, tail))
 	{
 	  /* end of list. */
 	  curr = QSNIL;
@@ -889,7 +917,7 @@ const qspvec_t * qsarray_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qspvec_const(mach, p);
   if (! pvec) return NULL;
-  if (! ISNIL(pvec->length)) return NULL;
+  if (! qsnil_p(mach, pvec->length)) return NULL;
   return pvec;
 }
 
@@ -1587,7 +1615,7 @@ qsptr_t qsenv_make (qsmachine_t * mach, qsptr_t next_env)
 
 qsptr_t qsenv_insert (qsmachine_t * mach, qsptr_t env, qsptr_t variable, qsptr_t binding)
 {
-  if (ISNIL(env))
+  if (qsnil_p(mach, env))
     {
       env = qsenv_make(mach, QSNIL);
     }
@@ -1696,7 +1724,7 @@ int qslambda_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
   qsptr_t param = lam->second;
   qsptr_t body = lam->third;
   n += qsptr_crepr(mach, param, buf+n, buflen-n);
-  if (! ISNIL(body))
+  if (! qsnil_p(mach, body))
     {
       n += qs_snprintf(buf+n, buflen-n, " ");
       n += qsptr_crepr(mach, body, buf+n, buflen-n);
@@ -2573,9 +2601,9 @@ qsptr_t qsiter_tail (const qsmachine_t * mach, qsptr_t p)
   if (_qsiter_on_pair(mach, p, &pair))
     {
       qsptr_t next = qspair_ref_tail(mach, pair);
-      if (ISOBJ26(next))
+      if (qsobj_p(mach, next))
 	retval = QSITER( COBJ26(next) << 2 );
-      else if (ISNIL(next))
+      else if (qsnil_p(mach, next))
 	retval = next;
       else
 	retval = QSERR_FAULT;

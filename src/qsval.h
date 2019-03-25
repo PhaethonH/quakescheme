@@ -15,6 +15,9 @@ extern qsptr_t qsptr_make (qsmachine_t *, qsptr_t);
 
 /* Directly encoded values. */
 
+extern qsptr_t qsnil_make (qsmachine_t *);
+extern bool qsnil_p (const qsmachine_t *, qsptr_t p);
+
 extern qsptr_t qsbool_make (qsmachine_t *, int val);
 extern bool qsbool_p (const qsmachine_t *, qsptr_t p);
 extern int qsbool_crepr (const qsmachine_t *, qsptr_t p, char *buf, int buflen);
