@@ -16,8 +16,8 @@ enum qssxparser_variant_e {
 };
 
 /* logging support. */
-int qssexpr_logv (const char * fmt, va_list vp);
-int qssexpr_log (const char * fmt, ...);
+extern int qssexpr_logv (const char * fmt, va_list vp);
+extern int qssexpr_log (const char * fmt, ...);
 
 /* Main entry point: read one S-expression term from string. */
 //qsptr_t qssexpr_parse_cstr (qsheap_t * mem, int version, const char * cstr, const char ** endptr);
@@ -45,10 +45,10 @@ struct qssxparse_s {
 
 typedef struct qssxparse_s qssxparse_t;
 
-qssxparse_t * qssxparse_init (qssxparse_t *, int variant, qsmachine_t * mach);
-qssxparse_t * qssxparse_destroy (qssxparse_t *);
-qssxparse_t * qssxparse_reset (qssxparse_t *);
-int qssxparse_feed (qssxparse_t *, int ch, qsptr_t * out);
+extern qssxparse_t * qssxparse_init (qssxparse_t *, int variant, qsmachine_t * mach);
+extern qssxparse_t * qssxparse_destroy (qssxparse_t *);
+extern qssxparse_t * qssxparse_reset (qssxparse_t *);
+extern int qssxparse_feed (qssxparse_t *, int ch, qsptr_t * out);
 
 
 /* Parser operations table. */
@@ -65,10 +65,10 @@ extern struct qssxparser_ops_s {
 
 
 /* N.B. may need to be made extern then declared/defined in respective .c files. */
-struct qssxparser_ops_s * qssxparser_ops_v0;
-struct qssxparser_ops_s * qssxparser_ops_v1;
-struct qssxparser_ops_s * qssxparser_ops_v2;
-struct qssxparser_ops_s * qssxparser_ops_v3;
+extern struct qssxparser_ops_s * qssxparser_ops_v0;
+extern struct qssxparser_ops_s * qssxparser_ops_v1;
+extern struct qssxparser_ops_s * qssxparser_ops_v2;
+extern struct qssxparser_ops_s * qssxparser_ops_v3;
 /*
 extern int qssxparser_v0_feed (qssxparse_t * parser, int ch, qsptr_t * out);
 extern int qssxparser_v1_feed (qssxparse_t * parser, int ch, qsptr_t * out);

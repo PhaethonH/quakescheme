@@ -17,6 +17,13 @@ S-Expression reader.
 Multiple strategies (versions).
 */
 
+/* placeholder instantiations. */
+struct qssxparser_ops_s * qssxparser_ops_v0 = NULL;
+struct qssxparser_ops_s * qssxparser_ops_v2 = NULL;
+struct qssxparser_ops_s * qssxparser_ops_v3 = NULL;
+
+
+/* Parsers registry. */
 struct qssxparser_ops_s ** sxparsers[NUM_PARSER_VARIANTS] = {
     &qssxparser_ops_v0,
     &qssxparser_ops_v1,
