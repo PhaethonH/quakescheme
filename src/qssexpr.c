@@ -184,29 +184,13 @@ qssxparse_t * qssxparse_reset (qssxparse_t * parser)
 int qssxparse_feed (qssxparse_t * parser, int ch, qsptr_t * out)
 {
   int (*feed)(qssxparse_t *, int, qsptr_t*) = NULL;
-  switch (parser->version)
+  if (parser->version < NUM_PARSER_VARIANTS)
     {
-#if 0
-    case 0:
-      return qssxparse_v0_feed(parser, ch, out);
-      break;
-#endif //0
-    case 1:
-      //return qssxparse_v1_feed(parser, ch, out);
-      //return ((*(sxparsers[1]))->feed)(parser, ch, out);
-      feed = (*(sxparsers[1]))->feed;
-      //return (qssxparser_ops_v1->feed)(parser,ch,out);
-      break;
-#if 0
-    case 2:
-      return qssxparse_v2_feed(parser, ch, out);
-      break;
-#endif //0
-    default:
-      break;
+      feed = (*(sxparsers[parser->version]))->feed;
     }
   if (feed)
     return feed(parser, ch, out);
+  /* no feed(), return parser failure. */
   if (out)
     *out = QSBLACKHOLE;
   return 1;

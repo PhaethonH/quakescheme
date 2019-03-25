@@ -25,7 +25,7 @@ extern int qssexpr_log (const char * fmt, ...);
 
 /* Parser state information and ruleset handle. */
 struct qssxparse_s {
-    int version;
+    unsigned int version;
 
     int complete;   /* 1=expression in root is complete; 0=incomplete. */
 
