@@ -44,15 +44,13 @@ bool is_marked (qsptr_t p)
 
 int gcmark (qsptr_t p)
 {
-  if (! COBJ26(p)) return false;
-  qsword addr = COBJ26(p) << 4;
-  qsstore_trace(&(machine->S), addr, 1);
+  qsgc_trace(machine, p);
   return 0;
 }
 
 int gcsweep ()
 {
-  qsstore_sweep(&(machine->S));
+  qsgc_sweep(machine);
   return 0;
 }
 
