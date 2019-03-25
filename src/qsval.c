@@ -62,6 +62,16 @@ bool qsbool_p (const qsmachine_t * mach, qsptr_t p)
   return (p == QSTRUE) || (p == QSFALSE);
 }
 
+bool qsbool_get (const qsmachine_t * mach, qsptr_t p)
+{
+  if (p == QSFALSE) return false;
+  /* N.B. allow for nil to mean false. */
+  /*
+  if (qsnil_p(mach, p)) return false;
+  */
+  return true;
+}
+
 int qsbool_crepr (const qsmachine_t * mach, qsptr_t p, char *buf, int buflen)
 {
   int n = 0;
@@ -401,16 +411,20 @@ qsword qsobj_p (const qsmachine_t * mach, qsptr_t p)
   return ISOBJ26(p);
 }
 
-qsword qsobj_id (qsmachine_t * mach, qsptr_t p)
+qsword qsobj_id (const qsmachine_t * mach, qsptr_t p)
 {
   return COBJ26(p);
+}
+
+qsaddr_t qsobj_address (const qsmachine_t * mach, qsptr_t p)
+{
+  return COBJ26(p) << 4;
 }
 
 const qsobj_t * qsobj_const (const qsmachine_t * mach, qsptr_t p)
 {
   if (! ISOBJ26(p)) return NULL;
-  qsword obj_id = COBJ26(p);
-  qsaddr_t mapped_addr = obj_id << 4;
+  qsaddr_t mapped_addr = qsobj_address(mach, p);
   const qsobj_t * obj = (const qsobj_t*)(qsstore_word_at_const(&(mach->S), mapped_addr));
   if (! obj) return NULL;
   if (! MGMT_IS_USED(obj->mgmt)) return NULL;
@@ -421,17 +435,9 @@ qsobj_t * qsobj (qsmachine_t * mach, qsptr_t p)
 {
   if (qsobj_const(mach, p))
     {
-      return (qsobj_t*)(qsstore_word_at(&(mach->S), COBJ26(p) << 4));
+      return (qsobj_t*)(qsstore_word_at(&(mach->S), qsobj_address(mach, p)));
     }
   return NULL;
-
-#if 0
-  qsword obj_id = COBJ26(p);
-  qsobj_t * retval = NULL;
-  qsword addr = (obj_id << 4);
-  retval = (qsobj_t*)(qsstore_word_at(&(mach->S), addr));
-  return retval;
-#endif //0
 }
 
 bool _qsobj_is_octetate (const qsobj_t * obj)
@@ -781,7 +787,7 @@ qsptr_t qspair_setq_tail (qsmachine_t * mach, qsptr_t p, qsptr_t d)
 qsptr_t qspair_iter (const qsmachine_t * mach, qsptr_t p)
 {
   if (! qspair_const(mach, p)) return QSERR_FAULT;
-  qsaddr_t memaddr = COBJ26(p) << 4;
+  qsaddr_t memaddr = qsobj_address(mach, p);
   qsptr_t retval = qsiter_make(mach, memaddr);
   return retval;
 }
@@ -1022,7 +1028,7 @@ qsptr_t qsarray_iter (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qsarray_const(mach, p);
   if (! pvec) return QSERR_FAULT;
-  qsaddr_t memaddr = (COBJ26(p) + 1) << 4;  /* next boundary. */
+  qsaddr_t memaddr = qsobj_address(mach, p) + sizeof(qsobj_t);  /* next boundary. */
   return qsiter_make(mach, memaddr);
 }
 
@@ -1309,7 +1315,8 @@ qsptr_t qsname_sym (const qsmachine_t * mach, qsptr_t p)
 {
   if (ISSYM26(p)) return p;
   if (! qsname_const(mach, p)) return QSNIL;
-  return QSSYM(COBJ26(p));
+  qsword obj_id = qsobj_id(mach, p);
+  return QSSYM(obj_id);
 }
 
 qsword qsname_length (const qsmachine_t * mach, qsptr_t p)
@@ -1717,7 +1724,7 @@ qsptr_t qslambda_setq_body (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 int qslambda_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
-//  n += qs_snprintf(buf+n, buflen-n, "#<lambda 0x%08x>", COBJ26(p));
+//  n += qs_snprintf(buf+n, buflen-n, "#<lambda 0x%08x>", qsobj-id(mach, p));
   const qstriplet_t * lam = qstriplet_const(mach, p);
   if (! lam) return n;
   n += qs_snprintf(buf+n, buflen-n, "(lambda ");
@@ -1794,7 +1801,7 @@ qsptr_t qsclosure_setq_env (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 int qsclosure_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
-  n += qs_snprintf(buf+n, buflen-n, "#<closure 0x%08x>", COBJ26(p));
+  n += qs_snprintf(buf+n, buflen-n, "#<closure 0x%08x>", qsobj_id(mach,p));
   return n;
 }
 
@@ -1915,7 +1922,7 @@ int qskont_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   const qspvec_t * kont = qskont_const(mach, p);
-  n += qs_snprintf(buf+n, buflen-n, "#<kont 0x%08x>", COBJ26(p));
+  n += qs_snprintf(buf+n, buflen-n, "#<kont 0x%08x>", qsobj_id(mach, p));
   return n;
 }
 
@@ -2602,7 +2609,8 @@ qsptr_t qsiter_tail (const qsmachine_t * mach, qsptr_t p)
     {
       qsptr_t next = qspair_ref_tail(mach, pair);
       if (qsobj_p(mach, next))
-	retval = QSITER( COBJ26(next) << 2 );
+	//retval = QSITER( COBJ26(next) << 2 );
+	retval = qsiter_make(mach, qsobj_address(mach, next));
       else if (qsnil_p(mach, next))
 	retval = next;
       else

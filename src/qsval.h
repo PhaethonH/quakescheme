@@ -20,14 +20,17 @@ extern bool qsnil_p (const qsmachine_t *, qsptr_t p);
 
 extern qsptr_t qsbool_make (qsmachine_t *, int val);
 extern bool qsbool_p (const qsmachine_t *, qsptr_t p);
+extern bool qsbool_get (const qsmachine_t *, qsptr_t p);
 extern int qsbool_crepr (const qsmachine_t *, qsptr_t p, char *buf, int buflen);
 
 extern qsptr_t qsfloat_make (qsmachine_t *, float val);
 extern bool qsfloat_p (const qsmachine_t *, qsptr_t p);
+extern float qsfloat_get (const qsmachine_t *, qsptr_t p);
 extern int qsfloat_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
 extern qsptr_t qsint_make (qsmachine_t *, int32_t val);
 extern bool qsint_p (const qsmachine_t *, qsptr_t p);
+extern int32_t qsint_get (const qsmachine_t *, qsptr_t p);
 extern int qsint_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
 /* Limits due to bit widths. */
@@ -36,10 +39,12 @@ extern int qsint_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
 extern qsptr_t qschar_make (qsmachine_t *, int val);
 extern bool qschar_p (const qsmachine_t *, qsptr_t p);
+extern int qschar_get (const qsmachine_t *, qsptr_t p);
 extern int qschar_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
 extern qsptr_t qsconst_make (qsmachine_t *, int const_id);
 extern bool qsconst_p (const qsmachine_t *, qsptr_t p);
+int qsconst_get (const qsmachine_t *, qsptr_t p);
 extern int qsconst_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
 /* File Descriptor directly encoded into Pointer (up to 20b values). */
@@ -70,6 +75,8 @@ extern int qsprim_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen)
 /* Heaped object */
 
 extern qsptr_t qsobj_make (qsmachine_t *, qsword obj_id);
+extern qsword qsobj_id (const qsmachine_t *, qsptr_t p);
+extern qsaddr_t qsobj_address (const qsmachine_t *, qsptr_t p);
 
 extern qsptr_t qssym_make (qsmachine_t *, qsword sym_id);
 extern qsword qssym_id (const qsmachine_t *, qsptr_t p);
