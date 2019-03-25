@@ -45,6 +45,12 @@ int qsprimreg_register (qsmachine_t *, qsprim_f op);
 qsprim_f qsprimreg_get (const qsmachine_t *, int nth);
 int qsprimreg_find (const qsmachine_t *, qsprim_f cfunc);
 
+/* Operations on (proper) Lists. */
+bool qslist_p (const qsmachine_t *, qsptr_t p);
+qsword qslist_length (const qsmachine_t *, qsptr_t p);
+qsptr_t qslist_tail (const qsmachine_t *, qsptr_t p, qsword k);
+qsptr_t qslist_ref (const qsmachine_t *, qsptr_t p, qsword k);
+
 /* Symbols Store (Symbol Table) */
 qsptr_t qssymstore_find_c (const qsmachine_t *, const char * s);
 qsptr_t qssymstore_find_utf8 (const qsmachine_t *, qsptr_t utf8s);

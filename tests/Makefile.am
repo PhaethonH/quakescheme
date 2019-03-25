@@ -4,7 +4,8 @@ TESTS = test_qsptr \
  test_qsobj \
  test_qsval \
  test_qsmach \
- test_gc
+ test_gc \
+ test_qssexpr
 
 
 

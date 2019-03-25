@@ -61,7 +61,7 @@ START_TEST(test_atomeval1)
   ck_assert_int_eq(p, QSINT(5));
 
   /* Evaluate variable. */
-  qsptr_t y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t y_x = qssymbol_intern_c(machine, "x", 0);
   E = qsenv_make(machine, QSNIL);
   E = qsenv_insert(machine, E, qsname_sym(machine, y_x), QSINT(7));
   machine->E = E;
@@ -101,7 +101,7 @@ START_TEST(test_step1)
   ck_assert(machine->halt);
 
   /* Evaluate variable. */
-  qsptr_t y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t y_x = qssymbol_intern_c(machine, "x", 0);
   C = y_x;
   E = qsenv_make(machine, QSNIL);
   E = qsenv_insert(machine, E, qsname_sym(machine, y_x), QSINT(7));
@@ -143,14 +143,14 @@ START_TEST(test_step2)
   qsptr_t p, exp;
   int res;
 
-  qsptr_t y_if = qssymbol_intern_c(machine, "if");
-  qsptr_t y_let = qssymbol_intern_c(machine, "let");
-  qsptr_t y_letrec = qssymbol_intern_c(machine, "letrec");
-  qsptr_t y_setq = qssymbol_intern_c(machine, "set!");
-  qsptr_t y_callcc = qssymbol_intern_c(machine, "call/cc");
-  qsptr_t y_x = qssymbol_intern_c(machine, "x");
-  qsptr_t y_y = qssymbol_intern_c(machine, "y");
-  qsptr_t y_z = qssymbol_intern_c(machine, "z");
+  qsptr_t y_if = qssymbol_intern_c(machine, "if", 0);
+  qsptr_t y_let = qssymbol_intern_c(machine, "let", 0);
+  qsptr_t y_letrec = qssymbol_intern_c(machine, "letrec", 0);
+  qsptr_t y_setq = qssymbol_intern_c(machine, "set!", 0);
+  qsptr_t y_callcc = qssymbol_intern_c(machine, "call/cc", 0);
+  qsptr_t y_x = qssymbol_intern_c(machine, "x", 0);
+  qsptr_t y_y = qssymbol_intern_c(machine, "y", 0);
+  qsptr_t y_z = qssymbol_intern_c(machine, "z", 0);
 
   /* Conditional. */
   exp = qspair_make(machine, y_if,
@@ -247,7 +247,7 @@ START_TEST(test_step2)
   qsptr_t param, body, lam, clo;
 
   /* First-class Continuation. */
-  qsptr_t y_testcc = qssymbol_intern_c(machine, "testcc");
+  qsptr_t y_testcc = qssymbol_intern_c(machine, "testcc", 0);
   param = qspair_make(machine, y_x, QSNIL);
   body = qspair_make(machine, y_x,
 	 qspair_make(machine, QSINT(5), QSNIL));
@@ -271,7 +271,7 @@ START_TEST(test_step2)
   /* Procedure call. */
   int primid = qsprimreg_register(machine, op_plus_one);
   qsptr_t o_plusone = qsprim_make(machine, primid);
-  qsptr_t y_plusone = qssymbol_intern_c(machine, "+1");
+  qsptr_t y_plusone = qssymbol_intern_c(machine, "+1", 0);
   E = qsenv_make(machine, QSNIL);
   E = qsenv_insert(machine, E, y_plusone, o_plusone);
   exp = qspair_make(machine, y_plusone,

@@ -27,6 +27,10 @@ qsptr_t qsint_make (qsmachine_t *, int32_t val);
 bool qsint_p (const qsmachine_t *, qsptr_t p);
 int qsint_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Limits due to bit widths. */
+#define MAX_INT30 ((int)(~((qsword)0) >> (SHIFT_TAG30 + 1)))
+#define MIN_INT30 ((int)(-MAX_INT30 - 1))
+
 qsptr_t qschar_make (qsmachine_t *, int val);
 bool qschar_p (const qsmachine_t *, qsptr_t p);
 int qschar_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
@@ -131,7 +135,7 @@ int qsdouble_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 /* symbol object links symbol id (qsint) to symbol name (qsstring) */
 qsptr_t qsname_make (qsmachine_t *, qsword namelen);
 qsptr_t qsname_bless (qsmachine_t *, qsptr_t s);
-qsptr_t qsname_inject (qsmachine_t *, const char * cstr);
+qsptr_t qsname_inject (qsmachine_t *, const char * cstr, qsword slen);
 const char * qsname_get (const qsmachine_t *, qsptr_t p);
 bool qsname_p (const qsmachine_t *, qsptr_t p);
 /* get Qssym pointer from Qssymbol object. */
@@ -149,12 +153,20 @@ Strings have multiple implementations for different purposes:
 */
 
 qsptr_t qsutf8_make (qsmachine_t *, qsword len, int fill);
-qsptr_t qsutf8_inject_charp (qsmachine_t *, const char * s);
+qsptr_t qsutf8_inject_charp (qsmachine_t *, const char * s, size_t slen);
 qsptr_t qsutf8_inject_bytes (qsmachine_t *, uint8_t * buf, qsword buflen);
 bool qsutf8_p (const qsmachine_t *, qsptr_t p);
 qsword qsutf8_length (const qsmachine_t *, qsptr_t p);
 int qsutf8_ref (const qsmachine_t *, qsptr_t p, qsword k);
+/* Copy string from Scheme space to C space: number of bytes of copied. */
+int qsutf8_fetch (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
+/* C pointer to Scheme string data (already encoded as C string). */
+const char * qsutf8_get (const qsmachine_t *, qsptr_t p, qsword * len);
 qsptr_t qsutf8_setq (qsmachine_t *, qsptr_t p, qsword k, int ch);
+/* increment reference count. */
+qserr_t qsutf8_hold (qsmachine_t *, qsptr_t p);
+/* decrement reference count. */
+qserr_t qsutf8_release (qsmachine_t *, qsptr_t p);
 int qsutf8_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
 qsptr_t qsbytevec_make (qsmachine_t *, qsword len, qsbyte fill);
@@ -264,7 +276,7 @@ qsptr_t qssymbol_bless (qsmachine_t *, qsptr_t s);
 /* intern name object into symbol table; returns QsSym pointer. */
 qsptr_t qssymbol_intern (qsmachine_t *, qsptr_t p);
 /* intern symbol name from C string; returns QsSym pointer. */
-qsptr_t qssymbol_intern_c (qsmachine_t *, const char * cstr);
+qsptr_t qssymbol_intern_c (qsmachine_t *, const char * cstr, int slen);
 /* gets symbol name from QsName or QsSym. */
 const char * qssymbol_get (const qsmachine_t *, qsptr_t p);
 int qssymbol_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);

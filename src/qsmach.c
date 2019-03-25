@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <stdlib.h>
 #include "qsmach.h"
 #include "qsval.h"
 
@@ -341,6 +343,55 @@ int qsprimreg_find (const qsmachine_t * mach, qsprim_f cfunc)
 
 
 
+/* Operations on Proper Lists. */
+bool qslist_p (const qsmachine_t * mach, qsptr_t p)
+{
+  qsptr_t iter = qsiter_begin(mach, p);
+  /* TODO: circular list */
+  while (qsiter_p(mach, iter))
+    {
+      iter = qsiter_tail(mach, iter);
+    }
+  /* Should end on nil. */
+  return ISNIL(iter);
+}
+
+qsword qslist_length (const qsmachine_t * mach, qsptr_t p)
+{
+  qsword n = 0;
+  qsptr_t iter = qsiter_begin(mach, p);
+  /* TODO: circular list */
+  while (qsiter_p(mach, iter))
+    {
+      iter = qsiter_tail(mach, iter);
+      ++n;
+    }
+  /* TODO: what to do if improper list? */
+  return n;
+}
+
+qsptr_t qslist_tail (const qsmachine_t * mach, qsptr_t p, qsword k)
+{
+  qsword n = k;
+  qsptr_t iter = qsiter_begin(mach, p);
+  /* TODO: circular list */
+  while (n > 0)
+    {
+      iter = qsiter_tail(mach, iter);
+      --n;
+    }
+  return iter;
+}
+
+qsptr_t qslist_ref (const qsmachine_t * mach, qsptr_t p, qsword k)
+{
+  qsptr_t pair = qslist_tail(mach, p, k);
+  if (! ISNIL(pair))
+    return qsiter_head(mach, pair);
+  else
+    return pair;
+}
+
 
 /* if uintptr_t does not exist, #define as void* */
 bool _qssymstore_find_cmp_utf8s (const qsmachine_t * mach, qsptr_t probe, void * criterion)
@@ -417,11 +468,15 @@ qsptr_t qssymstore_insert (qsmachine_t * mach, qsptr_t symstore, qsptr_t symobj)
 
 qserr_t qsgc_trace (qsmachine_t * mach, qsptr_t root)
 {
+  qsaddr_t addr = COBJ26(root) << 4;
+  qsstore_trace(&(mach->S), addr, 1);
   return QSERR_OK;
 }
 
 qserr_t qsgc_sweep (qsmachine_t * mach)
 {
+  qsstore_sweep(&(mach->S));
   return QSERR_OK;
 }
+
 

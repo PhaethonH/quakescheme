@@ -668,6 +668,26 @@ qscmp_t qsovec_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
   return QSCMP_EQ;
 }
 
+qserr_t qsovec_hold (qsmachine_t * mach, qsptr_t p)
+{
+  /* TODO: lock. */
+  qsovec_t * ovec = qsovec(mach, p);
+  if (! ovec) return QSERR_FAULT;
+  if (ovec->refcount >= MAX_INT30) return QSERR_FAULT;
+  ++ovec->refcount;
+  return QSERR_OK;
+}
+
+qserr_t qsovec_release (qsmachine_t * mach, qsptr_t p)
+{
+  /* TODO: lock. */
+  qsovec_t * ovec = qsovec(mach, p);
+  if (! ovec) return QSERR_FAULT;
+  if (ovec->refcount <= 0) return QSERR_OK;  /* TODO: error on mismatch? */
+  --ovec->refcount;
+  return QSERR_OK;
+}
+
 
 /* Heaped object: Pair
    * prototype = qstriplet
@@ -1235,9 +1255,9 @@ qsptr_t _qsname_make (qsmachine_t * mach, qsword namelen, qsovec_t ** out_sym)
   return p;
 }
 
-qsptr_t qsname_inject (qsmachine_t * mach, const char * cstr)
+qsptr_t qsname_inject (qsmachine_t * mach, const char * cstr, qsword slen)
 {
-  qsword slen = strlen(cstr);
+  if (0 == slen) slen = strlen(cstr);
   qsptr_t p = qsname_make(mach, slen);
   if (! ISOBJ26(p)) return QSERR_NOMEM;
   qsovec_t * y = qsname(mach, p);
@@ -1350,9 +1370,9 @@ qsptr_t qsutf8_make (qsmachine_t * mach, qsword len, int fill)
   return p;
 }
 
-qsptr_t qsutf8_inject_charp (qsmachine_t * mach, const char * cstr)
+qsptr_t qsutf8_inject_charp (qsmachine_t * mach, const char * cstr, size_t slen)
 {
-  size_t slen = strlen(cstr);
+  if (0 == slen) slen = strlen(cstr);
   qsptr_t retval = qsutf8_make(mach, slen, 0);
   if (ISOBJ26(retval))
     {
@@ -1380,22 +1400,40 @@ bool qsutf8_p (const qsmachine_t * mach, qsptr_t p)
 
 qsword qsutf8_length (const qsmachine_t * mach, qsptr_t p)
 {
-  const qsovec_t * s = qsovec_const(mach, p);
+  const qsovec_t * s = qsutf8_const(mach, p);
   if (! s) return 0;
   return CINT30(s->length);
 }
 
 int qsutf8_ref (const qsmachine_t * mach, qsptr_t p, qsword k)
 {
-  const qsovec_t * s = qsovec_const(mach, p);
+  const qsovec_t * s = qsutf8_const(mach, p);
   if (! s) return 0;
   /* TODO: multi-byte character */
   return s->elt[k];
 }
 
+const char * qsutf8_get (const qsmachine_t * mach, qsptr_t p, qsword * len)
+{
+  const qsovec_t * s = qsutf8_const(mach, p);
+  if (! s) return NULL;
+  if (len) *len = qsutf8_length(mach, p);
+  return s->elt;
+}
+
+int qsutf8_fetch (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
+{
+  qsword len = 0;
+  const char * t = qsutf8_get(mach, p, &len);
+  if (! t) return 0;
+  if (len < buflen) len = buflen;
+  snprintf(buf, len, "%s", t);
+  return len;
+}
+
 qsptr_t qsutf8_setq (qsmachine_t * mach, qsptr_t p, qsword k, int ch)
 {
-  qsovec_t * s = qsovec(mach, p);
+  qsovec_t * s = qsutf8(mach, p);
   if (! s) return QSERR_FAULT;
   /* TODO: multi-byte character. */
 
@@ -1416,6 +1454,16 @@ int qsutf8_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
   qsword m = qsutf8_length(mach, p);
   n += qs_snprintf(buf+n, buflen-n-m, "\"%s\"", s->elt);
   return n;
+}
+
+qserr_t qsutf8_hold (qsmachine_t * mach, qsptr_t p)
+{
+  return qsovec_hold(mach, p);
+}
+
+qserr_t qsutf8_release (qsmachine_t * mach, qsptr_t p)
+{
+  return qsovec_release(mach, p);
 }
 
 qscmp_t qsutf8_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
@@ -2196,7 +2244,7 @@ qsptr_t qsfport_make (qsmachine_t * mach, const char * path, const char * mode)
     {
       mode = "r";
     }
-  qsptr_t pathspec = qsutf8_inject_charp(mach, path);
+  qsptr_t pathspec = qsutf8_inject_charp(mach, path, 0);
   if (! qsutf8_p(mach, pathspec)) return QSERR_NOMEM;
 
   FILE * f = fopen(path, mode);
@@ -2643,7 +2691,7 @@ qsptr_t qssymbol_intern (qsmachine_t * mach, qsptr_t p)
   return retval;
 }
 
-qsptr_t qssymbol_intern_c (qsmachine_t * mach, const char * cstr)
+qsptr_t qssymbol_intern_c (qsmachine_t * mach, const char * cstr, int slen)
 {
   /* 1. find already interned symbol. */
   qsptr_t extant = qssymstore_find_c(mach, cstr);
@@ -2652,7 +2700,7 @@ qsptr_t qssymbol_intern_c (qsmachine_t * mach, const char * cstr)
 
   /* 2. fallback to constructing symbol object. */
   qsptr_t p;
-  p = qsname_inject(mach, cstr);
+  p = qsname_inject(mach, cstr, slen);
 
   /* 3. then interning symbol object. */
   p = qssymbol_intern(mach, p);
@@ -2722,6 +2770,10 @@ int qsptr_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
       else if (qsarray_p(mach, p))
 	{
 	  n += qsarray_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qsutf8_p(mach, p))
+	{
+	  n += qsutf8_crepr(mach, p, buf+n, buflen-n);
 	}
       else if (qsbytevec_p(mach, p))
 	{

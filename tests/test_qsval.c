@@ -535,7 +535,7 @@ START_TEST(test_utf8)
   ck_assert_str_eq(buf, "\"Hello!!!\"");
 
 
-  p = qsutf8_inject_charp(machine, "Hello, world.");
+  p = qsutf8_inject_charp(machine, "Hello, world.", 0);
   ck_assert_int_eq(machine->S.smem.freelist, (2+2)*sizeof(qsobj_t));
   ck_assert_int_eq(qsutf8_length(machine, p), 13);
 }
@@ -553,7 +553,7 @@ START_TEST(test_symbols)
   /* symbols (names). */
   ck_assert_int_eq(machine->Y, QSNIL);
 
-  p = qsname_inject(machine, "foobar");
+  p = qsname_inject(machine, "foobar", 0);
   ck_assert(qsname_p(machine, p));
   n = qsname_crepr(machine, p, buf, sizeof(buf));
   ck_assert_str_eq(buf, "foobar");
@@ -562,7 +562,7 @@ START_TEST(test_symbols)
   ck_assert_int_ne(machine->Y, QSNIL);
 
   /* check intern returns the same object instance. */
-  q = qssymbol_intern_c(machine, "foobar");
+  q = qssymbol_intern_c(machine, "foobar", 0);
   ck_assert(qssym_p(machine, q));
   ck_assert_int_eq(q, p);
 
@@ -570,13 +570,13 @@ START_TEST(test_symbols)
   ck_assert_str_eq(buf, "foobar");
 
   /* populate with useless symbols. */
-  qssymbol_intern(machine, qsname_inject(machine, "foo"));
-  qssymbol_intern(machine, qsname_inject(machine, "bar"));
-  p = qsname_inject(machine, "baz");
+  qssymbol_intern(machine, qsname_inject(machine, "foo", 0));
+  qssymbol_intern(machine, qsname_inject(machine, "bar", 0));
+  p = qsname_inject(machine, "baz", 0);
   p = qssymbol_intern(machine, p);
-  qssymbol_intern(machine, qsname_inject(machine, "quux"));
+  qssymbol_intern(machine, qsname_inject(machine, "quux", 0));
 
-  q = qssymbol_intern_c(machine, "baz");
+  q = qssymbol_intern_c(machine, "baz", 0);
   qssymbol_intern(machine, q);
   ck_assert_int_eq(q, p);
 }
@@ -596,10 +596,10 @@ START_TEST(test_envs)
   /* ( (foo . 1) (bar . 2) (baz . 3) ) */
   qsptr_t env = qsenv_make(machine, QSNIL);
 
-  qsptr_t y_foo = qssymbol_intern_c(machine, "foo");
-  qsptr_t y_bar = qssymbol_intern_c(machine, "bar");
-  qsptr_t y_baz = qssymbol_intern_c(machine, "baz");
-  qsptr_t y_quux = qssymbol_intern_c(machine, "quux");
+  qsptr_t y_foo = qssymbol_intern_c(machine, "foo", 0);
+  qsptr_t y_bar = qssymbol_intern_c(machine, "bar", 0);
+  qsptr_t y_baz = qssymbol_intern_c(machine, "baz", 0);
+  qsptr_t y_quux = qssymbol_intern_c(machine, "quux", 0);
 
   env = qsenv_insert(machine, env, y_foo, QSINT(1));
   ck_assert_int_ne(env, QSNIL);
@@ -652,7 +652,7 @@ START_TEST(test_lambdas)
   /* lambas. */
 
   /* (lambda (x) x) */
-  qsptr_t y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t y_x = qssymbol_intern_c(machine, "x", 0);
 
   qsptr_t param = qspair_make(machine, y_x, QSNIL);
   qsptr_t body = y_x;
@@ -670,8 +670,8 @@ START_TEST(test_lambdas)
   ck_assert_str_eq(buf, "(lambda (x) x)");
 
   /* (lambda (x y) (+ x y) */
-  qsptr_t y_y = qssymbol_intern_c(machine, "y");
-  qsptr_t y_plus = qssymbol_intern_c(machine, "+");
+  qsptr_t y_y = qssymbol_intern_c(machine, "y", 0);
+  qsptr_t y_plus = qssymbol_intern_c(machine, "+", 0);
 }
 END_TEST
 
@@ -687,7 +687,7 @@ START_TEST(test_closures)
   /* closures. */
 
   /* (lambda (x) x) */
-  qsptr_t y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t y_x = qssymbol_intern_c(machine, "x", 0);
   qsptr_t param = qspair_make(machine, y_x, QSNIL);
   qsptr_t body = y_x;
   qsptr_t lam = qslambda_make(machine, param, body);
@@ -713,7 +713,7 @@ START_TEST(test_konts)
   /* kontinuations. */
 
   /* (make-continuation () x () ()) */
-  qsptr_t y_x = qssymbol_intern_c(machine, "x");
+  qsptr_t y_x = qssymbol_intern_c(machine, "x", 0);
   qsptr_t k = qskont_make(machine, QSNIL, y_x, QSNIL, QSNIL);
 
   p = qskont_ref_v(machine, k);
@@ -903,8 +903,8 @@ START_TEST(test_ports)
   b = qsport_read_u8(machine, port);
   ck_assert_int_eq(b, 'l');
 
-  qsptr_t s1 = qsutf8_inject_charp(machine, "read1.txt");
-  qsptr_t s2 = qsutf8_inject_charp(machine, "tests/read1.txt");
+  qsptr_t s1 = qsutf8_inject_charp(machine, "read1.txt", 0);
+  qsptr_t s2 = qsutf8_inject_charp(machine, "tests/read1.txt", 0);
   port = qsport_make(machine, QSPORT_FD, s1, 0, 0);
   if (! qsfd_p(machine, port))
     port = qsport_make(machine, QSPORT_FD, s2, 0, 0);
