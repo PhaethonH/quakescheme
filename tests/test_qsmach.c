@@ -310,7 +310,7 @@ START_TEST(test_prims1)
   /* Standalone primitives. */
   init();
 
-  qsprimreg_presets_v1(machine);
+  qsptr_t prims1 = qsprimreg_presets_v1(machine);
   qsptr_t a = qsint_make(machine, 8);
   qsptr_t b = qsint_make(machine, 3);
   qsptr_t p = qspair_make(machine, a, qspair_make(machine, b, QSNIL));
@@ -318,6 +318,22 @@ START_TEST(test_prims1)
   qsptr_t c = op(machine, p);
   ck_assert(qsint_p(machine, c));
   ck_assert_int_eq(qsint_get(machine,c), 11);
+
+
+#define CONS(a,b) qspair_make(machine, a, b)
+  /* in code. */
+  init();
+  qsptr_t y_add = qssymbol_intern_c(machine, "+", 0);
+  prims1 = qsprimreg_presets_v1(machine);
+  p = CONS(y_add,
+      CONS(QSINT(2),
+      CONS(QSINT(3), QSNIL)));
+  qsptr_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(+ 2 3)");
+  qsmachine_load(machine, p, prims1, QSNIL);
+  qsmachine_step(machine);  /* resolve "+" to operation. */
+  qsmachine_step(machine);  /* apply operation "add". */
+  ck_assert_int_eq(machine->A, QSINT(5));
 }
 END_TEST
 
