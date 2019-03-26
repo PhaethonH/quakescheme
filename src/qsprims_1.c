@@ -276,6 +276,98 @@ struct prims_table_s table1_symbols[] = {
 
 
 
+/* Primitives: Strings. */
+/* TODO: Strings:make-string */
+/* Strings:string to be implemented in Scheme. */
+/* TODO: Strings:string-length */
+/* TODO: Strings:string-ref */
+/* TODO: Strings:string-set! */
+/* TODO: Strings:string=? */
+/* TODO: Strings:string-ci=? */
+/* TODO: Strings:string<? */
+/* TODO: Strings:string>? */
+/* TODO: Strings:string<=? */
+/* TODO: Strings:string>=? */
+/* TODO: Strings:string-ci<? */
+/* TODO: Strings:string-ci>? */
+/* TODO: Strings:string-ci<=? */
+/* TODO: Strings:string-ci>=? */
+/* TODO: Strings:string-upcase */
+/* TODO: Strings:string-downcase */
+/* TODO: Strings:string-foldcase */
+/* TODO: Strings:substring */
+/* TODO: Strings:string-append */
+/* TODO: Strings:string->list */
+/* TODO: Strings:list->string */
+/* TODO: Strings:string-copy */
+/* TODO: Strings:string-copy! */
+/* TODO: Strings:string-fill! */
+
+
+
+
+/* Primitives: Vectors */
+static qsptr_t qsprim_make_vector (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsword k = qsint_get(mach, arg0);
+  retval = qsvector_make(mach, k, arg1);
+  return retval;
+}
+
+static qsptr_t qsprim_vector_length (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword k = qsvector_length(mach, arg0);
+  retval = qsint_make(mach, k);
+  return retval;
+}
+
+static qsptr_t qsprim_vector_ref (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsword k = qsint_get(mach, arg1);
+  retval = qsvector_ref(mach, arg0, k);
+  return retval;
+}
+
+static qsptr_t qsprim_vector_setq (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsptr_t arg2 = CAR(CDR(CDR(args)));
+  qsword k = qsint_get(mach, arg0);
+  retval = qsvector_setq(mach, arg0, k, arg2);
+  return retval; /* object itself, or error. */
+}
+
+/* TODO: Vector: vector->list */
+/* TODO: Vector: list->vector */
+/* TODO: Vector: vector->string */
+/* TODO: Vector: string->vector */
+/* TODO: Vector: vector-copy */
+/* TODO: Vector: vector-copy! */
+/* TODO: Vector: vector-append */
+/* TODO: Vector: vector-fill! */
+
+static
+struct prims_table_s table1_vectorss[] = {
+      { "make-vector", qsprim_make_vector },
+      { "vector-length", qsprim_vector_length },
+      { "vector-ref", qsprim_vector_ref },
+      { "vector-set!", qsprim_vector_setq },
+      { NULL, NULL },
+};
+
+
+
+
 static
 qsptr_t qsprim_add (qsmachine_t * mach, qsptr_t args)
 {
