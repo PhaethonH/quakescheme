@@ -357,12 +357,12 @@ int qsprim_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 }
 
 
-qsptr_t qserr_make (qsmachine_t * mach, qsword errid)
+qsptr_t qserr_make (const qsmachine_t * mach, qsword errid)
 {
   return QSERR(errid);
 }
 
-qsword qserr_p (const qsmachine_t * mach, qsptr_t p)
+bool qserr_p (const qsmachine_t * mach, qsptr_t p)
 {
   return ISERR20(p);
 }

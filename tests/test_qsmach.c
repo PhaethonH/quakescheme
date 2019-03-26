@@ -305,6 +305,22 @@ START_TEST(test_step2)
 }
 END_TEST
 
+START_TEST(test_prims1)
+{
+  /* Standalone primitives. */
+  init();
+
+  qsprimreg_presets_v1(machine);
+  qsptr_t a = qsint_make(machine, 8);
+  qsptr_t b = qsint_make(machine, 3);
+  qsptr_t p = qspair_make(machine, a, qspair_make(machine, b, QSNIL));
+  qsprim_f op = qsprimreg_get(machine, 1);
+  qsptr_t c = op(machine, p);
+  ck_assert(qsint_p(machine, c));
+  ck_assert_int_eq(qsint_get(machine,c), 11);
+}
+END_TEST
+
 
 TESTCASE(mach1,
   TFUNC(test_inject1)
@@ -318,6 +334,9 @@ TESTCASE(mach3,
 TESTCASE(mach4,
   TFUNC(test_step2)
   )
+TESTCASE(prims1,
+  TFUNC(test_prims1)
+  )
 
 
 TESTSUITE(suite1,
@@ -325,6 +344,7 @@ TESTSUITE(suite1,
   TCASE(mach2)
   TCASE(mach3)
   TCASE(mach4)
+  TCASE(prims1)
   )
 
 int main ()

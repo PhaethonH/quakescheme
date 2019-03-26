@@ -71,6 +71,14 @@ extern bool qsprim_p (const qsmachine_t *, qsptr_t p);
 extern int qsprim_id (const qsmachine_t *, qsptr_t p);
 extern int qsprim_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Original goal of QsErr was exceptions in Out-Of-Memory conditions.
+   Thus, constructing QsErr does not require modifying the machine state.
+ */
+extern qsptr_t qserr_make (const qsmachine_t *, qsword errid);
+extern qsword qserr_id (const qsmachine_t *, qsptr_t p);
+extern bool qserr_p (const qsmachine_t *, qsptr_t p);
+extern int qserr_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
+
 
 /* Heaped object */
 

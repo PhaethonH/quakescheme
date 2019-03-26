@@ -7,6 +7,7 @@
 #define CAR(x) (qspair_p(mach,x) ? qspair_ref_head(mach,x) : qsiter_p(mach,x) ?  qsiter_head(mach,x) : QSNIL)
 #define CDR(x) (qspair_p(mach,x) ? qspair_ref_tail(mach,x) : qsiter_p(mach,x) ?  qsiter_tail(mach,x) : QSNIL)
 
+
 qsmachine_t * qsmachine_init (qsmachine_t * mach)
 {
   qsstore_init(&(mach->S));
@@ -44,7 +45,7 @@ int qsmachine_display (qsmachine_t * mach, qsptr_t p)
 int qsmachine_eval_lambda (qsmachine_t * mach)
 {
   qsptr_t args = CDR(mach->C);
-  if (ISNIL(args))
+  if (qsnil_p(mach, args))
     {
       /* TODO: exception. */
       return -1;
@@ -68,7 +69,7 @@ int qsmachine_applyproc (qsmachine_t * mach, qsptr_t proc, qsptr_t values)
       qsptr_t body = qslambda_ref_body(mach, lam);
       qsptr_t paramiter = qsiter_begin(mach, param);
       qsptr_t argiter = qsiter_begin(mach, values);
-      while (ISITER28(paramiter) && ISITER28(argiter))
+      while (qsiter_p(mach, paramiter) && qsiter_p(mach, argiter))
 	{
 	  qsptr_t formal = qsiter_head(mach, paramiter);
 	  qsptr_t value = qsiter_head(mach, argiter);
@@ -76,7 +77,7 @@ int qsmachine_applyproc (qsmachine_t * mach, qsptr_t proc, qsptr_t values)
 	  paramiter = qsiter_tail(mach, paramiter);
 	  argiter = qsiter_tail(mach, argiter);
 	}
-      if (ISITER28(paramiter) || ISITER28(argiter))
+      if (qsiter_p(mach, paramiter) || qsiter_p(mach, argiter))
 	{
 	  /* TODO: parameter mismatch. */
 	}
@@ -93,7 +94,7 @@ int qsmachine_applyproc (qsmachine_t * mach, qsptr_t proc, qsptr_t values)
 
 int qsmachine_applykont (qsmachine_t * mach, qsptr_t k, qsptr_t value)
 {
-  if (ISNIL(k))
+  if (qsnil_p(mach, k))
     {
       /* halt */
       mach->A = value;
@@ -206,7 +207,7 @@ int qsmachine_step (qsmachine_t * mach)
 	  qsptr_t bindings = CAR(args);
 	  qsptr_t body = CAR(CDR(args));
 	  qsptr_t binditer = qsiter_begin(mach, bindings);
-	  while (ISITER28(binditer))
+	  while (qsiter_p(mach, binditer))
 	    {
 	      qsptr_t bind = qsiter_head(mach, binditer);
 	      qsptr_t variable = CAR(bind);
@@ -239,19 +240,19 @@ int qsmachine_step (qsmachine_t * mach)
 	{
 	  /* else maybe procedure call. */
 	  qsptr_t A = qsmachine_eval_atomic(mach, C);
-	  if (ISERR20(A))
+	  if (qserr_p(mach, A))
 	    {
 	      /* evaluate individual list members. */
 	      qsptr_t head = QSBLACKHOLE;
 	      qsptr_t root = QSNIL, build = QSNIL;
 	      qsptr_t curr = qsiter_begin(mach, C);
-	      while (ISITER28(curr))
+	      while (qsiter_p(mach, curr))
 		{
 		  qsptr_t aexp = qsiter_head(mach, curr);
 		  qsptr_t a = qsmachine_eval_atomic(mach, aexp);
 		  if (head == QSBLACKHOLE)
 		    head = a;
-		  if (ISNIL(root))
+		  if (qsnil_p(mach, root))
 		    build = root = qspair_make(mach, a, QSNIL);
 		  else
 		    {
@@ -322,6 +323,16 @@ int qsprimreg_register (qsmachine_t * mach, qsprim_f op)
   return primid;
 }
 
+int qsprimreg_install (qsmachine_t * mach, int nth, qsprim_f op)
+{
+  if (nth >= MAX_PRIMS) return -1;
+  int primid = nth;
+  mach->prims[primid] = op;
+  if (mach->n_prims <= primid)
+    mach->n_prims = primid+1;
+  return primid;
+}
+
 qsprim_f qsprimreg_get (const qsmachine_t * mach, int nth)
 {
   if ((0 <= nth) && (nth < mach->n_prims))
@@ -353,7 +364,7 @@ bool qslist_p (const qsmachine_t * mach, qsptr_t p)
       iter = qsiter_tail(mach, iter);
     }
   /* Should end on nil. */
-  return ISNIL(iter);
+  return qsnil_p(mach, iter);
 }
 
 qsword qslist_length (const qsmachine_t * mach, qsptr_t p)
@@ -386,7 +397,7 @@ qsptr_t qslist_tail (const qsmachine_t * mach, qsptr_t p, qsword k)
 qsptr_t qslist_ref (const qsmachine_t * mach, qsptr_t p, qsword k)
 {
   qsptr_t pair = qslist_tail(mach, p, k);
-  if (! ISNIL(pair))
+  if (! qsnil_p(mach, pair))
     return qsiter_head(mach, pair);
   else
     return pair;
@@ -423,10 +434,10 @@ bool _qssymstore_find_cmp_str (const qsmachine_t * mach, qsptr_t probe, void * c
 qsptr_t _qssymstore_find (const qsmachine_t * mach, void * criterion, bool (*eq)(const qsmachine_t *, qsptr_t, void *))
 {
   qsptr_t symstore = mach->Y;
-  if (ISNIL(symstore)) return QSNIL;
+  if (qsnil_p(mach, symstore)) return QSNIL;
   qsptr_t symiter = qspair_iter(mach, symstore);
   qsptr_t probe = QSNIL;
-  while (ISITER28(symiter))
+  while (qsiter_p(mach, symiter))
     {
       probe = qsiter_head(mach, symiter);
       if (qsname_p(mach, probe))
@@ -468,7 +479,7 @@ qsptr_t qssymstore_insert (qsmachine_t * mach, qsptr_t symstore, qsptr_t symobj)
 
 qserr_t qsgc_trace (qsmachine_t * mach, qsptr_t root)
 {
-  qsaddr_t addr = COBJ26(root) << 4;
+  qsaddr_t addr = qsobj_address(mach, root);
   qsstore_trace(&(mach->S), addr, 1);
   return QSERR_OK;
 }

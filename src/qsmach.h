@@ -42,8 +42,10 @@ extern qsptr_t qsmachine_eval_atomic (qsmachine_t *, qsptr_t aexp);
 
 /* Primitives Registry */
 extern int qsprimreg_register (qsmachine_t *, qsprim_f op);
+extern int qsprimreg_install (qsmachine_t *, int nth, qsprim_f op);
 extern qsprim_f qsprimreg_get (const qsmachine_t *, int nth);
 extern int qsprimreg_find (const qsmachine_t *, qsprim_f cfunc);
+extern qsptr_t qsprimreg_presets_v1 (qsmachine_t *);
 
 /* Operations on (proper) Lists. */
 extern bool qslist_p (const qsmachine_t *, qsptr_t p);

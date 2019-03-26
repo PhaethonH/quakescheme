@@ -12,7 +12,8 @@ libquakescheme_a_SOURCES = \
   qsmach.c \
   qssexpr.h \
   qssexpr.c \
-  qssexpr_1.c
+  qssexpr_1.c \
+  qsprims_1.c
 
 #  qsobj.h \
 #  qsobj.c \
