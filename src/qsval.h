@@ -18,6 +18,9 @@ extern qsptr_t qsptr_make (qsmachine_t *, qsptr_t);
 extern qsptr_t qsnil_make (qsmachine_t *);
 extern bool qsnil_p (const qsmachine_t *, qsptr_t p);
 
+extern qsptr_t qseof_make (const qsmachine_t *);
+extern bool qseof_p (const qsmachine_t *, qsptr_t p);
+
 extern qsptr_t qsbool_make (qsmachine_t *, int val);
 extern bool qsbool_p (const qsmachine_t *, qsptr_t p);
 extern bool qsbool_get (const qsmachine_t *, qsptr_t p);

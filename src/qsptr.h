@@ -153,6 +153,7 @@ Word-Pointer expanding-tag encoding
 #define QSLAMBDA        QSCONST(6)
 #define QSCLO           QSCONST(7)
 #define QSKONT          QSCONST(8)
+#define QSEOF           QSCONST(9)
 
 /*  Infinities, positive and negative. */
 #define QSINF           QSCONST(10)

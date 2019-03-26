@@ -46,14 +46,6 @@ qsptr_t qsprim_halt (qsmachine_t * mach, qsptr_t args)
 
 
 /* Type Predicates. */
-static qsptr_t qsprim_null_p (qsmachine_t * mach, qsptr_t args)
-{
-  qsptr_t retval = QSFALSE;
-  qsptr_t arg0 = CAR(args);
-  if (qsnil_p(mach, arg0)) retval = QSTRUE;
-  return retval;
-}
-
 static qsptr_t qsprim_boolean_p (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSFALSE;
@@ -62,21 +54,35 @@ static qsptr_t qsprim_boolean_p (qsmachine_t * mach, qsptr_t args)
   return retval;
 }
 
-static qsptr_t qsprim_integer_p (qsmachine_t * mach, qsptr_t args)
+static qsptr_t qsprim_bytevector_p (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qsint_p(mach, arg0)) retval = QSTRUE;
-  if (qslong_p(mach, arg0)) retval = QSTRUE;
+  if (qsbytevec_p(mach, arg0)) retval = QSTRUE;
   return retval;
 }
 
-static qsptr_t qsprim_real_p (qsmachine_t * mach, qsptr_t args)
+static qsptr_t qsprim_char_p (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qsfloat_p(mach, arg0)) retval = QSTRUE;
-  if (qsdouble_p(mach, arg0)) retval = QSTRUE;
+  if (qschar_p(mach, arg0)) retval = QSTRUE;
+  return retval;
+}
+
+static qsptr_t qsprim_eof_object_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  if (qschar_p(mach, arg0)) retval = QSTRUE;
+  return retval;
+}
+
+static qsptr_t qsprim_null_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  if (qsnil_p(mach, arg0)) retval = QSTRUE;
   return retval;
 }
 
@@ -88,6 +94,31 @@ static qsptr_t qsprim_number_p (qsmachine_t * mach, qsptr_t args)
   if (qslong_p(mach, arg0)) retval = QSTRUE;
   if (qsfloat_p(mach, arg0)) retval = QSTRUE;
   if (qsdouble_p(mach, arg0)) retval = QSTRUE;
+  return retval;
+}
+
+static qsptr_t qsprim_pair_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  if (qspair_p(mach, arg0)) retval = QSTRUE;
+  return retval;
+}
+
+static qsptr_t qsprim_port_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  if (qsport_p(mach, arg0)) retval = QSTRUE;
+  return retval;
+}
+
+static qsptr_t qsprim_procedure_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  if (qsclosure_p(mach, arg0)) retval = QSTRUE;
+  if (qsprim_p(mach, arg0)) retval = QSTRUE;
   return retval;
 }
 
@@ -115,38 +146,134 @@ static qsptr_t qsprim_vector_p (qsmachine_t * mach, qsptr_t args)
   return retval;
 }
 
-static qsptr_t qsprim_bytevector_p (qsmachine_t * mach, qsptr_t args)
+static
+struct prims_table_s table1_typepredicates[] = {
+      { "boolean?", qsprim_boolean_p },
+      { "bytevector?", qsprim_bytevector_p },
+      { "char?", qsprim_char_p },
+      { "eof-object?", qsprim_eof_object_p },
+      { "null?", qsprim_null_p },
+      { "number?", qsprim_number_p },
+      { "pair?", qsprim_pair_p },
+      { "port?", qsprim_port_p },
+      { "procedure?", qsprim_procedure_p },
+      { "string?", qsprim_string_p },
+      { "symbol?", qsprim_symbol_p },
+      { "vector?", qsprim_vector_p },
+      { NULL, NULL },
+};
+
+
+
+
+/* Primitives: Booleans */
+/* boolean:not to be implemented in Scheme. */
+/* boolean:boolean=? to be implemented in Scheme. */
+
+
+
+
+/* Primitives: Pairs and Lists. */
+
+static qsptr_t qsprim_cons (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qsbytevec_p(mach, arg0)) retval = QSTRUE;
+  qsptr_t arg1 = CAR(CDR(args));
+  retval = qspair_make(mach, arg0, arg1);
   return retval;
 }
 
-static qsptr_t qsprim_pair_p (qsmachine_t * mach, qsptr_t args)
+static qsptr_t qsprim_car (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qspair_p(mach, arg0)) retval = QSTRUE;
+  retval = qspair_ref_head(mach, arg0);
   return retval;
 }
 
-static qsptr_t qsprim_char_p (qsmachine_t * mach, qsptr_t args)
+static qsptr_t qsprim_cdr (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qschar_p(mach, arg0)) retval = QSTRUE;
+  retval = qspair_ref_tail(mach, arg0);
   return retval;
 }
 
-static qsptr_t qsprim_procedure_p (qsmachine_t * mach, qsptr_t args)
+static qsptr_t qsprim_setcarq (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qsclosure_p(mach, arg0)) retval = QSTRUE;
-  if (qsprim_p(mach, arg0)) retval = QSTRUE;
+  qsptr_t arg1 = CAR(CDR(args));
+  retval = qspair_setq_head(mach, arg0, arg1);
+  return retval; /* object again, or error. */
+}
+
+static qsptr_t qsprim_setcdrq (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  retval = qspair_setq_tail(mach, arg0, arg1);
+  return retval; /* object again, or error. */
+}
+
+/* Pairs:caar..cddddr to be implemented in Scheme. */
+/* Lists:list? to be implemented in Scheme. */
+/* Lists:list to be implemented in Scheme. */
+/* Lists:length to be implemented in Scheme. */
+/* Lists:append to be implemented in Scheme. */
+/* Lists:reveres to be implemented in Scheme. */
+/* Lists:list-tail to be implemented in Scheme. */
+/* Lists:list-ref to be implemented in Scheme. */
+/* Lists:list-set! to be implemented in Scheme. */
+/* Lists:memq to be implemented in Scheme. */
+/* Lists:memv to be implemented in Scheme. */
+/* Lists:member to be implemented in Scheme. */
+/* Lists:assqto be implemented in Scheme. */
+/* Lists:assv to be implemented in Scheme. */
+/* Lists:assoc to be implemented in Scheme. */
+/* Lists:list-copy to be implemented in Scheme. */
+
+static
+struct prims_table_s table1_pairs[] = {
+      { "cons", qsprim_cons },
+      { "car", qsprim_car },
+      { "cdr", qsprim_cdr },
+      { "set-car!", qsprim_setcarq },
+      { "set-cdr!", qsprim_setcdrq },
+      { NULL, NULL },
+};
+
+
+
+
+/* Primitives: Symbols. */
+
+static qsptr_t qsprim_symbol_to_string (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  retval = qsutf8_inject_charp(mach, qssymbol_get(mach, arg0), 0);
   return retval;
 }
+
+static qsptr_t qsprim_string_to_symbol (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  retval = qssymbol_bless(mach, arg0);
+  return retval;
+}
+
+static
+struct prims_table_s table1_symbols[] = {
+      { "symbol->string", qsprim_cons },
+      { "string->symbol", qsprim_car },
+      { NULL, NULL },
+};
+
+
 
 
 static
@@ -170,28 +297,14 @@ qsptr_t qsprim_add (qsmachine_t * mach, qsptr_t args)
 
 
 static
-struct prims_table_s table1_typepredicates[] = {
-      { "null?", qsprim_null_p },
-      { "boolean?", qsprim_boolean_p },
-      { "integer?", qsprim_integer_p },
-      { "real?", qsprim_real_p },
-      { "number?", qsprim_number_p },
-      { "char?", qsprim_char_p },
-      { "string?", qsprim_string_p },
-      { "symbol?", qsprim_symbol_p },
-      { "pair?", qsprim_pair_p },
-      { "vector?", qsprim_vector_p },
-      { "bytevector?", qsprim_bytevector_p },
-      { "procedure?", qsprim_procedure_p },
+struct prims_table_s table1[] = {
+      { "halt", qsprim_halt },
+      { "+", qsprim_add },
       { NULL, NULL },
 };
 
-static
-struct prims_table_s table1[] = {
-      { "halt", qsprim_halt },
-      { "TEST_add", qsprim_add },
-      { NULL, NULL },
-};
+
+
 
 qsptr_t qsprimreg_presets_v1 (qsmachine_t * mach)
 {

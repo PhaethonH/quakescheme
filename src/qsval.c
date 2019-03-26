@@ -52,6 +52,17 @@ bool qsnil_p (const qsmachine_t * mach, qsptr_t p)
 }
 
 
+qsptr_t qseof_make (const qsmachine_t * mach)
+{
+  return QSEOF;
+}
+
+bool qseof_p (const qsmachine_t * mach, qsptr_t p)
+{
+  return (p == QSEOF);
+}
+
+
 qsptr_t qsbool_make (qsmachine_t * mach, int val)
 {
   return val ? QSTRUE : QSFALSE;
