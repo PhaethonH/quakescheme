@@ -3037,6 +3037,77 @@ qscmp_t qssymbol_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 
 
 
+/* String: encapsulate string variants:
+   * qsutf8 (immutable UTF-8 encoded string)
+   * qscharvec (mutable string, vector of characters)
+ */
+
+bool qsstring_p (const qsmachine_t * mach, qsptr_t p)
+{
+  if (qsutf8_p(mach, p)) return true;
+  if (qscharvec_p(mach, p)) return true;
+  return false;
+}
+
+qsword qsstring_length (const qsmachine_t * mach, qsptr_t p)
+{
+  qsword retval = 0;
+  qsword (*length_func)(const qsmachine_t *, qsptr_t) = NULL;
+
+  if (qsutf8_p(mach, p)) length_func = qsutf8_length;
+  else if (qscharvec_p(mach, p)) length_func = qscharvec_length;
+
+  if (length_func)
+    {
+      retval = length_func(mach, p);
+    }
+  return retval;
+}
+
+int qsstring_ref (const qsmachine_t * mach, qsptr_t p, qsword k)
+{
+  int retval = -1;
+  int (*ref_func)(const qsmachine_t *, qsptr_t, qsword) = NULL;
+
+  if (qsutf8_p(mach, p)) ref_func = qsutf8_ref;
+  else if (qscharvec_p(mach, p)) ref_func = qscharvec_ref;
+
+  if (ref_func)
+    {
+      retval = ref_func(mach, p, k);
+    }
+  return retval;
+}
+
+qsptr_t qsstring_setq (qsmachine_t * mach, qsptr_t p, qsword k, int ch)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t (*setq_func)(qsmachine_t *, qsptr_t, qsword, int) = NULL;
+
+  /* qsutf8 is immutable through encapsulation. */
+  if (qscharvec_p(mach, p)) setq_func = qscharvec_setq;
+
+  if (setq_func)
+    {
+      retval = setq_func(mach, p, k, ch);
+    }
+  return retval;
+}
+
+int qsstring_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
+{
+  if (qsutf8_p(mach, p))
+    {
+      return qsutf8_crepr(mach, p, buf, buflen);
+    }
+  else if (qscharvec_p(mach, p))
+    {
+      return qscharvec_crepr(mach, p, buf, buflen);
+    }
+}
+
+
+
 
 int qsptr_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {

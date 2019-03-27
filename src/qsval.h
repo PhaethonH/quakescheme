@@ -316,6 +316,13 @@ extern const char * qssymbol_get (const qsmachine_t *, qsptr_t p);
 extern int qssymbol_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 extern qscmp_t qssymbol_cmp (const qsmachine_t *, qsptr_t x, qsptr_t y);
 
+/* Abstraction of QsCharvec and QsUtf8 */
+extern bool qsstring_p (const qsmachine_t *, qsptr_t p);
+extern qsword qsstring_length (const qsmachine_t *, qsptr_t p);
+extern int qsstring_ref (const qsmachine_t *, qsptr_t p, qsword k);
+extern qsptr_t qsstring_setq (qsmachine_t *, qsptr_t p, qsword k, int ch);
+extern int qsstring_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
+
 
 /* Generalized stringification. */
 extern int qsptr_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
