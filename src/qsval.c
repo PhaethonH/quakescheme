@@ -2767,6 +2767,15 @@ bool qsport_seek (qsmachine_t * mach, qsptr_t p, qsword pos)
   return false;
 }
 
+bool qsport_close (qsmachine_t * mach, qsptr_t p)
+{
+  if (qsfd_p(mach, p)) return qsfd_close(mach, p);
+  if (qsfport_p(mach, p)) return qsfport_close(mach, p);
+  if (qsovport_p(mach, p)) return qsovport_close(mach, p);
+  if (qscharpport_p(mach, p)) return qscharpport_close(mach, p);
+  return false;
+}
+
 
 
 /* QsIter: wrapper around Pair and Array. */

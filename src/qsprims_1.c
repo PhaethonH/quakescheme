@@ -682,6 +682,70 @@ struct prims_table_s table1_bytevectors[] = {
 
 
 
+/* Primitives: Ports */
+
+static qsptr_t qsprim_eof_object (qsmachine_t * mach, qsptr_t args)
+{
+  return QSEOF;
+}
+
+static qsptr_t qsprim_port_read_u8 (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSEOF;
+  qsptr_t arg0 = CAR(args);
+  if (qsport_p(mach, arg0))
+    {
+      int byte = qsport_read_u8(mach, arg0);
+      retval = qsint_make(mach, byte);
+    }
+  else
+    {
+      /* TODO: incompatible type. */
+      retval = QSERR_FAULT;
+    }
+  return retval;
+}
+
+static qsptr_t qsprim_port_write_u8 (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSEOF;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  if (qsport_p(mach, arg0))
+    {
+      int byte = _integer_from(mach, arg1);
+      bool b = qsport_write_u8(mach, arg0, byte);
+      retval = qsbool_make(mach, b);
+    }
+  else
+    {
+      /* TODO: incompatible type. */
+      retval = QSERR_FAULT;
+    }
+  return retval;
+}
+
+static qsptr_t qsprim_port_close (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  bool b = qsport_close(mach, arg0);
+  retval = qsbool_make(mach, b);
+  return retval;
+}
+
+static
+struct prims_table_s table1_ports[] = {
+      { "eof-object", qsprim_eof_object },
+      { "port-read-u8", qsprim_bytevector_length },
+      { "port-write-u8", qsprim_bytevector_u8_ref },
+      { "port-close", qsprim_bytevector_u8_setq },
+      { NULL, NULL },
+};
+
+
+
+
 /* Primitives: Kontinuation */
 
 static qsptr_t qsprim_kont_p (qsmachine_t * mach, qsptr_t args)
