@@ -48,8 +48,17 @@ extern int qschar_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen)
 
 extern qsptr_t qsconst_make (qsmachine_t *, int const_id);
 extern bool qsconst_p (const qsmachine_t *, qsptr_t p);
-int qsconst_get (const qsmachine_t *, qsptr_t p);
+extern int qsconst_get (const qsmachine_t *, qsptr_t p);
 extern int qsconst_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
+
+extern bool qspinf_p (const qsmachine_t *, qsptr_t p);
+extern qsptr_t qspinf_make (qsmachine_t *);
+extern bool qsninf_p (const qsmachine_t *, qsptr_t p);
+extern qsptr_t qsninf_make (qsmachine_t *);
+extern bool qspnan_p (const qsmachine_t *, qsptr_t p);
+extern qsptr_t qspnan_make (qsmachine_t *);
+extern bool qsnnan_p (const qsmachine_t *, qsptr_t p);
+extern qsptr_t qsnnan_make (qsmachine_t *);
 
 /* File Descriptor directly encoded into Pointer (up to 20b values). */
 /*

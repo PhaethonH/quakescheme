@@ -252,6 +252,47 @@ int qsconst_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 }
 
 
+bool qspinf_p (const qsmachine_t * mach, qsptr_t p)
+{
+  return (p == QSINF);
+}
+
+qsptr_t qspinf_make (qsmachine_t * mach)
+{
+  return QSINF;
+}
+
+bool qsninf_p (const qsmachine_t * mach, qsptr_t p)
+{
+  return (p == QSNINF);
+}
+
+qsptr_t qsninf_make (qsmachine_t * mach)
+{
+  return QSNINF;
+}
+
+bool qspnan_p (const qsmachine_t * mach, qsptr_t p)
+{
+  return (p == QSNAN);
+}
+
+qsptr_t qspnan_make (qsmachine_t * mach)
+{
+  return QSNAN;
+}
+
+bool qsnnan_p (const qsmachine_t * mach, qsptr_t p)
+{
+  return (p == QSNNAN);
+}
+
+qsptr_t qsnnan_make (qsmachine_t * mach)
+{
+  return QSNNAN;
+}
+
+
 qsptr_t qsfd_make (qsmachine_t * mach, int val)
 {
   /* TODO: check value too large. */
