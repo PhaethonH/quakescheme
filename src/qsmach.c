@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <locale.h>
 #include <stdlib.h>
 #include "qsmach.h"
 #include "qsval.h"
@@ -22,6 +23,8 @@ qsmachine_t * qsmachine_init (qsmachine_t * mach)
     {
       mach->prims[i] = NULL;
     }
+
+  setlocale(LC_ALL, "");
   return mach;
 }
 

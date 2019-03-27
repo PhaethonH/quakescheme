@@ -14,7 +14,7 @@
 
 qsmachine_t _machine, *machine=&_machine;
 
-char buf[4096];
+unsigned char buf[4096];
 
 
 void init ()
@@ -202,6 +202,53 @@ START_TEST(test_vectors)
   ck_assert_int_eq(qsvector_ref(machine, p, 10), QSINT(13));
   n = qsvector_crepr(machine, p, buf, sizeof(buf));
   ck_assert_str_eq(buf, "#(13 13 13 13 13 13 13 13 13 13 13 13 13)");
+}
+END_TEST
+
+START_TEST(test_charvecs)
+{
+  init();
+
+  qsptr_t p;
+  qserr_t err;
+  int n;
+
+  /* vector of 5. */
+  p = qscharvec_make(machine, 5, L'\0');
+  ck_assert(! qsvector_p(machine, p));
+  ck_assert(qscharvec_p(machine, p));
+  n = qscharvec_crepr(machine, p, buf, sizeof(buf));
+  /* expect empty string. */
+  ck_assert_str_eq(buf, "\"\"");
+
+  ck_assert_int_eq(qscharvec_length(machine, p), 5);
+
+  /* manually set each character. */
+  err = qscharvec_setq(machine, p, 0, L'H');
+  err = qscharvec_setq(machine, p, 1, L'e');
+  err = qscharvec_setq(machine, p, 2, L'l');
+  err = qscharvec_setq(machine, p, 3, L'l');
+  err = qscharvec_setq(machine, p, 4, L'o');
+  ck_assert_int_eq(err, p);
+  err = qscharvec_setq(machine, p, 5, QSCHAR('?'));
+  ck_assert_int_eq(err, QSERR_FAULT);
+  ck_assert_int_eq( qscharvec_ref(machine, p, 0), 'H' );
+  n = qscharvec_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "\"Hello\"");
+
+  /* inject mutable-string from UTF-8 string. */
+  p = qscharvec_inject_charp(machine, "world", 0);
+  n = qscharvec_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "\"world\"");
+
+  /* inject mutable-string from wcs. */
+  p = qscharvec_inject_wcs(machine, L"foobar\u039b", 0);
+  n = qscharvec_crepr(machine, p, buf, sizeof(buf));
+  /* UTF-8 byte-wise check: "\x22foobar\xce\x9b\x22". */
+  ck_assert_int_eq(buf[0], 0x22);
+  ck_assert_int_eq(buf[7], 0xce);
+  ck_assert_int_eq(buf[8], 0x9b);
+  ck_assert_int_eq(buf[9], 0x22);
 }
 END_TEST
 
@@ -535,9 +582,15 @@ START_TEST(test_utf8)
   ck_assert_str_eq(buf, "\"Hello!!!\"");
 
 
+  /* check inject C string. */
   p = qsutf8_inject_charp(machine, "Hello, world.", 0);
   ck_assert_int_eq(machine->S.smem.freelist, (2+2)*sizeof(qsobj_t));
   ck_assert_int_eq(qsutf8_length(machine, p), 13);
+
+  /* check inject wcs */
+  p = qsutf8_inject_wcs(machine, L"Hello, \u039b world.", 0);
+  qsutf8_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "\x22Hello, \u039b world.\x22");
 }
 END_TEST
 
@@ -934,6 +987,7 @@ TESTCASE(case1,
   TFUNC(test_test1)
   TFUNC(test_pairs)
   TFUNC(test_vectors)
+  TFUNC(test_charvecs)
   TFUNC(test_widenums)
   TFUNC(test_voidptrs)
   TFUNC(test_bytevecs)

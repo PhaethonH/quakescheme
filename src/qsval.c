@@ -1,10 +1,12 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <wchar.h>
 
 #include "qsval.h"
 #include "qsobj.h"
@@ -925,6 +927,215 @@ int qsvector_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 }
 
 
+const qspvec_t * qscharvec_const (const qsmachine_t * mach, qsptr_t p)
+{
+  const qspvec_t * pvec = qspvec_const(mach, p);
+  if (! pvec) return NULL;
+  if (! ISCHAR24(pvec->length)) return NULL;
+  return pvec;
+}
+
+qspvec_t * qscharvec (qsmachine_t * mach, qsptr_t p)
+{
+  if (qscharvec_const(mach, p))
+    return (qspvec_t*)(qspvec(mach, p));
+  return NULL;
+}
+
+qsptr_t qscharvec_make (qsmachine_t * mach, qsword len, wchar_t fillch)
+{
+  qsptr_t fill = qschar_make(mach, fillch);
+  qsptr_t p = qspvec_make(mach, len, fill);
+  qspvec_t * pvec = qspvec(mach, p);
+  pvec->length = qschar_make(mach, len);
+  return p;
+}
+
+bool qscharvec_p (const qsmachine_t * mach, qsptr_t p)
+{
+  return (qscharvec_const(mach, p) != NULL);
+}
+
+qsword qscharvec_length (const qsmachine_t * mach, qsptr_t p)
+{
+  const qspvec_t * pvec = qscharvec_const(mach, p);
+  if (! qscharvec_const(mach, p)) return 0;
+  qsword len = qschar_get(mach, pvec->length);
+  return len;
+}
+
+int qscharvec_ref (const qsmachine_t * mach, qsptr_t p, qsword k)
+{
+  const qspvec_t * pvec = qscharvec_const(mach, p);
+  if (! pvec) return QSERR_FAULT;
+  qsptr_t ch = pvec->elt[k];
+  return qschar_get(mach, ch);
+}
+
+const qsptr_t * qscharvec_get (const qsmachine_t * mach, qsptr_t p, qsword * out_len)
+{
+  const qspvec_t * pvec = qscharvec_const(mach, p);
+  if (! pvec) return NULL;
+  if (out_len) qscharvec_length(mach, p);
+  return pvec->elt;
+}
+
+/* initial/zeroed state for mbstate (multi-byte-sequence state). */
+static const mbstate_t _ps0 = { 0, };
+
+/* Extract array of QsChar to C string (array of uint8_t) */
+qsword qscharvec_fetch (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
+{
+  qsword n = 0;
+  mbstate_t _ps = _ps0, *ps=&_ps;
+  qsword m = qscharvec_length(mach, p);
+  size_t res = 0;
+  qsword i;
+  uint8_t dummy[MB_CUR_MAX];  /* dummy output buffer when buf==NULL. */
+  for (i = 0; i < m; ++i)
+    {
+      wchar_t codepoint = qscharvec_ref(mach, p, i);
+      if (buf)
+	{
+	  if (n+MB_CUR_MAX < buflen)
+	    {
+	      res = wcrtomb(buf+n, codepoint, ps);
+	    }
+	  else
+	    {
+	      /* insufficient space, end now. */
+	      buf[n] = 0;
+	      return n;
+	    }
+	}
+      else
+	{
+	  /* calculate required space. */
+	  res = wcrtomb(dummy, codepoint, ps);
+	}
+
+      if (res < 0)
+	{
+	  /* could not convert, terminate now. */
+	  buf[n++] = 0;
+	  return n;
+	}
+      else if (res >= 0)
+	{
+	  /* advance count. */
+	  n += res;
+	}
+
+      if (0 == codepoint)
+	{
+	  /* end-of-string marker (terminating NUL already written). */
+	  return n;
+	}
+    }
+  if (!buf)
+    {
+      /* size query, pad extra. */
+      n += MB_CUR_MAX;
+    }
+  else
+    {
+      /* terminate UTF-8 string. */
+      buf[++n] = 0;
+    }
+  return n;
+}
+
+qsptr_t qscharvec_inject_charp (qsmachine_t * mach, const char * s, int slen)
+{
+  qsptr_t retval = QSERR_FAULT;
+  mbstate_t _ps, *ps=&_ps;
+
+  if (0 == slen) slen = strlen(s);
+  *ps = _ps0;
+  /* Determine number of wide-characters (i.e. codepoints) required. */
+  size_t res = 0;
+  const char * t = s;
+  res = mbsrtowcs(NULL, &t, slen, ps);
+  if (res < 0)
+    {
+      /* invalid sequence (broken string). */
+      return QSERR_FAULT;
+    }
+  qsword m = res;
+  retval = qscharvec_make(mach, m, QSNIL);
+  qspvec_t * v = qspvec(mach, retval);
+
+  qsword consumed = 0;
+  qsword k = 0;
+  while ((consumed < slen) && (k < m))
+    {
+      wchar_t codepoint = 0;
+      res = mbrtowc(&codepoint, s + consumed, slen, ps);
+      if (res < 0)
+	{
+	  /* broken sequence:
+	     -2 => incomplete sequence
+	     -1 => invalid sequence
+	   */
+	  /* leave with what's initialized so far. */
+	  break;
+	}
+      else if (res == 0)
+	{
+	  /* end-of-string marker. */
+	  break;
+	}
+      else if (res > 0)
+	{
+	  qscharvec_setq(mach, retval, k, codepoint);
+	  ++k;
+	  consumed += res;
+	}
+    }
+  return retval;
+}
+
+qsptr_t qscharvec_inject_wcs (qsmachine_t * mach, const wchar_t * ws, int wlen)
+{
+  qsptr_t retval = QSERR_FAULT;
+  if (0 == wlen) wlen = wcslen(ws);
+  qsword m = wlen;
+  retval = qscharvec_make(mach, m, 0);
+  qsword i;
+  for (i = 0; i < wlen; ++i)
+    {
+      qscharvec_setq(mach, retval, i, ws[i]);
+    }
+  return retval;
+}
+
+qsptr_t qscharvec_setq (qsmachine_t * mach, qsptr_t p, qsword k, int codept)
+{
+  qspvec_t * pvec = qscharvec(mach, p);
+  if (! pvec) return QSERR_FAULT;
+  if (k >= qscharvec_length(mach, p)) return QSERR_FAULT;
+  pvec->elt[k] = qschar_make(mach, codept);
+  return p;
+}
+
+int qscharvec_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
+{
+  int n = 0;
+  const qspvec_t * v = qspvec_const(mach, p);
+  if (! v)
+    {
+      n += qs_snprintf(buf+n, buflen-n, "\"\"");
+      return n;
+    }
+
+  n += qs_snprintf(buf+n, buflen-n, "\"");
+  /* Convert to UTF-8. */
+  n += qscharvec_fetch(mach, p, buf+n, buflen-n) - 1;
+  n += qs_snprintf(buf+n, buflen-n, "\"");
+  return n;
+}
+
+
 /* Heaped object: Array
    * prototype = qspvec
    * .length is nil
@@ -1424,6 +1635,49 @@ qsptr_t qsutf8_inject_charp (qsmachine_t * mach, const char * cstr, size_t slen)
     {
       qsovec_t * st = qsutf8(mach, retval);
       strncpy(st->elt, cstr, slen);
+    }
+  return retval;
+}
+
+qsptr_t qsutf8_inject_wcs (qsmachine_t * mach, const wchar_t * ws, size_t wlen)
+{
+  if (0 == wlen) wlen = wcslen(ws);
+
+  mbstate_t _ps = _ps0, *ps=&_ps;
+  size_t res = 0;
+  const wchar_t * t = ws;
+  res = wcsrtombs(NULL, &t, wlen, ps);
+  if (res < 0)
+    {
+      /* invalid sequence (broken string). */
+      return QSERR_FAULT;
+    }
+  qsword m = res + MB_CUR_MAX;
+  qsword i = 0;
+
+  qsptr_t retval = qsutf8_make(mach, m, 0);
+  if (ISOBJ26(retval))
+    {
+      qsovec_t * st = qsutf8(mach, retval);
+      wchar_t codept;
+      qsword filled = 0;
+      *ps = _ps0;
+      for (i = 0; i < wlen; ++i)
+	{
+	  codept = ws[i];
+	  res = wcrtomb(st->elt + filled, codept, ps);
+	  if (res < 0)
+	    {
+	      /* unable to convert. */
+	      break;
+	    }
+	  else
+	    {
+	      filled += res;
+	    }
+	}
+      /* Terminating NUL. */
+      st->elt[filled] = 0;
     }
   return retval;
 }
@@ -2813,6 +3067,10 @@ int qsptr_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
       else if (qsvector_p(mach, p))
 	{
 	  n += qsvector_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qscharvec_p(mach, p))
+	{
+	  n += qscharvec_crepr(mach, p, buf+n, buflen-n);
 	}
       else if (qsarray_p(mach, p))
 	{

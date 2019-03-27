@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <wchar.h>
 
 #include "qsmach.h"
 
@@ -19,7 +20,7 @@ extern qsptr_t qsnil_make (qsmachine_t *);
 extern bool qsnil_p (const qsmachine_t *, qsptr_t p);
 
 extern qsptr_t qseof_make (const qsmachine_t *);
-extern bool qseof_p (const qsmachine_t *, qsptr_t p);
+
 
 extern qsptr_t qsbool_make (qsmachine_t *, int val);
 extern bool qsbool_p (const qsmachine_t *, qsptr_t p);
@@ -116,6 +117,17 @@ extern qsptr_t qsvector_ref (const qsmachine_t *, qsptr_t p, qsword k);
 extern qsptr_t qsvector_setq (qsmachine_t *, qsptr_t p, qsword k, qsptr_t val);
 extern int qsvector_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+extern qsptr_t qscharvec_make (qsmachine_t *, qsword len, wchar_t fillch);
+extern bool qscharvec_p (const qsmachine_t *, qsptr_t p);
+extern qsword qscharvec_length (const qsmachine_t *, qsptr_t p);
+extern int qscharvec_ref (const qsmachine_t *, qsptr_t p, qsword k);
+extern qsptr_t qscharvec_setq (qsmachine_t *, qsptr_t p, qsword k, int codept);
+extern const qsptr_t * qscharvec_get (const qsmachine_t *, qsptr_t p, qsword *out_len);
+extern qsword qscharvec_fetch (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
+extern qsptr_t qscharvec_inject_charp (qsmachine_t *, const char * s, int slen);
+extern qsptr_t qscharvec_inject_wcs (qsmachine_t *, const wchar_t * ws, int wlen);
+extern int qscharvec_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
+
 /*
 The Array type is inspired by the CDR-coded list.
 
@@ -175,6 +187,7 @@ Strings have multiple implementations for different purposes:
 
 extern qsptr_t qsutf8_make (qsmachine_t *, qsword len, int fill);
 extern qsptr_t qsutf8_inject_charp (qsmachine_t *, const char * s, size_t slen);
+extern qsptr_t qsutf8_inject_wcs (qsmachine_t *, const wchar_t * ws, size_t wlen);
 extern qsptr_t qsutf8_inject_bytes (qsmachine_t *, uint8_t * buf, qsword buflen);
 extern bool qsutf8_p (const qsmachine_t *, qsptr_t p);
 extern qsword qsutf8_length (const qsmachine_t *, qsptr_t p);
