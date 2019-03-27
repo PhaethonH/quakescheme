@@ -737,12 +737,40 @@ static qsptr_t qsprim_port_close (qsmachine_t * mach, qsptr_t args)
   return retval;
 }
 
+static qsptr_t qsprim_current_input_port (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t y_stdin = qssymbol_intern_c(mach, "*current-input-port*", 0);
+  qsptr_t retval = qsenv_lookup(mach, mach->E, y_stdin);
+  if (qsnil_p(mach, retval)) retval = qsfd_make(mach, 0);
+  return retval;
+}
+
+static qsptr_t qsprim_current_output_port (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t y_stdout = qssymbol_intern_c(mach, "*current-output-port*", 0);
+  qsptr_t retval = qsenv_lookup(mach, mach->E, y_stdout);
+  if (qsnil_p(mach, retval)) retval = qsfd_make(mach, 1);
+  return retval;
+}
+
+static qsptr_t qsprim_current_error_port (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t y_stderr = qssymbol_intern_c(mach, "*current-error-port*", 0);
+  qsptr_t retval = qsenv_lookup(mach, mach->E, y_stderr);
+  if (qsnil_p(mach, retval)) retval = qsfd_make(mach, 2);
+  return retval;
+}
+
+
 static
 struct prims_table_s table1_ports[] = {
       { "eof-object", qsprim_eof_object },
       { "port-read-u8", qsprim_bytevector_length },
       { "port-write-u8", qsprim_bytevector_u8_ref },
       { "port-close", qsprim_bytevector_u8_setq },
+      { "current-input-port", qsprim_current_input_port },
+      { "current-output-port", qsprim_current_output_port },
+      { "current-error-port", qsprim_current_error_port },
       { NULL, NULL },
 };
 
@@ -877,6 +905,11 @@ struct prims_table_s table1_ports_mem[] = {
       { "port-mem-open", qsprim_port_file_open },
       { NULL, NULL },
 };
+
+
+/* C-String-Ports are not open to primitives.
+   These ports are to be created in C space and injected into Scheme.
+ */
 
 
 
@@ -2964,6 +2997,16 @@ qsptr_t qsprimreg_presets_v1 (qsmachine_t * mach)
 	  primenv = qsenv_insert(mach, primenv, y, prim);
 	}
     }
+
+  qsptr_t y_stdin = qssymbol_intern_c(mach, "*current-input-port*", 0);
+  qsptr_t y_stdout = qssymbol_intern_c(mach, "*current-output-port*", 0);
+  qsptr_t y_stderr = qssymbol_intern_c(mach, "*current-error-port*", 0);
+  qsptr_t p_stdin = qsfd_make(mach, 0);
+  qsptr_t p_stdout = qsfd_make(mach, 1);
+  qsptr_t p_stderr = qsfd_make(mach, 0);
+  primenv = qsenv_insert(mach, primenv, y_stdin, p_stdin);
+  primenv = qsenv_insert(mach, primenv, y_stdout, p_stdout);
+  primenv = qsenv_insert(mach, primenv, y_stderr, p_stderr);
 
   return primenv;
 }
