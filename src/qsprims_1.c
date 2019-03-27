@@ -469,11 +469,51 @@ struct prims_table_s table1_chars[] = {
 
 
 /* Primitives: Strings. */
-/* TODO: Strings:make-string */
+
+static qsptr_t qsprim_make_string (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsword len = qsint_get(mach, arg0);
+  int codepoint = qschar_get(mach, arg1);
+  retval = qscharvec_make(mach, len, codepoint);
+  return retval;
+}
+
 /* Strings:string to be implemented in Scheme. */
-/* TODO: Strings:string-length */
-/* TODO: Strings:string-ref */
-/* TODO: Strings:string-set! */
+
+static qsptr_t qsprim_string_length (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  qsword len = qsstring_length(mach, arg0);
+  retval = qsint_make(mach, len);
+  return retval;
+}
+
+static qsptr_t qsprim_string_ref (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsword k = qsint_get(mach, arg1);
+  retval = qsstring_ref(mach, arg0, k);
+  return retval;
+}
+
+static qsptr_t qsprim_string_setq (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsptr_t arg2 = CAR(CDR(CDR(args)));
+  qsword k = qsint_get(mach, arg1);
+  qsword codept = qsint_get(mach, arg2);
+  retval = qsstring_setq(mach, arg0, k, codept);
+  return retval;
+}
+
 /* TODO: Strings:string=? */
 /* TODO: Strings:string-ci=? */
 /* TODO: Strings:string<? */
@@ -494,6 +534,15 @@ struct prims_table_s table1_chars[] = {
 /* TODO: Strings:string-copy */
 /* TODO: Strings:string-copy! */
 /* TODO: Strings:string-fill! */
+
+static
+struct prims_table_s table1_strings[] = {
+      { "make-string", qsprim_make_string },
+      { "string-length", qsprim_string_length },
+      { "string-ref", qsprim_string_ref },
+      { "string-set!", qsprim_string_setq },
+      { NULL, NULL },
+};
 
 
 
@@ -743,6 +792,7 @@ qsptr_t qsprimreg_presets_v1 (qsmachine_t * mach)
       table1_pairs,
       table1_symbols,
       table1_chars,
+      table1_strings,
       table1_vectors,
       table1_bytevectors,
       table1_konts,
