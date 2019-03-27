@@ -1476,7 +1476,6 @@ int qsdouble_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
  */
 const qsovec_t * qsname_const (const qsmachine_t * mach, qsptr_t p)
 {
-//  if (ISSYM26(p)) p = qssym_symbol(mach, p);
   const qsovec_t * y = qsovec_const(mach, p);
   if (! y) return NULL;
   if (! ISCHAR24(y->length)) return NULL;
@@ -1485,7 +1484,6 @@ const qsovec_t * qsname_const (const qsmachine_t * mach, qsptr_t p)
 
 qsovec_t * qsname (qsmachine_t * mach, qsptr_t p)
 {
-//  if (ISSYM26(p)) p = qssym_symbol(mach, p);
   if (qsname_const(mach, p))
     {
       return (qsovec_t*)(qsovec(mach, p));
@@ -1499,15 +1497,6 @@ qsptr_t qsname_make (qsmachine_t * mach, qsword namelen)
   qsovec_t * y = qsovec(mach, p);
   if (!y) return QSERR_FAULT;
   y->length = QSCHAR(namelen);
-  return p;
-}
-
-qsptr_t _qsname_make (qsmachine_t * mach, qsword namelen, qsovec_t ** out_sym)
-{
-  qsptr_t p = qsovec_make(mach, namelen+1, 0);
-  qsovec_t * y = qsovec(mach, p);
-  if (!y) return QSERR_FAULT;
-  if (out_sym) *out_sym = y;
   return p;
 }
 
