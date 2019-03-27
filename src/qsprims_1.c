@@ -368,6 +368,79 @@ struct prims_table_s table1_vectorss[] = {
 
 
 
+/* Primitives: Bytevectors. */
+
+static int _byte_from (qsmachine_t * mach, qsptr_t p)
+{
+  if (qschar_p(mach, p)) return qschar_get(mach, p) && 0xff;
+  if (qsint_p(mach, p)) return qsint_get(mach, p) && 0xff;
+  if (qslong_p(mach, p)) return qslong_get(mach, p) && 0xff;
+  return 0;
+}
+
+static qsptr_t qsprim_make_bytevector (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsword k = qsint_get(mach, arg0);
+  qsword o = _byte_from(mach, arg1);
+  retval = qsbytevec_make(mach, k, o);
+  return retval;
+}
+
+/* Bytevectors:bytevector */
+
+static qsptr_t qsprim_bytevector_length (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword k = qsbytevec_length(mach, arg0);
+  retval = qsint_make(mach, k);
+  return retval;
+}
+
+static qsptr_t qsprim_bytevector_u8_ref (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsword k = qsint_get(mach, arg1);
+  qsword o = qsbytevec_ref(mach, arg0, k);
+  retval = qsint_make(mach, o);
+  return retval;
+}
+
+static qsptr_t qsprim_bytevector_u8_setq (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsptr_t arg2 = CAR(CDR(CDR(args)));
+  qsword k = qsint_get(mach, arg1);
+  qsword o = _byte_from(mach, arg2);
+  retval = qsbytevec_setq(mach, arg0, k, o);
+  return retval; /* object itself, or error. */
+}
+
+/* Bytevectors:bytevector-copy */
+/* Bytevectors:bytevector-copy! */
+/* Bytevectors:bytevector-append */
+/* Bytevectors:utf8->string */
+/* Bytevectors:string->utf8 */
+
+static
+struct prims_table_s table1_vectorss[] = {
+      { "make-bytevector", qsprim_make_bytevector },
+      { "bytevector-length", qsprim_bytevector_length },
+      { "bytevector-u8-ref", qsprim_bytevector_u8_ref },
+      { "bytevector-u8-set!", qsprim_bytevector_u8_setq },
+      { NULL, NULL },
+};
+
+
+
+
 static
 qsptr_t qsprim_add (qsmachine_t * mach, qsptr_t args)
 {
