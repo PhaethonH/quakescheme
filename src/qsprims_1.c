@@ -947,6 +947,7 @@ struct prims_table_s table1_konts[] = {
 
 
 enum numtower_e {
+    NUMTYPE_NONE,
     NUMTYPE_INT,
     NUMTYPE_LONG,
     NUMTYPE_FLOAT,
@@ -969,7 +970,7 @@ static enum numtower_e _numtype (const qsmachine_t * mach, qsptr_t x)
   return NUMTYPE_NAN;
 }
 
-enum numtower_e _common_numtype (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
+enum numtower_e _promote_numtype (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
 {
   enum numtower_e xtype = _numtype(mach, x);
   enum numtower_e ytype = _numtype(mach, y);
@@ -1169,64 +1170,292 @@ static qsptr_t alu_store_z (alu_t * a, qsmachine_t * mach)
 }
 
 
+/* Call one-argument libm: a.z = func(a.x), 'func' depends on a.ztype */
+static enum numtower_e _delegate_libm1 (alu_t * a,
+					enum numtower_e preferred_type,
+					float (*funcf)(float),
+					double (*funcd)(double),
+					float complex (*funcc)(float complex))
+{
+  if (preferred_type != NUMTYPE_NONE)
+    a->ztype = preferred_type;
+  switch (a->ztype)
+    {
+    case NUMTYPE_INT:
+      if (funcf)  a->z.f = funcf(a->x.i);
+      break;
+    case NUMTYPE_LONG:
+      if (funcf)  a->z.f = funcf(a->x.l);
+      break;
+    case NUMTYPE_FLOAT:
+      if (funcf)  a->z.f = funcf(a->x.f);
+      break;
+    case NUMTYPE_DOUBLE:
+      if (funcd)  a->z.d = funcd(a->x.d);
+      break;
+    default:
+      a->ztype = NUMTYPE_NAN;
+      break;
+    }
+  return a->ztype;
+}
+
+/* Call two-argument libm: a.z = func(a.x, a.y), 'func' depends on a.ztype */
+static enum numtower_e _delegate_libm2 (alu_t * a,
+					enum numtower_e preferred_type,
+					float (*funcf)(float, float),
+					double (*funcd)(double, double),
+					float complex (*funcc)(float complex, float complex))
+{
+  if (preferred_type != NUMTYPE_NONE)
+    a->ztype = preferred_type;
+  switch (a->ztype)
+    {
+    case NUMTYPE_INT:
+      if (funcf)  a->z.f = funcf(a->x.i, a->y.i);
+      break;
+    case NUMTYPE_LONG:
+      if (funcf)  a->z.f = funcf(a->x.l, a->y.l);
+      break;
+    case NUMTYPE_FLOAT:
+      if (funcf)  a->z.f = funcf(a->x.f, a->y.f);
+      break;
+    case NUMTYPE_DOUBLE:
+      if (funcd)  a->z.d = funcd(a->x.d, a->y.d);
+      break;
+    default:
+      a->ztype = NUMTYPE_NAN;
+      break;
+    }
+  return a->ztype;
+}
+
 
 /* Mathematics: numeric predicates. */
-static qsptr_t qsprim_complex_p (qsmachine_t * mach, qsptr_t args)
-{
-  return QSFALSE;
-}
 
-static qsptr_t qsprim_real_p (qsmachine_t * mach, qsptr_t args)
+/* predicates for numeric bits format:
+   float31 (direct encoding)
+   int30   (direct encoding)
+   long    (widenum long)
+   double  (widenum double)
+   ipair   (widenum, int32 pair - rational)
+   fpair   (widenum, float pair - complex)
+ */
+static qsptr_t qsprim_numbits_int30_p (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qsfloat_p(mach, arg0)) retval = QSTRUE;
-  if (qsdouble_p(mach, arg0)) retval = QSTRUE;
+  bool b = qsint_p(mach, arg0);
+  qsptr_t retval = qsbool_make(mach, b);
   return retval;
 }
 
-static qsptr_t qsprim_rational_p (qsmachine_t * mach, qsptr_t args)
+static qsptr_t qsprim_numbits_float31_p (qsmachine_t * mach, qsptr_t args)
 {
-  return QSFALSE;
-}
-
-static qsptr_t qsprim_integer_p (qsmachine_t * mach, qsptr_t args)
-{
-  qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qsint_p(mach, arg0)) retval = QSTRUE;
-  if (qslong_p(mach, arg0)) retval = QSTRUE;
+  bool b = qsfloat_p(mach, arg0);
+  qsptr_t retval = qsbool_make(mach, b);
   return retval;
 }
 
-static qsptr_t qsprim_exact_p (qsmachine_t * mach, qsptr_t args)
+static qsptr_t qsprim_numbits_long_p (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qsint_p(mach, arg0)) retval = QSTRUE;
-  if (qslong_p(mach, arg0)) retval = QSTRUE;
-  /* TODO: rational. */
+  bool b = qslong_p(mach, arg0);
+  qsptr_t retval = qsbool_make(mach, b);
   return retval;
 }
 
-static qsptr_t qsprim_inexact_p (qsmachine_t * mach, qsptr_t args)
+static qsptr_t qsprim_numbits_double_p (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qsfloat_p(mach, arg0)) retval = QSTRUE;
-  if (qsdouble_p(mach, arg0)) retval = QSTRUE;
-  /* TODO: complex. */
+  bool b = qsdouble_p(mach, arg0);
+  qsptr_t retval = qsbool_make(mach, b);
   return retval;
 }
 
-static qsptr_t qsprim_exact_integer_p (qsmachine_t * mach, qsptr_t args)
+static qsptr_t qsprim_numbits_ipair_p (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = QSFALSE;
   qsptr_t arg0 = CAR(args);
-  if (qsint_p(mach, arg0)) retval = QSTRUE;
-  if (qslong_p(mach, arg0)) retval = QSTRUE;
+  bool b = false;
+  qsptr_t retval = qsbool_make(mach, b);
   return retval;
 }
+
+static qsptr_t qsprim_numbits_fpair_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t arg0 = CAR(args);
+  bool b = false;
+  qsptr_t retval = qsbool_make(mach, b);
+  return retval;
+}
+
+static qsptr_t qsprim_numbits_cast_int30 (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSNAN;
+  qsptr_t arg0 = CAR(args);
+  switch (_numtype(mach, arg0))
+    {
+    case NUMTYPE_INT:
+      retval = arg0;
+      break;
+    case NUMTYPE_LONG:
+      retval = qsint_make(mach, qslong_get(mach, arg0));
+      break;
+    case NUMTYPE_FLOAT:
+      retval = qsint_make(mach, qsfloat_get(mach, arg0));
+      break;
+    case NUMTYPE_DOUBLE:
+      retval = qsint_make(mach, qsdouble_get(mach, arg0));;
+      break;
+    default:
+      retval = QSNAN;
+    }
+  return retval;
+}
+
+static qsptr_t qsprim_numbits_cast_float31 (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSNAN;
+  qsptr_t arg0 = CAR(args);
+  switch (_numtype(mach, arg0))
+    {
+    case NUMTYPE_INT:
+      retval = qsfloat_make(mach, qsint_get(mach, arg0));
+      retval = arg0;
+      break;
+    case NUMTYPE_LONG:
+      retval = qsfloat_make(mach, qslong_get(mach, arg0));
+      break;
+    case NUMTYPE_FLOAT:
+      retval = arg0;
+      break;
+    case NUMTYPE_DOUBLE:
+      retval = qsfloat_make(mach, qsdouble_get(mach, arg0));;
+      break;
+    default:
+      retval = QSNAN;
+    }
+  return retval;
+}
+
+static qsptr_t qsprim_numbits_cast_long (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSNAN;
+  qsptr_t arg0 = CAR(args);
+  switch (_numtype(mach, arg0))
+    {
+    case NUMTYPE_INT:
+      retval = qslong_make(mach, qsint_get(mach, arg0));
+      break;
+    case NUMTYPE_LONG:
+      retval = arg0;
+      break;
+    case NUMTYPE_FLOAT:
+      retval = qslong_make(mach, qsfloat_get(mach, arg0));
+      break;
+    case NUMTYPE_DOUBLE:
+      retval = qslong_make(mach, qsdouble_get(mach, arg0));;
+      break;
+    default:
+      retval = QSNAN;
+    }
+  return retval;
+}
+
+static qsptr_t qsprim_numbits_cast_double (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSNAN;
+  qsptr_t arg0 = CAR(args);
+  switch (_numtype(mach, arg0))
+    {
+    case NUMTYPE_INT:
+      retval = qsdouble_make(mach, qsint_get(mach, arg0));
+      break;
+    case NUMTYPE_LONG:
+      retval = qsdouble_make(mach, qslong_get(mach, arg0));
+      break;
+    case NUMTYPE_FLOAT:
+      retval = qsdouble_make(mach, qsfloat_get(mach, arg0));
+      break;
+    case NUMTYPE_DOUBLE:
+      retval = arg0;
+      break;
+    default:
+      retval = QSNAN;
+    }
+  return retval;
+}
+
+static qsptr_t qsprim_numbits_cast_ipair (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSNAN;
+  qsptr_t arg0 = CAR(args);
+  switch (_numtype(mach, arg0))
+    {
+    case NUMTYPE_INT:
+      retval = QSNAN;
+      break;
+    case NUMTYPE_LONG:
+      retval = QSNAN;
+      break;
+    case NUMTYPE_FLOAT:
+      retval = QSNAN;
+      break;
+    case NUMTYPE_DOUBLE:
+      retval = QSNAN;
+      break;
+    default:
+      retval = QSNAN;
+    }
+  return retval;
+}
+
+static qsptr_t qsprim_numbits_cast_fpair (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSNAN;
+  qsptr_t arg0 = CAR(args);
+  switch (_numtype(mach, arg0))
+    {
+    case NUMTYPE_INT:
+      retval = QSNAN;
+      break;
+    case NUMTYPE_LONG:
+      retval = QSNAN;
+      break;
+    case NUMTYPE_FLOAT:
+      retval = QSNAN;
+      break;
+    case NUMTYPE_DOUBLE:
+      retval = QSNAN;
+      break;
+    default:
+      retval = QSNAN;
+    }
+  return retval;
+}
+
+static qsptr_t qsprim_make_inf (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = qspinf_make(mach);
+}
+
+static qsptr_t qsprim_make_ninf (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = qsninf_make(mach);
+}
+
+static qsptr_t qsprim_make_nan (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = qspnan_make(mach);
+}
+
+/* Mathematics:complex? */
+/* Mathematics:real? */
+/* Mathematics:rational? */
+/* Mathematics:integer? */
+/* Mathematics:exact? */
+/* Mathematics:inexact? */
+/* Mathematics:exact-integer? */
 
 static qsptr_t qsprim_finite_p (qsmachine_t * mach, qsptr_t args)
 {
@@ -1266,61 +1495,64 @@ static qsptr_t qsprim_nan_p (qsmachine_t * mach, qsptr_t args)
  */
 static qsptr_t qsprim_cmp2 (qsmachine_t * mach, qsptr_t args)
 {
+  qsptr_t retval = QSERR_FAULT;
   qsptr_t arg0 = CAR(args);
   qsptr_t arg1 = CAR(CDR(args));
-  int res = -2;
   alu_t a;
-  switch (_common_numtype(mach, arg0, arg1))
+  a.ztype = NUMTYPE_INT;
+  switch (_promote_numtype(mach, arg0, arg1))
     {
     case NUMTYPE_INT:
       a.x.i = _integer_from(mach, arg0);
       a.y.i = _integer_from(mach, arg1);
-      res = (a.x.i < a.y.i) ? -1 : (a.x.i > a.y.i) ? 1 : 0;
+      a.z.i = (a.x.i < a.y.i) ? -1 : (a.x.i > a.y.i) ? 1 : 0;
       break;
     case NUMTYPE_FLOAT:
       a.x.f = _integer_from(mach, arg0);
       a.y.f = _integer_from(mach, arg1);
-      res = (a.x.f < a.y.f) ? -1 : (a.x.f > a.y.f) ? 1 : 0;
+      a.z.i = (a.x.f < a.y.f) ? -1 : (a.x.f > a.y.f) ? 1 : 0;
       break;
     case NUMTYPE_LONG:
       a.x.l = _integer_from(mach, arg0);
       a.y.l = _integer_from(mach, arg1);
-      res = (a.x.l < a.y.l) ? -1 : (a.x.l > a.y.l) ? 1 : 0;
+      a.z.i = (a.x.l < a.y.l) ? -1 : (a.x.l > a.y.l) ? 1 : 0;
       break;
     case NUMTYPE_DOUBLE:
       a.x.d = _integer_from(mach, arg0);
       a.y.d = _integer_from(mach, arg1);
-      res = (a.x.d < a.y.d) ? -1 : (a.x.d > a.y.d) ? 1 : 0;
+      a.z.i = (a.x.d < a.y.d) ? -1 : (a.x.d > a.y.d) ? 1 : 0;
       break;
     /* TODO: rational */
     case NUMTYPE_INF:
       a.x.i = _sign_of(mach, arg0);
       a.y.i = _sign_of(mach, arg1);
       if ((a.x.i == -2) || (a.y.i == -2)) return -2;  /* nope */
-      else if (a.x.i < a.y.i) res = -1;  /* - <=> 0, - <=> +, 0 <=> + */
-      else if (a.x.i > a.y.i) res = 1;  /* + <=> 0, 0 <=> -, + <=> - */
+      else if (a.x.i < a.y.i) a.z.i = -1;  /* - <=> 0, - <=> +, 0 <=> + */
+      else if (a.x.i > a.y.i) a.z.i = 1;  /* + <=> 0, 0 <=> -, + <=> - */
       else
 	{
 	  if (qspinf_p(mach, arg0))
 	    {
-	      if (qspinf_p(mach, arg1)) res = -2;  /* +inf <=> +inf = nope */
-	      else res = +1;  /* +inf <=> anything else = +1 */
+	      if (qspinf_p(mach, arg1)) a.z.i = -2;  /* +inf <=> +inf = nope */
+	      else a.z.i = +1;  /* +inf <=> anything else = +1 */
 	    }
 	  else if (qsninf_p(mach, arg0))
 	    {
-	      if (qsninf_p(mach, arg1)) res = -2;  /* -inf <=> -inf = nope */
-	      else res = -1;  /* -inf <=> anything else = -1 */
+	      if (qsninf_p(mach, arg1)) a.z.i = -2;  /* -inf <=> -inf = nope */
+	      else a.z.i = -1;  /* -inf <=> anything else = -1 */
 	    }
-	  else if (qspinf_p(mach, arg1)) res = -1;  /* fin <=> +inf = -1 */
-	  else if (qsninf_p(mach, arg1)) res = +1;  /* fin <=> -inf = +1 */
+	  else if (qspinf_p(mach, arg1)) a.z.i = -1;  /* fin <=> +inf = -1 */
+	  else if (qsninf_p(mach, arg1)) a.z.i = +1;  /* fin <=> -inf = +1 */
 	}
       break;
     /* TODO: complex. */
     case NUMTYPE_NAN:
     default:
-      res = -2;  /* nope */
+      a.z.i = -2;  /* nope */
       break;
     }
+  retval = alu_store_z(&a, mach);
+  return retval;
 }
 
 static qsptr_t qsprim_zero_p (qsmachine_t * mach, qsptr_t args)
@@ -1355,13 +1587,24 @@ static qsptr_t qsprim_negative_p (qsmachine_t * mach, qsptr_t args)
 
 static
 struct prims_table_s table1_numtypes[] = {
-      { "complex?", qsprim_complex_p },
-      { "real?", qsprim_real_p },
-      { "rational?", qsprim_rational_p },
-      { "integer?", qsprim_integer_p },
-      { "exact?", qsprim_exact_p },
-      { "inexact?", qsprim_inexact_p },
-      { "exact-integer?", qsprim_exact_integer_p },
+      { "numbits-int30?", qsprim_numbits_int30_p },
+      { "numbits-float31?", qsprim_numbits_float31_p },
+      { "numbits-long?", qsprim_numbits_long_p },
+      { "numbits-double?", qsprim_numbits_double_p },
+      { "numbits-ipair?", qsprim_numbits_ipair_p },
+      { "numbits-fpair?", qsprim_numbits_fpair_p },
+
+      { "numbits-cast-int30", qsprim_numbits_cast_int30 },
+      { "numbits-cast-float31", qsprim_numbits_cast_float31 },
+      { "numbits-cast-long", qsprim_numbits_cast_long },
+      { "numbits-cast-double", qsprim_numbits_cast_double },
+      { "numbits-cast-ipair", qsprim_numbits_cast_ipair },
+      { "numbits-cast-fpair", qsprim_numbits_cast_fpair },
+
+      { "make-inf", qsprim_make_inf },
+      { "make-ninf", qsprim_make_ninf },
+      { "make-nan", qsprim_make_nan },
+
       { "finite?", qsprim_finite_p },
       { "infinite?", qsprim_infinite_p },
       { "nan?", qsprim_nan_p },
@@ -1382,7 +1625,7 @@ static qsptr_t qsprim_add2 (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg1 = CAR(CDR(args));
   alu_t a;
 
-  switch (_common_numtype(mach, arg0, arg1))
+  switch (_promote_numtype(mach, arg0, arg1))
     {
     case NUMTYPE_INT:
       a.x.i = _integer_from(mach, arg0);
@@ -1440,7 +1683,7 @@ static qsptr_t qsprim_sub2 (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg1 = CAR(CDR(args));
   alu_t a;
 
-  switch (_common_numtype(mach, arg0, arg1))
+  switch (_promote_numtype(mach, arg0, arg1))
     {
     case NUMTYPE_INT:
       a.x.i = _integer_from(mach, arg0);
@@ -1495,7 +1738,7 @@ static qsptr_t qsprim_mul2 (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg1 = CAR(CDR(args));
   alu_t a;
 
-  switch (_common_numtype(mach, arg0, arg1))
+  switch (_promote_numtype(mach, arg0, arg1))
     {
     case NUMTYPE_INT:
       a.x.i = _integer_from(mach, arg0);
@@ -1586,7 +1829,7 @@ static qsptr_t qsprim_div2 (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg1 = CAR(CDR(args));
   alu_t a;
 
-  switch (_common_numtype(mach, arg0, arg1))
+  switch (_promote_numtype(mach, arg0, arg1))
     {
     case NUMTYPE_INT:
       /* TODO: cast to rational. */
@@ -1666,7 +1909,7 @@ static qsptr_t qsprim_quo2 (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg1 = CAR(CDR(args));
   alu_t a;
 
-  switch (_common_numtype(mach, arg0, arg1))
+  switch (_promote_numtype(mach, arg0, arg1))
     {
     /* Force integer division on the integer types. */
     case NUMTYPE_INT:
@@ -1697,7 +1940,7 @@ static qsptr_t qsprim_rem2 (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg1 = CAR(CDR(args));
   alu_t a;
 
-  switch (_common_numtype(mach, arg0, arg1))
+  switch (_promote_numtype(mach, arg0, arg1))
     {
     /* Force integer division on the integer types. */
     case NUMTYPE_INT:
@@ -1729,21 +1972,17 @@ static qsptr_t qsprim_floor (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
-  switch (_numtype(mach, arg0))
+  alu_load_x(&a, mach, arg0);
+  switch (a.xtype)
     {
     case NUMTYPE_INT:
     case NUMTYPE_LONG:
       retval = arg0;
       break;
     case NUMTYPE_FLOAT:
-      a.x.f = _float_from(mach, arg0);
-      a.z.f = floorf(a.x.f);
-      retval = qsfloat_make(mach, a.z.f);
-      break;
     case NUMTYPE_DOUBLE:
-      a.x.d = _double_from(mach, arg0);
-      a.z.d = floor(a.x.d);
-      retval = qsdouble_make(mach, a.z.d);
+      _delegate_libm1(&a, a.xtype, floorf, floor, NULL);
+      retval = alu_store_z(&a, mach);
       break;
     default:
       retval = arg0; /* +/-inf => same; +/-nan => same */
@@ -1758,21 +1997,17 @@ static qsptr_t qsprim_ceiling (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
-  switch (_numtype(mach, arg0))
+  alu_load_x(&a, mach, arg0);
+  switch (a.xtype)
     {
     case NUMTYPE_INT:
     case NUMTYPE_LONG:
       retval = arg0;
       break;
     case NUMTYPE_FLOAT:
-      a.x.f = _float_from(mach, arg0);
-      a.z.f = ceilf(a.x.f);
-      retval = qsfloat_make(mach, a.z.f);
-      break;
     case NUMTYPE_DOUBLE:
-      a.x.d = _double_from(mach, arg0);
-      a.z.d = ceil(a.x.d);
-      retval = qsdouble_make(mach, a.z.d);
+      _delegate_libm1(&a, a.xtype, ceilf, ceil, NULL);
+      retval = alu_store_z(&a, mach);
       break;
     default:
       retval = arg0; /* +/-inf => same; +/-nan => same */
@@ -1787,21 +2022,17 @@ static qsptr_t qsprim_truncate (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
-  switch (_numtype(mach, arg0))
+  alu_load_x(&a, mach, arg0);
+  switch (a.xtype)
     {
     case NUMTYPE_INT:
     case NUMTYPE_LONG:
       retval = arg0;
       break;
     case NUMTYPE_FLOAT:
-      a.x.f = _float_from(mach, arg0);
-      a.z.f = truncf(a.x.f);
-      retval = qsfloat_make(mach, a.z.f);
-      break;
     case NUMTYPE_DOUBLE:
-      a.x.d = _double_from(mach, arg0);
-      a.z.d = trunc(a.x.d);
-      retval = qsdouble_make(mach, a.z.d);
+      _delegate_libm1(&a, a.xtype, ceilf, ceil, NULL);
+      retval = alu_store_z(&a, mach);
       break;
     default:
       retval = arg0; /* +/-inf => same; +/-nan => same */
@@ -1816,21 +2047,17 @@ static qsptr_t qsprim_round (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
-  switch (_numtype(mach, arg0))
+  alu_load_x(&a, mach, arg0);
+  switch (a.xtype)
     {
     case NUMTYPE_INT:
     case NUMTYPE_LONG:
       retval = arg0;
       break;
     case NUMTYPE_FLOAT:
-      a.x.f = _float_from(mach, arg0);
-      a.z.f = roundf(a.x.f);
-      retval = qsfloat_make(mach, a.z.f);
-      break;
     case NUMTYPE_DOUBLE:
-      a.x.d = _double_from(mach, arg0);
-      a.z.d = round(a.x.d);
-      retval = qsdouble_make(mach, a.z.d);
+      _delegate_libm1(&a, a.xtype, roundf, round, NULL);
+      retval = alu_store_z(&a, mach);
       break;
     default:
       retval = arg0; /* +/-inf => same; +/-nan => same */
@@ -1849,95 +2076,10 @@ static qsptr_t qsprim_rationalize (qsmachine_t * mach, qsptr_t args)
   return arg0;
 }
 
-static enum numtower_e _delegate_libm1 (alu_t * a,
-					float (*funcf)(float),
-					double (*funcd)(double),
-					float complex (*funcc)(float complex))
-{
-  switch (a->xtype)
-    {
-    case NUMTYPE_INT:
-      if (funcf)
-	{
-	  a->ztype = NUMTYPE_FLOAT;
-	  a->z.f = funcf(a->x.i);
-	}
-      break;
-    case NUMTYPE_LONG:
-      if (funcf)
-	{
-	  a->ztype = NUMTYPE_FLOAT;
-	  a->z.f = funcf(a->x.l);
-	}
-      break;
-    case NUMTYPE_FLOAT:
-      if (funcf)
-	{
-	  a->ztype = NUMTYPE_FLOAT;
-	  a->z.f = funcf(a->x.f);
-	}
-      break;
-    case NUMTYPE_DOUBLE:
-      if (funcd)
-	{
-	  a->ztype = NUMTYPE_DOUBLE;
-	  a->z.d = funcd(a->x.d);
-	}
-      break;
-    default:
-      a->ztype = NUMTYPE_NAN;
-      break;
-    }
-  return a->ztype;
-}
-
-static enum numtower_e _delegate_libm2 (alu_t * a,
-					float (*funcf)(float, float),
-					double (*funcd)(double, double),
-					float complex (*funcc)(float complex, float complex))
-{
-  switch (a->xtype)
-    {
-    case NUMTYPE_INT:
-      if (funcf)
-	{
-	  a->ztype = NUMTYPE_FLOAT;
-	  a->z.f = funcf(a->x.i, a->y.i);
-	}
-      break;
-    case NUMTYPE_LONG:
-      if (funcf)
-	{
-	  a->ztype = NUMTYPE_FLOAT;
-	  a->z.f = funcf(a->x.l, a->y.l);
-	}
-      break;
-    case NUMTYPE_FLOAT:
-      if (funcf)
-	{
-	  a->ztype = NUMTYPE_FLOAT;
-	  a->z.f = funcf(a->x.f, a->y.f);
-	}
-      break;
-    case NUMTYPE_DOUBLE:
-      if (funcd)
-	{
-	  a->ztype = NUMTYPE_DOUBLE;
-	  a->z.d = funcd(a->x.d, a->y.d);
-	}
-      break;
-    default:
-      a->ztype = NUMTYPE_NAN;
-      break;
-    }
-  return a->ztype;
-}
-
-
 
 static qsptr_t qsprim_exp (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
+  qsptr_t retval = QSNAN;
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
@@ -1948,7 +2090,7 @@ static qsptr_t qsprim_exp (qsmachine_t * mach, qsptr_t args)
     case NUMTYPE_FLOAT:
     case NUMTYPE_DOUBLE:
       alu_load_x(&a, mach, arg0);
-      _delegate_libm1(&a, expf, exp, cexpf);
+      _delegate_libm1(&a, a.xtype, expf, exp, cexpf);
       retval = alu_store_z(&a, mach);
       break;
     case NUMTYPE_INF:
@@ -1970,7 +2112,7 @@ static qsptr_t qsprim_exp (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_log (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
+  qsptr_t retval = QSNAN;
   qsptr_t arg0 = CAR(args);
   qsptr_t arg1 = CAR(CDR(args));
   alu_t a;
@@ -2006,14 +2148,14 @@ static qsptr_t qsprim_log (qsmachine_t * mach, qsptr_t args)
 	  switch (a.y.i)
 	    {
 	    case 2: /* base-2 logarithm. */
-	      _delegate_libm1(&a, log2f, log2, NULL);
+	      _delegate_libm1(&a, a.xtype, log2f, log2, NULL);
 	      break;
 	    case 10: /* base-10 logarithm. */
-	      _delegate_libm1(&a, log10f, log10, NULL);
+	      _delegate_libm1(&a, a.xtype, log10f, log10, NULL);
 	      break;
 	    case 0: /* natural logarithm. */
 	    default:
-	      _delegate_libm1(&a, logf, log, clogf);
+	      _delegate_libm1(&a, a.xtype, logf, log, clogf);
 	      break;
 	    }
 	  retval = alu_store_z(&a, mach);
@@ -2047,7 +2189,7 @@ static qsptr_t qsprim_log (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_sin (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
+  qsptr_t retval = QSNAN;
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
@@ -2059,7 +2201,7 @@ static qsptr_t qsprim_sin (qsmachine_t * mach, qsptr_t args)
     case NUMTYPE_FLOAT:
     case NUMTYPE_DOUBLE:
       alu_load_x(&a, mach, arg0);
-      _delegate_libm1(&a, sinf, sin, csinf);
+      _delegate_libm1(&a, a.xtype, sinf, sin, csinf);
       retval = alu_store_z(&a, mach);
       break;
     default:
@@ -2071,7 +2213,7 @@ static qsptr_t qsprim_sin (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_cos (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
+  qsptr_t retval = QSNAN;
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
@@ -2083,7 +2225,7 @@ static qsptr_t qsprim_cos (qsmachine_t * mach, qsptr_t args)
     case NUMTYPE_FLOAT:
     case NUMTYPE_DOUBLE:
       alu_load_x(&a, mach, arg0);
-      _delegate_libm1(&a, cosf, cos, ccosf);
+      _delegate_libm1(&a, a.xtype, cosf, cos, ccosf);
       retval = alu_store_z(&a, mach);
       break;
     default:
@@ -2095,7 +2237,7 @@ static qsptr_t qsprim_cos (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_tan (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
+  qsptr_t retval = QSNAN;
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
@@ -2107,7 +2249,7 @@ static qsptr_t qsprim_tan (qsmachine_t * mach, qsptr_t args)
     case NUMTYPE_FLOAT:
     case NUMTYPE_DOUBLE:
       alu_load_x(&a, mach, arg0);
-      _delegate_libm1(&a, tanf, tan, ctanf);
+      _delegate_libm1(&a, a.xtype, tanf, tan, ctanf);
       retval = alu_store_z(&a, mach);
       break;
     default:
@@ -2119,7 +2261,7 @@ static qsptr_t qsprim_tan (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_asin (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
+  qsptr_t retval = QSNAN;
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
@@ -2131,7 +2273,7 @@ static qsptr_t qsprim_asin (qsmachine_t * mach, qsptr_t args)
     case NUMTYPE_FLOAT:
     case NUMTYPE_DOUBLE:
       alu_load_x(&a, mach, arg0);
-      _delegate_libm1(&a, asinf, asin, casinf);
+      _delegate_libm1(&a, a.xtype, asinf, asin, casinf);
       retval = alu_store_z(&a, mach);
       break;
     default:
@@ -2143,7 +2285,7 @@ static qsptr_t qsprim_asin (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_acos (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
+  qsptr_t retval = QSNAN;
   qsptr_t arg0 = CAR(args);
   alu_t a;
 
@@ -2155,7 +2297,7 @@ static qsptr_t qsprim_acos (qsmachine_t * mach, qsptr_t args)
     case NUMTYPE_FLOAT:
     case NUMTYPE_DOUBLE:
       alu_load_x(&a, mach, arg0);
-      _delegate_libm1(&a, acosf, acos, cacosf);
+      _delegate_libm1(&a, a.xtype, acosf, acos, cacosf);
       retval = alu_store_z(&a, mach);
       break;
     default:
@@ -2167,7 +2309,7 @@ static qsptr_t qsprim_acos (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_atan (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
+  qsptr_t retval = QSNAN;
   qsptr_t arg0 = CAR(args);
   qsptr_t arg1 = CAR(CDR(args));
   alu_t a;
@@ -2177,7 +2319,7 @@ static qsptr_t qsprim_atan (qsmachine_t * mach, qsptr_t args)
     {
       /* single-argument atan(). */
       alu_load_x(&a, mach, arg0);
-      _delegate_libm1(&a, atanf, atan, NULL);
+      _delegate_libm1(&a, a.xtype, atanf, atan, NULL);
       retval = alu_store_z(&a, mach);
     }
   else
@@ -2185,7 +2327,7 @@ static qsptr_t qsprim_atan (qsmachine_t * mach, qsptr_t args)
       /* two-argument atan2().  Order same as C call. */
       alu_load_x(&a, mach, arg0);
       alu_load_y(&a, mach, arg1);
-      _delegate_libm2(&a, atan2f, atan2, NULL);
+      _delegate_libm2(&a, a.xtype, atan2f, atan2, NULL);
       retval = alu_store_z(&a, mach);
     }
   return retval;
@@ -2193,14 +2335,14 @@ static qsptr_t qsprim_atan (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_expt (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
+  qsptr_t retval = QSNAN;
   qsptr_t arg0 = CAR(args);
   qsptr_t arg1 = CAR(CDR(args));
   alu_t a;
 
   alu_load_x(&a, mach, arg0);
   alu_load_y(&a, mach, arg1);
-  _delegate_libm2(&a, powf, pow, NULL);
+  _delegate_libm2(&a, a.xtype, powf, pow, NULL);
   retval = alu_store_z(&a, mach);
   return retval;
 }
@@ -2214,7 +2356,7 @@ static qsptr_t qsprim_sqrt (qsmachine_t * mach, qsptr_t args)
   alu_t a;
 
   alu_load_x(&a, mach, arg0);
-  _delegate_libm1(&a, sqrtf, sqrt, csqrtf);
+  _delegate_libm1(&a, a.xtype, sqrtf, sqrt, csqrtf);
   retval = alu_store_z(&a, mach);
   return retval;
 }
