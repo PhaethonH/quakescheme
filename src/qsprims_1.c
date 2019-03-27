@@ -268,10 +268,72 @@ static qsptr_t qsprim_string_to_symbol (qsmachine_t * mach, qsptr_t args)
 
 static
 struct prims_table_s table1_symbols[] = {
-      { "symbol->string", qsprim_cons },
-      { "string->symbol", qsprim_car },
+      { "symbol->string", qsprim_symbol_to_string },
+      { "string->symbol", qsprim_string_to_symbol },
       { NULL, NULL },
 };
+
+
+
+
+/* Primitives: Characters. */
+
+static int _integer_from (qsmachine_t * mach, qsptr_t p)
+{
+  if (qschar_p(mach, p)) return qschar_get(mach, p);
+  if (qsint_p(mach, p)) return qsint_get(mach, p);
+  if (qslong_p(mach, p)) return qslong_get(mach, p);
+  if (qsfloat_p(mach, p)) return (int)(qsfloat_get(mach, p));
+  if (qsdouble_p(mach, p)) return (int)(qsdouble_get(mach, p));
+  return 0;
+}
+
+/* Characters:char=? */
+/* Characters:char<? */
+/* Characters:char>? */
+/* Characters:char<=? */
+/* Characters:char>=? */
+/* Characters:char-ci=? */
+/* Characters:char-ci<? */
+/* Characters:char-ci>? */
+/* Characters:char-ci<=? */
+/* Characters:char-ci>=? */
+/* Characters:char-alphabetic? */
+/* Characters:char-numeric? */
+/* Characters:char-whitespace? */
+/* Characters:char-upper-case? */
+/* Characters:char-lower-case? */
+/* Characters:digit-value */
+
+static qsptr_t qsprim_char_to_integer (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = qschar_get(mach, arg0);
+  retval = qsint_make(mach, codepoint);
+  return retval;
+}
+
+static qsptr_t qsprim_integer_to_char (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = _integer_from(mach, arg0);
+  retval = qschar_make(mach, codepoint);
+  return retval;
+}
+
+/* Characters:char-upcase */
+/* Characters:char-downcase */
+/* Characters:char-foldcase */
+
+static
+struct prims_table_s table1_chars[] = {
+      { "char->integer", qsprim_char_to_integer },
+      { "integer->char", qsprim_integer_to_char },
+      { NULL, NULL },
+};
+
 
 
 
@@ -550,6 +612,7 @@ qsptr_t qsprimreg_presets_v1 (qsmachine_t * mach)
       table1_typepredicates,
       table1_pairs,
       table1_symbols,
+      table1_chars,
       table1_vectors,
       table1_bytevectors,
       table1_konts,
