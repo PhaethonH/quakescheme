@@ -176,9 +176,9 @@ extern int qsdouble_fetch (const qsmachine_t *, qsptr_t p, double * out);
 extern int qsdouble_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
 /* Quaternions, vec4_t */
-/* Multiplying quaternions yields dot product as real and cross product as imaginary. */
+/* Multiplying quaternions yields negative dot product as real and cross product as imaginary. */
 extern qsptr_t qsquat_make (qsmachine_t *, float a, float b, float c, float d);
-extern qsptr_t qsquat_make_f4 (qsmachine_t *, float q[4]);
+extern qsptr_t qsquat_make_f4 (qsmachine_t *, const float q[4]);
 extern bool qsquat_p (const qsmachine_t *, qsptr_t p);
 extern const float * qsquat_get (const qsmachine_t *, qsptr_t p);
 extern int qsquat_fetch (const qsmachine_t *, qsptr_t p, float * out_vec4);

@@ -1557,7 +1557,7 @@ qsptr_t qsquat_make (qsmachine_t * mach, float a, float b, float c, float d)
   return p;
 }
 
-qsptr_t qsquat_make_f4 (qsmachine_t * mach, float q[4])
+qsptr_t qsquat_make_f4 (qsmachine_t * mach, const float q[4])
 {
   return qsquat_make(mach, q[0], q[1], q[2], q[3]);
 }
@@ -1631,33 +1631,33 @@ int qsquat_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
   float vec4[4] = { 0, };
   qsquat_fetch(mach, p, vec4);
 
-  n += qs_snprintf(buf+n, buflen-n, "%d", vec4[0]);
+  n += qs_snprintf(buf+n, buflen-n, "%g", vec4[0]);
 
   if (vec4[1] < 0)
     {
-      n += qs_snprintf(buf+n, buflen-n, "%di", vec4[1]);
+      n += qs_snprintf(buf+n, buflen-n, "%gi", vec4[1]);
     }
   else
     {
-      n += qs_snprintf(buf+n, buflen-n, "+%di", vec4[1]);
+      n += qs_snprintf(buf+n, buflen-n, "+%gi", vec4[1]);
     }
 
   if (vec4[2] < 0)
     {
-      n += qs_snprintf(buf+n, buflen-n, "%dj", vec4[2]);
+      n += qs_snprintf(buf+n, buflen-n, "%gj", vec4[2]);
     }
   else
     {
-      n += qs_snprintf(buf+n, buflen-n, "+%dj", vec4[2]);
+      n += qs_snprintf(buf+n, buflen-n, "+%gj", vec4[2]);
     }
 
   if (vec4[3] < 0)
     {
-      n += qs_snprintf(buf+n, buflen-n, "%dk", vec4[3]);
+      n += qs_snprintf(buf+n, buflen-n, "%gk", vec4[3]);
     }
   else
     {
-      n += qs_snprintf(buf+n, buflen-n, "+%dk", vec4[3]);
+      n += qs_snprintf(buf+n, buflen-n, "+%gk", vec4[3]);
     }
 
   return n;

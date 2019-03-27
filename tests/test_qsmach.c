@@ -324,16 +324,60 @@ START_TEST(test_prims1)
   /* in code. */
   init();
   qsptr_t y_add = qssymbol_intern_c(machine, "+", 0);
+  qsptr_t y_add2 = qssymbol_intern_c(machine, "add2", 0);
+  qsptr_t y_sub2 = qssymbol_intern_c(machine, "sub2", 0);
+  qsptr_t y_mul2 = qssymbol_intern_c(machine, "mul2", 0);
   prims1 = qsprimreg_presets_v1(machine);
-  p = CONS(y_add,
+  p = CONS(y_add2,
       CONS(QSINT(2),
       CONS(QSINT(3), QSNIL)));
   qsptr_crepr(machine, p, buf, sizeof(buf));
-  ck_assert_str_eq(buf, "(+ 2 3)");
+  ck_assert_str_eq(buf, "(add2 2 3)");
   qsmachine_load(machine, p, prims1, QSNIL);
   qsmachine_step(machine);  /* resolve "+" to operation. */
-  qsmachine_step(machine);  /* apply operation "add". */
+  qsmachine_step(machine);  /* apply operation "add2". */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "5");
   ck_assert_int_eq(machine->A, QSINT(5));
+
+  /* test quats */
+  a = qsquat_make(machine, 1, 0, 0, 0);
+  b = qsquat_make(machine, 5, 0, 0, 0);
+  p = CONS(y_add2,
+      CONS(a,
+      CONS(b, QSNIL)));
+  qsptr_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(add2 1+0i+0j+0k 5+0i+0j+0k)");
+  qsmachine_load(machine, p, prims1, QSNIL);
+  qsmachine_step(machine);  /* resolve "+" to operation. */
+  qsmachine_step(machine);  /* apply operation "add2". */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "6+0i+0j+0k");
+
+  a = qsquat_make(machine, 1, 2, 3, 5);
+  b = qsquat_make(machine, 8, 13, 21, 34);
+  p = CONS(y_add2,
+      CONS(a,
+      CONS(b, QSNIL)));
+  qsptr_crepr(machine, p, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(add2 1+2i+3j+5k 8+13i+21j+34k)");
+  qsmachine_load(machine, p, prims1, QSNIL);
+  qsmachine_step(machine);  /* resolve "+" to operation. */
+  qsmachine_step(machine);  /* apply operation "add2". */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "9+15i+24j+39k");
+
+  /* multiply quaternions as vec3: (negative) dot product and cross product */
+  a = qsquat_make(machine, 0, 2, 3, 5);
+  b = qsquat_make(machine, 0, 13, 21, 34);
+  p = CONS(y_mul2,
+      CONS(a,
+      CONS(b, QSNIL)));
+  qsmachine_load(machine, p, prims1, QSNIL);
+  qsmachine_step(machine);  /* resolve "*" to operation. */
+  qsmachine_step(machine);  /* apply operation "mul2". */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "-259-3i-3j+3k");
 }
 END_TEST
 
