@@ -61,7 +61,8 @@ extern int qsconst_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen
   Main use case is to allow writing to fd 2 (stderr) after heap exhaustion.
 */
 extern qsptr_t qsfd_make (qsmachine_t *, int fd);
-extern qsptr_t qsfd_open (qsmachine_t *, const char * path, int flags, int mode);
+extern qsptr_t qsfd_open (qsmachine_t *, qsptr_t path, int flags, int mode);
+extern qsptr_t qsfd_open_c (qsmachine_t *, const char * path, int flags, int mode);
 extern bool qsfd_p (const qsmachine_t *, qsptr_t p);
 extern int qsfd_id (const qsmachine_t *, qsptr_t p);
 extern bool qsfd_eof (const qsmachine_t *, qsptr_t p);

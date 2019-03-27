@@ -744,6 +744,138 @@ struct prims_table_s table1_ports[] = {
 };
 
 
+/* Primitives, sub-section: Ports, File Descriptor. */
+
+static qsptr_t qsprim_port_fd_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  bool b = qsfd_p(mach, arg0);
+  retval = qsbool_make(mach, b);
+  return retval;
+}
+
+static qsptr_t qsprim_make_fd (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  int fdnum = _integer_from(mach, arg0);
+  retval = qsfd_make(mach, fdnum);
+  return retval;
+}
+
+static qsptr_t qsprim_port_fd_open (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsptr_t arg2 = CAR(CDR(CDR(args)));
+  int flags = _integer_from(mach, arg1);
+  int mode = _integer_from(mach, arg2);
+  retval = qsfd_open(mach, arg0, flags, mode);
+  return retval;
+}
+
+static
+struct prims_table_s table1_ports_fd[] = {
+      { "port-fd?", qsprim_port_fd_p },
+      { "make-fd", qsprim_make_fd },
+      { "port-fd-open", qsprim_port_fd_open },
+      { NULL, NULL },
+};
+
+
+/* Primitives, sub-section: Ports, Standard C File. */
+
+static qsptr_t qsprim_port_file_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  bool b = qsfport_p(mach, arg0);
+  retval = qsbool_make(mach, b);
+  return retval;
+}
+
+static qsptr_t qsprim_port_file_open (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  const char * path = qsutf8_get(mach, arg0, 0);
+  if (! path) return retval;
+  const char * mode = qsutf8_get(mach, arg1, 0);
+  if (! mode) mode = "rt";
+
+  retval = qsfport_make(mach, path, mode);
+  return retval;
+}
+
+static qsptr_t qsprim_port_file_seek (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  size_t pos = _integer_from(mach, arg1);
+  retval = qsfport_seek(mach, arg0, pos);
+  return retval;
+}
+
+static qsptr_t qsprim_port_file_tell (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  size_t pos = qsfport_tell(mach, arg0);
+  retval = qsint_make(mach, pos);
+  return retval;
+}
+
+static qsptr_t qsprim_port_file_eof_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  bool b = qsfport_eof(mach, arg0);
+  retval = qsbool_make(mach, b);
+  return retval;
+}
+
+static
+struct prims_table_s table1_ports_file[] = {
+      { "port-file?", qsprim_port_file_p },
+      { "port-file-open", qsprim_port_file_open },
+      { "port-file_seek", qsprim_port_file_seek },
+      { "port-file-tell", qsprim_port_file_tell },
+      { "port-file-eof?", qsprim_port_file_eof_p },
+      { NULL, NULL },
+};
+
+
+/* Primitives, sub-section: Memory-port */
+
+static qsptr_t qsprim_port_mem_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  bool b = qsovport_p(mach, arg0);
+  retval = qsbool_make(mach, b);
+  return retval;
+}
+
+static qsptr_t qsprim_port_mem_open (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSERR_FAULT;
+  qsptr_t arg0 = CAR(args);
+  retval = qsovport_make(mach, arg0);
+  return retval;
+}
+
+static
+struct prims_table_s table1_ports_mem[] = {
+      { "port-mem?", qsprim_port_mem_p },
+      { "port-mem-open", qsprim_port_file_open },
+      { NULL, NULL },
+};
+
+
 
 
 /* Primitives: Kontinuation */
@@ -859,6 +991,10 @@ qsptr_t qsprimreg_presets_v1 (qsmachine_t * mach)
       table1_strings,
       table1_vectors,
       table1_bytevectors,
+      table1_ports,
+      table1_ports_fd,
+      table1_ports_file,
+      table1_ports_mem,
       table1_konts,
       NULL
   };

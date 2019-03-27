@@ -258,11 +258,25 @@ qsptr_t qsfd_make (qsmachine_t * mach, int val)
   return QSFD(val);
 }
 
-qsptr_t qsfd_open (qsmachine_t * mach, const char  * path, int flags, int mode)
+qsptr_t qsfd_open_c (qsmachine_t * mach, const char  * cpath, int flags, int mode)
 {
-  int fd = open(path, flags, mode);
+  qsptr_t retval = QSERR_FAULT;
+  int fd = open(cpath, flags, mode);
   if (fd < 0) return QSERR_FAULT;
-  return qsfd_make(mach, fd);
+  retval = qsfd_make(mach, fd);
+  return retval;
+}
+
+qsptr_t qsfd_open (qsmachine_t * mach, qsptr_t path, int flags, int mode)
+{
+  qsptr_t retval = QSERR_FAULT;
+  const char * cpath = NULL;
+  if (qsutf8_p(mach, path))
+    {
+      cpath = qsutf8_get(mach, path, NULL);
+      retval = qsfd_open_c(mach, cpath, flags, mode);
+    }
+  return retval;
 }
 
 bool qsfd_p (const qsmachine_t * mach, qsptr_t p)
@@ -2633,7 +2647,7 @@ qsptr_t qsport_make_c (qsmachine_t * mach, qsptr_t variant, const uint8_t * spec
 	      if (writeable) flags = O_RDWR | O_CREAT;
 	      if (appending) flags |= O_WRONLY;
 	      int mode = 0600;  /* Default permissions on create. */
-	      retval = qsfd_open(mach, spec, flags, 0600);
+	      retval = qsfd_open_c(mach, spec, flags, 0600);
 	      if (appending)
 		{
 		  int fd = qsfd_id(mach, retval);

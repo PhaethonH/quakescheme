@@ -847,9 +847,9 @@ START_TEST(test_ports)
   ck_assert_int_eq(b, 'o');
 
   /* FD port. */
-  port = qsfd_open(machine, "read1.txt", O_RDONLY, 0);
+  port = qsfd_open_c(machine, "read1.txt", O_RDONLY, 0);
   if (! qsfd_p(machine, port))
-    port = qsfd_open(machine, "tests/read1.txt", O_RDONLY, 0);
+    port = qsfd_open_c(machine, "tests/read1.txt", O_RDONLY, 0);
   ck_assert(qsfd_p(machine, port));
   b = qsfd_read_u8(machine, port);
   ck_assert_int_eq(b, 'h');
