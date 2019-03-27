@@ -175,6 +175,33 @@ extern double qsdouble_get (const qsmachine_t *, qsptr_t p);
 extern int qsdouble_fetch (const qsmachine_t *, qsptr_t p, double * out);
 extern int qsdouble_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Quaternions, vec4_t */
+/* Multiplying quaternions yields dot product as real and cross product as imaginary. */
+extern qsptr_t qsquat_make (qsmachine_t *, float a, float b, float c, float d);
+extern qsptr_t qsquat_make_f4 (qsmachine_t *, float q[4]);
+extern bool qsquat_p (const qsmachine_t *, qsptr_t p);
+extern const float * qsquat_get (const qsmachine_t *, qsptr_t p);
+extern int qsquat_fetch (const qsmachine_t *, qsptr_t p, float * out_vec4);
+extern float qsquat_ref (const qsmachine_t *, qsptr_t p, qsword nth);
+extern qsptr_t qsquat_setq (qsmachine_t *, qsptr_t p, qsword nth, float val);
+extern qserr_t qsquat_hold (qsmachine_t *, qsptr_t p);
+extern qserr_t qsquat_release (qsmachine_t *, qsptr_t p);
+extern int qsquat_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
+
+#if 0
+/* 4x4 Matrix (common in OpenGL) */
+extern qsptr_t qsmat4_make_c (qsmachine_t *, float m[16]);
+extern bool qsmat4_p (const qsmachine_t *, qsptr_t p);
+extern const float * qsmat4_get (const qsmachine_t *, qsptr_t p);
+extern int qsmat4_fetch (const qsmachine_t *, qsptr_t p, float * out_matrix);
+extern float qsmat4_ref (const qsmachine_t *, qsptr_t p, qsword nth);
+extern qsptr_t qsmat4_ref_c (const qsmachine_t *, qsptr_t p, qsword col, float * out_vec4[4]);
+extern qsptr_t qsmat4_ref_cr (const qsmachine_t *, qsptr_t p, qsword row, qsword col);
+extern qsptr_t qsmat4_setq (const qsmachine_t *, qsptr_t p, qsword nth, float val);
+extern qsptr_t qsmat4_set_cq (const qsmachine_t *, qsptr_t p, qsword row, float val[4]);
+extern qsptr_t qsmat4_set_crq (const qsmachine_t *, qsptr_t p, qsword row, qsword col, float val);
+#endif //0
+
 /* symbol object links symbol id (qsint) to symbol name (qsstring) */
 extern qsptr_t qsname_make (qsmachine_t *, qsword namelen);
 extern qsptr_t qsname_bless (qsmachine_t *, qsptr_t s);

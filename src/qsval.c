@@ -1524,6 +1524,146 @@ int qsdouble_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 }
 
 
+/* QsQuat (quaternions), vec4_t */
+const qsovec_t * qsquat_const (const qsmachine_t * mach, qsptr_t p)
+{
+  const qsovec_t * q = qsovec_const(mach, p);
+  if (! q) return NULL;
+  if (q->length != QSNUM_QUAT) return NULL;
+  return q;
+}
+
+qsovec_t * qsquat (qsmachine_t * mach, qsptr_t p)
+{
+  if (qsquat_const(mach, p))
+    {
+      return (qsovec_t*)(qsovec(mach, p));
+    }
+  return NULL;
+}
+
+qsptr_t qsquat_make (qsmachine_t * mach, float a, float b, float c, float d)
+{
+  int nbytes = 4 * sizeof(float);   /* presumably 16 */
+  qsptr_t p = qsovec_make(mach, 4 * sizeof(float), 0);
+  qsovec_t * q = qsovec(mach, p);
+  if (! q) return QSERR_NOMEM;
+  q->length = QSNUM_QUAT;
+  float * vec4 = (float*)(q->elt);
+  vec4[0] = a;
+  vec4[1] = b;
+  vec4[2] = c;
+  vec4[3] = d;
+  return p;
+}
+
+qsptr_t qsquat_make_f4 (qsmachine_t * mach, float q[4])
+{
+  return qsquat_make(mach, q[0], q[1], q[2], q[3]);
+}
+
+bool qsquat_p (const qsmachine_t * mach, qsptr_t p)
+{
+  return (qsquat_const(mach, p) != NULL);
+}
+
+const float * qsquat_get (const qsmachine_t * mach, qsptr_t p)
+{
+  const qsovec_t * q = qsquat_const(mach, p);
+  if (! q) return NULL;
+  const float * vec4 = (const float*)(q->elt);
+  return vec4;
+}
+
+int qsquat_fetch (const qsmachine_t * mach, qsptr_t p, float * out_vec4)
+{
+  const qsovec_t * q = qsquat_const(mach, p);
+  if (! q) return 0;
+  const float * vec4 = (const float*)(q->elt);
+  if (out_vec4)
+    {
+      out_vec4[0] = vec4[0];
+      out_vec4[1] = vec4[1];
+      out_vec4[2] = vec4[2];
+      out_vec4[3] = vec4[3];
+    }
+  return 4;
+}
+
+float qsquat_ref (const qsmachine_t * mach, qsptr_t p, qsword nth)
+{
+  const qsovec_t * q = qsquat_const(mach, p);
+  if (! q) return 0;
+  const float * vec4 = (const float*)(q->elt);
+  if ((0 <= nth) && (nth < 4))
+    {
+      return vec4[nth];
+    }
+  return 0;  /* all other axes are zero */
+}
+
+qsptr_t qsquat_setq (qsmachine_t * mach, qsptr_t p, qsword nth, float val)
+{
+  qsovec_t * q = qsquat(mach, p);
+  if (! q) return QSERR_FAULT;
+  float * vec4 = (float*)(q->elt);
+  if ((0 <= nth) && (nth <4))
+    {
+      vec4[nth] = val;
+    }
+  /* all other axes forced to zero. */
+  return p;
+}
+
+qserr_t qsquat_hold (qsmachine_t * mach, qsptr_t p)
+{
+  return qsovec_hold(mach, p);
+}
+
+qserr_t qsquat_release (qsmachine_t * mach, qsptr_t p)
+{
+  return qsovec_release(mach, p);
+}
+
+int qsquat_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
+{
+  int n = 0;
+  float vec4[4] = { 0, };
+  qsquat_fetch(mach, p, vec4);
+
+  n += qs_snprintf(buf+n, buflen-n, "%d", vec4[0]);
+
+  if (vec4[1] < 0)
+    {
+      n += qs_snprintf(buf+n, buflen-n, "%di", vec4[1]);
+    }
+  else
+    {
+      n += qs_snprintf(buf+n, buflen-n, "+%di", vec4[1]);
+    }
+
+  if (vec4[2] < 0)
+    {
+      n += qs_snprintf(buf+n, buflen-n, "%dj", vec4[2]);
+    }
+  else
+    {
+      n += qs_snprintf(buf+n, buflen-n, "+%dj", vec4[2]);
+    }
+
+  if (vec4[3] < 0)
+    {
+      n += qs_snprintf(buf+n, buflen-n, "%dk", vec4[3]);
+    }
+  else
+    {
+      n += qs_snprintf(buf+n, buflen-n, "+%dk", vec4[3]);
+    }
+
+  return n;
+}
+
+
 /* QsName: symbol name.  See qssym for comparing symbols by object id. */
 /* Heaped object: Name
    * prototype = ovec
@@ -3215,6 +3355,10 @@ int qsptr_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
       else if (qsdouble_p(mach, p))
 	{
 	  n += qsdouble_crepr(mach, p, buf+n, buflen-n);
+	}
+      else if (qsquat_p(mach, p))
+	{
+	  n += qsquat_crepr(mach, p, buf+n, buflen-n);
 	}
       else if (qscptr_p(mach, p))
 	{

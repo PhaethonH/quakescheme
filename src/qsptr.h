@@ -176,6 +176,8 @@ Word-Pointer expanding-tag encoding
 #define QSNUM_RATIONAL  QSCONST(1004)   /* Wideword, rational, pair of int32 */
 #define QSNUM_COMPLEX   QSCONST(1005)   /* Wideword, complex, pair of float32 */
 #define QSNUM_BIGNUM    QSCONST(1006)   /* Octetvector, bignum */
+#define QSNUM_QUAT      QSCONST(1007)   /* Quaternion, vec4_t */
+#define QSNUM_MAT4      QSCONST(1008)   /* Matrix 4x4 */
 /*  other enums for wideword */
 #define QSWIDE_CPTR     QSCONST(1010)   /* C pointer (void*) */
 #define QSWIDE_FILE     QSCONST(1010)   /* C File Pointer (FILE). */

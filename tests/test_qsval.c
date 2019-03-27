@@ -982,6 +982,37 @@ START_TEST(test_ports)
 }
 END_TEST
 
+START_TEST(test_quats)
+{
+  init();
+
+  qsptr_t p, q;
+  int res = 0;
+  qserr_t err;
+  typedef float vec4_t[4];
+  vec4_t fv0;
+  const float * fp;
+
+  /* quaternions. */
+  p = qsquat_make(machine, 0, 0, 0, 0);
+  ck_assert(qsquat_p(machine, p));
+  res = qsquat_fetch(machine, p, fv0); /* test fetch (copy out) */
+  ck_assert_int_eq(res, 4);
+  ck_assert(fv0[0] == 0);
+  ck_assert(fv0[1] == 0);
+  ck_assert(fv0[2] == 0);
+  ck_assert(fv0[3] == 0);
+
+  p = qsquat_make(machine, 2, 3, 5, 8);
+  ck_assert(qsquat_p(machine, p));
+  fp = qsquat_get(machine, p); /* test get (pointer to). */
+  ck_assert(fp[0] == 2);
+  ck_assert(fp[1] == 3);
+  ck_assert(fp[2] == 5);
+  ck_assert(fp[3] == 8);
+}
+END_TEST
+
 
 TESTCASE(case1,
   TFUNC(test_test1)
@@ -1000,6 +1031,7 @@ TESTCASE(case1,
   TFUNC(test_closures)
   TFUNC(test_konts)
   TFUNC(test_ports)
+  TFUNC(test_quats)
   TFUNC(test_test2)
   )
 
