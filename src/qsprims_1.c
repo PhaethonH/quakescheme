@@ -357,7 +357,7 @@ static qsptr_t qsprim_vector_setq (qsmachine_t * mach, qsptr_t args)
 /* TODO: Vector: vector-fill! */
 
 static
-struct prims_table_s table1_vectorss[] = {
+struct prims_table_s table1_vectors[] = {
       { "make-vector", qsprim_make_vector },
       { "vector-length", qsprim_vector_length },
       { "vector-ref", qsprim_vector_ref },
@@ -430,11 +430,78 @@ static qsptr_t qsprim_bytevector_u8_setq (qsmachine_t * mach, qsptr_t args)
 /* Bytevectors:string->utf8 */
 
 static
-struct prims_table_s table1_vectorss[] = {
+struct prims_table_s table1_bytevectors[] = {
       { "make-bytevector", qsprim_make_bytevector },
       { "bytevector-length", qsprim_bytevector_length },
       { "bytevector-u8-ref", qsprim_bytevector_u8_ref },
       { "bytevector-u8-set!", qsprim_bytevector_u8_setq },
+      { NULL, NULL },
+};
+
+
+
+
+/* Primitives: Kontinuation */
+
+static qsptr_t qsprim_kont_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  retval = qsbool_make(mach, qskont_p(mach, arg0));
+  return retval;
+}
+
+static qsptr_t qsprim_make_kont (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsptr_t arg2 = CAR(CDR(CDR(args)));
+  qsptr_t arg3 = CAR(CDR(CDR(CDR(args))));
+  retval = qskont_make(mach, arg0, arg1, arg2, arg3);
+  return retval;
+}
+
+static qsptr_t qsprim_kont_ref_v (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  retval = qskont_ref_v(mach, arg0);
+  return retval;
+}
+
+static qsptr_t qsprim_kont_ref_c (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  retval = qskont_ref_c(mach, arg0);
+  return retval;
+}
+
+static qsptr_t qsprim_kont_ref_e (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  retval = qskont_ref_e(mach, arg0);
+  return retval;
+}
+
+static qsptr_t qsprim_kont_ref_k (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  retval = qskont_ref_k(mach, arg0);
+  return retval;
+}
+
+static
+struct prims_table_s table1_konts[] = {
+      { "kont?", qsprim_kont_p },
+      { "make-kont", qsprim_make_kont },
+      { "kont-ref-v", qsprim_kont_ref_v },
+      { "kont-ref-c", qsprim_kont_ref_c },
+      { "kont-ref-e", qsprim_kont_ref_e },
+      { "kont-ref-k", qsprim_kont_ref_k },
       { NULL, NULL },
 };
 
@@ -481,6 +548,11 @@ qsptr_t qsprimreg_presets_v1 (qsmachine_t * mach)
   struct prims_table_s * concat[] = {
       table1,
       table1_typepredicates,
+      table1_pairs,
+      table1_symbols,
+      table1_vectors,
+      table1_bytevectors,
+      table1_konts,
       NULL
   };
 
