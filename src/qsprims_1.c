@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include "qsval.h"
 #include "qsmach.h"
 
@@ -288,9 +289,39 @@ static int _integer_from (qsmachine_t * mach, qsptr_t p)
   return 0;
 }
 
-/* Characters:char=? */
-/* Characters:char<? */
-/* Characters:char>? */
+static qsptr_t qsprim_char_eq_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsword codept0 = qschar_get(mach, arg0);
+  qsword codept1 = qschar_get(mach, arg1);
+  retval = qsbool_make(mach, (codept0 == codept1));
+  return retval;
+}
+
+static qsptr_t qsprim_char_lt_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsword codept0 = qschar_get(mach, arg0);
+  qsword codept1 = qschar_get(mach, arg1);
+  retval = qsbool_make(mach, (codept0 < codept1));
+  return retval;
+}
+
+static qsptr_t qsprim_char_gt_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsptr_t arg1 = CAR(CDR(args));
+  qsword codept0 = qschar_get(mach, arg0);
+  qsword codept1 = qschar_get(mach, arg1);
+  retval = qsbool_make(mach, (codept0 > codept1));
+  return retval;
+}
+
 /* Characters:char<=? */
 /* Characters:char>=? */
 /* Characters:char-ci=? */
@@ -298,12 +329,64 @@ static int _integer_from (qsmachine_t * mach, qsptr_t p)
 /* Characters:char-ci>? */
 /* Characters:char-ci<=? */
 /* Characters:char-ci>=? */
-/* Characters:char-alphabetic? */
-/* Characters:char-numeric? */
-/* Characters:char-whitespace? */
-/* Characters:char-upper-case? */
-/* Characters:char-lower-case? */
-/* Characters:digit-value */
+
+static qsptr_t qsprim_char_alphabetic_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = qschar_get(mach, arg0);
+  retval = qsbool_make(mach, isalpha(codepoint));
+  return retval;
+}
+
+static qsptr_t qsprim_char_numeric_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = qschar_get(mach, arg0);
+  retval = qsbool_make(mach, isdigit(codepoint));
+  return retval;
+}
+
+static qsptr_t qsprim_char_whitespace_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = qschar_get(mach, arg0);
+  retval = qsbool_make(mach, isspace(codepoint));
+  return retval;
+}
+
+static qsptr_t qsprim_char_upper_case_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = qschar_get(mach, arg0);
+  retval = qsbool_make(mach, isupper(codepoint));
+  return retval;
+}
+
+static qsptr_t qsprim_char_lower_case_p (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = qschar_get(mach, arg0);
+  retval = qsbool_make(mach, islower(codepoint));
+  return retval;
+}
+
+static qsptr_t qsprim_digit_value (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = qschar_get(mach, arg0);
+  if (isdigit(codepoint))
+    {
+      /* TODO: better mapping to value. */
+      retval = qsint_make(mach, codepoint-'0');
+    }
+  return retval;
+}
 
 static qsptr_t qsprim_char_to_integer (qsmachine_t * mach, qsptr_t args)
 {
@@ -323,14 +406,61 @@ static qsptr_t qsprim_integer_to_char (qsmachine_t * mach, qsptr_t args)
   return retval;
 }
 
-/* Characters:char-upcase */
-/* Characters:char-downcase */
-/* Characters:char-foldcase */
+static qsptr_t qsprim_char_upcase (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = _integer_from(mach, arg0);
+  retval = qschar_make(mach, toupper(codepoint));
+  return retval;
+}
+
+static qsptr_t qsprim_char_downcase (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = _integer_from(mach, arg0);
+  retval = qschar_make(mach, tolower(codepoint));
+  return retval;
+}
+
+static qsptr_t qsprim_char_foldcase (qsmachine_t * mach, qsptr_t args)
+{
+  qsptr_t retval = QSFALSE;
+  qsptr_t arg0 = CAR(args);
+  qsword codepoint = _integer_from(mach, arg0);
+  if (isupper(codepoint))
+    {
+      retval = qschar_make(mach, tolower(codepoint));
+    }
+  else if (islower(codepoint))
+    {
+      retval = qschar_make(mach, toupper(codepoint));
+    }
+  else
+    {
+      retval = arg0;
+    }
+  return retval;
+}
+
 
 static
 struct prims_table_s table1_chars[] = {
+      { "char=?", qsprim_char_eq_p },
+      { "char<?", qsprim_char_lt_p },
+      { "char>?", qsprim_char_gt_p },
+      { "char-alphabetic?", qsprim_char_alphabetic_p },
+      { "char-numeric?", qsprim_char_numeric_p },
+      { "char-whitespace?", qsprim_char_whitespace_p },
+      { "char-upper-case?", qsprim_char_upper_case_p },
+      { "char-lower-case?", qsprim_char_lower_case_p },
+      { "digit-value", qsprim_digit_value },
       { "char->integer", qsprim_char_to_integer },
       { "integer->char", qsprim_integer_to_char },
+      { "char-upcase", qsprim_char_upcase },
+      { "char-downcase", qsprim_char_downcase },
+      { "char-foldcase", qsprim_char_foldcase },
       { NULL, NULL },
 };
 
