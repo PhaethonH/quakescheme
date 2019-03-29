@@ -1,0 +1,94 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Small-Step CEK Machine in OCaml - Guannan Wei</title><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><meta name="description" content="CEK Machine is a kind of abstract machines for describing and executing functional languages. The CEK stands for three components of a machine state: Controls, Environments and Continuations. Original"><meta name="keywords" content="programming languages,interpreter,abstract machine"><meta property="og:type" content="article"><meta property="og:title" content="Small-Step CEK Machine in OCaml"><meta property="og:url" content="http://continuation.passing.style/2016/10/28/cek-machine/index.html"><meta property="og:site_name" content="Guannan Wei"><meta property="og:description" content="CEK Machine is a kind of abstract machines for describing and executing functional languages. The CEK stands for three components of a machine state: Controls, Environments and Continuations. Original"><meta property="og:locale" content="en"><meta property="og:updated_time" content="2018-08-29T02:08:11.354Z"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Small-Step CEK Machine in OCaml"><meta name="twitter:description" content="CEK Machine is a kind of abstract machines for describing and executing functional languages. The CEK stands for three components of a machine state: Controls, Environments and Continuations. Original"><link href="/webfonts/ptserif/main.css" rel="stylesheet" type="text/css"><link href="/webfonts/source-code-pro/main.css" rel="stylesheet" type="text/css"><link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atelier-cave-light.min.css"><link rel="stylesheet" href="/css/style.css"></head></html><body><div id="container"><header id="header"><div id="header-outer" class="outer"><div id="header-inner" class="inner"><a id="main-nav-toggle" class="nav-icon" href="javascript:;"></a> <a id="logo" class="logo logo-text" href="/">Guannan Wei</a><nav id="main-nav"><a class="main-nav-link" href="/">Home</a> <a class="main-nav-link" href="/research">Research</a> <a class="main-nav-link" href="/archives">Notes</a> <a class="main-nav-link" href="/gallery">Gallery</a></nav><nav id="sub-nav"><div id="search-form-wrap"><form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://continuation.passing.style"></form></div></nav></div></div></header><section id="main" class="outer"><article id="post-cek-machine" class="article article-type-post" itemscope itemprop="blogPost"><div class="article-inner"><header class="article-header"><h1 class="article-title" itemprop="name">Small-Step CEK Machine in OCaml</h1></header><div class="article-meta"><a href="/2016/10/28/cek-machine/" class="article-date"><time datetime="2016-10-28T04:00:00.000Z" itemprop="datePublished">2016-10-28</time></a></div><div class="article-entry" itemprop="articleBody"><p>CEK Machine is a kind of abstract machines for describing and executing functional languages. The <em>CEK</em> stands for three components of a machine state: <em>Controls</em>, <em>Environments</em> and <em>Continuations</em>. Originally, Landin proposed SECD machines which is the first abstract machine for evaluating lambda calculus in 1960s, and later Felleisen and Friedman derived CEK machine based on Reynolds’ definitional interrepters as a modern version of SECD machine. Comparing with SECD machines, CEK machines support tail-call properly which has a constant size of continuation when dealing with tail calls. In this post, I will talk about an OCaml implementation of CEK machines.</p><p>We start by defining the language that are accepted by a CEK machine. Essentially, it is a lambda calculus with integers as primitive type, as well as arithmetics on integers (such as plus and multiplication).</p><pre><code class="ocaml">module CEKMachine = struct
+  type var = string
+
+  type expr = 
+    | Int of int
+    | Var of var
+    | Lam of string * expr
+    | App of expr * expr
+    | Plus of expr * expr
+    | Mult of expr * expr
+
+</code></pre><p>The type <code>expression</code> represents reducible terms in our abstract machine, while the type <code>value</code> represents irreducible terms and has two canonical forms: integer numbers, or closures. We mutually define type <code>value</code> and type <code>env</code> by using keyword <code>and</code>. The environment is a map from variables to values. Here we implement the environment structure as an associated list, each element in the list is a pair of variable and value. We also define two auxiliary function <code>ext</code> and <code>lookup</code> to extend a new pair to an environment and to look up the value given a variable name.</p><pre><code class="ocaml">  type value = 
+    | Int of int
+    | Clo of expr * env
+  and env = (var * value) list
+
+  let ext var value env = (var, value)::env
+
+  exception UnboundedVariable of string
+
+  let rec lookup var = function
+    | [] -&gt; raise (UnboundedVariable var)
+    | (x, v)::env -&gt; if x = var then v else lookup var env
+
+</code></pre><p>The continuations are interesting in CEK machines. It represents the remaining computations we need to do afterwards. Continuations are chained, which means each continuation is associated with another continuation. The <code>Mt</code> continuation denotes halting, which has nothing left to do. The <code>Fn</code> and <code>Ar</code> continuation are used for handling function application. According to left-to-right call-by-value semantics, we need to evaluate the left-hand side of an application expression until we have a lambda term there, then we can proceed to evaluate the right-hand side, finally we go into the body of the lambda term with an extended environment. So the <code>Fn</code> continuation denotes we hold a lambda term for the function posistion (left-hand side), and the <code>Ar</code> continuation represents we hold the expression coming from the argument position (right-hand side).</p><p>Without loosing generality, we use a single continuation <code>Op</code> to represent the continuations of different primitive operators. It consists of four components: 1) an <code>op</code> components denotes the operator, 2) a list that contains values of evaluated arguments, 3) a list of closures that represents remaining arguments, and 4) the next continuation. The type <code>op</code> is an type alias of a function type <code>int -&gt; int -&gt; int</code>.</p><pre><code class="ocaml">  type op = int -&gt; int -&gt; int
+
+  let plusOp = fun x y -&gt; x + y
+  let multOp = fun x y -&gt; x * y
+
+  type cont = 
+    | Mt
+    | Fn of expr * env * cont
+    | Ar of expr * env * cont
+    | Op of op * value list * (expr * env) list * cont
+</code></pre><p>Now the state of the machine can be represented as a product type of <code>control</code>, <code>env</code> and <code>cont</code>. For readability, we rename <code>expr</code> as <code>control</code>.</p><pre><code class="ocaml">  type control = expr
+  type state = control * env * cont
+</code></pre><p>The following function defines the single-step transitions. The first transition is saying that given a variable at the control position, we need to lookup its corresponding value from current environment. If the value is a closure, then we use the environment of the closure as the environment of the new state, and use the lambda term as control of the new state. If the value is an integer, then we just use it as control of the next state.</p><p>The second and third rules are handling primitive operations. We use the term at the left-hand side as control of the next state, and generate a new continuation which saves the operation, the rest of the arguments and current continuation. The fourth rule applies when we have an integer as control, and an <code>Op</code> continuation holds the second argument. Then we transfer the control to the second argument and save the integer of first arugment. The fifth rule is just doing the arithmetic when we have both integers of the first and second arugments.</p><p>Handling application applies the rules 6, 7, 8 and 9. As we mentioned before, the rule 6 constructs a new continuation <code>Ar</code> which holds the second term of the application. In rule 7, when we have a lambda term as control, then we start evaluating the second term that is saved in <code>Ar</code>, as well as save the lambda term to <code>Fn</code>. Rules 8 and 9 are different cases of evaluation of the second term. In either case, we transfer the body of lambda and extend the environment with <code>x</code> mapping to its value where the <code>x</code> is the variable name of lambda term, and the value is a closure if we have a lambda term comes from the second position, otherwise the value is just an integer.</p><p>The states except we described above are all illegal state, we raise an exception.</p><pre><code class="ocaml">  exception IllegalState
+
+  let step state = match state with
+    | (Var x, env, k) -&gt; (match lookup x env with
+       | Clo (lam, env&#39;) -&gt; (lam, env&#39;, k)
+       | Int x -&gt; (Int x, env, k))
+    | (Plus (e1, e2), env, k) 
+      -&gt; (e1, env, Op (OpPlus, [], [(e2, env)], k))
+    | (Mult (e1, e2), env, k) 
+      -&gt; (e1, env, Op (OpMult, [], [(e2, env)], k))
+    | (Int x, env, Op (op, [], [(e2,env&#39;)], k)) 
+      -&gt; (e2, env&#39;, Op (op, [(Int x)], [], k))
+    | (Int x, env, Op (op, [(Int y)], [], k)) 
+      -&gt; (Int (op x y), [], k)
+    | (App (e1, e2), env, k) 
+      -&gt; (e1, env, Ar (e2, env, k))
+    | (Lam (x, body), env, Ar (e2, env&#39;, k)) 
+      -&gt; (e2, env&#39;, Fn (Lam (x, body), env, k))
+    | (Lam (_,_) as lam, env, Fn (Lam (x, body), env&#39;, k)) 
+      -&gt; (body, ext x (Clo (lam, env)) env&#39;, k)
+    | (Int i, env, Fn (Lam (x, body), env&#39;, k))
+      -&gt; (body, ext x (Int i) env&#39;, k)
+    | s -&gt; raise IllegalState
+</code></pre><p>A helper function for running the CEK machine is defined. Function <code>inject</code> returns an initial machine state given an expression. Funtion <code>run</code> takes an expression and turns it to a machine state, then start evaluation from this state according to the single-step transition rules. The machine terminates if it encounters a state which the <code>control</code> is a value and the <code>continuation</code> is <code>Mt</code>; otherwise the machine uses <code>step</code> to obtain the next state and invoke <code>aux_run</code> recursively.</p><pre><code class="ocaml">  let inject e = (e, [], Mt)
+
+  let run e =
+    let rec aux_run state = 
+      match step state with
+      | (Int i, e, Mt) -&gt; string_of_int i
+      | (Lam (_,_), e, Mt) -&gt; &quot;closure&quot;
+      | (c, e, k) as state&#39; -&gt; aux_run state&#39;;
+    in aux_run (inject e)
+  end
+</code></pre><p>Here are some test. The first example <code>ex1</code> is just a <code>3 + 4</code>, and the second one is <code>(+ ((lambda (x) (+ x 4)) 3) ((lambda (z) (+ z 5)) 6))</code>. And note that the language and CEK machine is turing complete: it allows non-terminating computation such as <code>((lambda (x) (x x)) (lambda (x) (x x)))</code>, as the third example.</p><pre><code class="ocaml">open CEKMachine
+
+let ex1 = Plus (Int 3, Int 4);;
+
+let ex2 = Plus (App (Lam (&quot;x&quot;, Plus (Var &quot;x&quot;, Int 4)), Int 3), 
+                App (Lam (&quot;z&quot;, Plus (Var &quot;z&quot;, Int 5)), Int 6));;
+
+let nonter = App ((Lam (&quot;x&quot;, App (Var &quot;x&quot;, Var &quot;x&quot;))),
+                  (Lam (&quot;x&quot;, App (Var &quot;x&quot;, Var &quot;x&quot;))));;
+
+print_string (run ex2);;
+</code></pre></div><footer class="article-footer"><ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/abstract-machine/">abstract machine</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/interpreter/">interpreter</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/programming-languages/">programming languages</a></li></ul></footer></div><nav id="article-nav"><a href="/2017/02/07/understanding-cps/" id="article-nav-newer" class="article-nav-link-wrap"><div class="article-nav-title"><span>&lt;</span>&nbsp; On Continuation-Passing Style</div></a><a href="/2016/07/23/system-f/" id="article-nav-older" class="article-nav-link-wrap"><div class="article-nav-title">Type Checker and Interpreter for System F&nbsp;<span>&gt;</span></div></a></nav></article><section id="comments"><div id="disqus_thread"><noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript></div></section></section><footer id="footer"><div class="outer"><div id="footer-info" class="inner">&copy; 2019 Guannan Wei&nbsp; Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>, theme by <a href="http://github.com/ppoffice">PPOffice</a></div></div></footer><script>var disqus_shortname="kraksnotes",disqus_url="http://continuation.passing.style/2016/10/28/cek-machine/";!function(){var e=document.createElement("script");e.type="text/javascript",e.async=!0,e.src="//"+disqus_shortname+".disqus.com/embed.js",(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(e)}()</script><script src="/js/jquery.min.js"></script><script src="http://masonry.desandro.com/masonry.pkgd.js"></script><script src="/js/highlight.pack.js"></script><script type="text/javascript">hljs.initHighlightingOnLoad()</script><script type="text/x-mathjax-config">MathJax.Hub.Config({
+  tex2jax: { inlineMath: [['$','$'], ['\\(','\\)']] },
+  "HTML-CSS": { fonts: ["STIX"] },
+  SVG: { font: "STIX-Web" },
+  TeX: { Augment: {
+    Definitions: {
+      delimiter: {
+        '\\llbracket': '27E6',
+        '\\rrbracket': '27E7'
+      }
+    }
+  }},
+  processEscapes: true
+});</script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><link rel="stylesheet" href="/fancybox/jquery.fancybox.css"><script src="/fancybox/jquery.fancybox.pack.js"></script><script src="/js/script.js"></script></div></body>
