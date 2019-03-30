@@ -253,13 +253,25 @@ extern qsptr_t qsenv_insert (qsmachine_t *, qsptr_t env, qsptr_t variable, qsptr
 extern qsptr_t qsenv_lookup (qsmachine_t *, qsptr_t env, qsptr_t variable);
 extern int qsenv_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
-extern qsptr_t qskont_make (qsmachine_t *, qsptr_t variant, qsptr_t c, qsptr_t e, qsptr_t k);
+/*
+QsKont:
+0 [ mgmt(ptr,1)   | variant       | gcback        | gciter        ]
+QsKont.letk:
+1 [ v             | c             | e             | k             ]
+QsKont.callk:
+1 [ accumulated   | pending       | e             | k             ]
+*/
+extern qsptr_t qskont_make (qsmachine_t *, qsptr_t variant, qsptr_t v, qsptr_t c, qsptr_t e, qsptr_t k);
 extern qsptr_t qskont_make_current (qsmachine_t *);
 extern bool qskont_p (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qskont_ref_v (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qskont_ref_c (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qskont_ref_e (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qskont_ref_k (const qsmachine_t *, qsptr_t p);
+extern qsptr_t qskont_set_vq (qsmachine_t *, qsptr_t p, qsptr_t val);
+extern qsptr_t qskont_set_cq (qsmachine_t *, qsptr_t p, qsptr_t val);
+extern qsptr_t qskont_set_eq (qsmachine_t *, qsptr_t p, qsptr_t val);
+extern qsptr_t qskont_set_kq (qsmachine_t *, qsptr_t p, qsptr_t val);
 extern int qskont_fetch (const qsmachine_t *, qsptr_t p, qsptr_t * out_v, qsptr_t * out_c, qsptr_t * out_e, qsptr_t * out_k);
 extern int qskont_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 

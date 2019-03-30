@@ -931,7 +931,7 @@ static qsptr_t qsprim_make_kont (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg1 = CAR(CDR(args));
   qsptr_t arg2 = CAR(CDR(CDR(args)));
   qsptr_t arg3 = CAR(CDR(CDR(CDR(args))));
-  retval = qskont_make(mach, arg0, arg1, arg2, arg3);
+  retval = qskont_make(mach, QSKONT_LETK, arg0, arg1, arg2, arg3);
   return retval;
 }
 

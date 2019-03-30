@@ -152,8 +152,7 @@ Word-Pointer expanding-tag encoding
 #define QSEOL           QSCONST(5)
 #define QSLAMBDA        QSCONST(6)
 #define QSCLO           QSCONST(7)
-#define QSKONT          QSCONST(8)
-#define QSEOF           QSCONST(9)
+#define QSEOF           QSCONST(8)
 
 /*  Infinities, positive and negative. */
 #define QSINF           QSCONST(10)
@@ -162,11 +161,16 @@ Word-Pointer expanding-tag encoding
 #define QSNAN           QSCONST(12)
 #define QSNNAN          QSCONST(13)
 
-#define QSPORT_CLOSED   QSCONST(20)
-#define QSPORT_FD       QSCONST(21)
-#define QSPORT_CFILE    QSCONST(22)
-#define QSPORT_BYTEVEC  QSCONST(24)
-#define QSPORT_CHARP    QSCONST(26)
+#define QSKONT_LETK     QSCONST(20)
+#define QSKONT_CALLK    QSCONST(21)
+#define ISKONT(x)       ((x)==QSKONT_LETK || (x)==QSKONT_CALLK)
+
+#define QSPORT_CLOSED   QSCONST(30)
+#define QSPORT_FD       QSCONST(31)
+#define QSPORT_CFILE    QSCONST(32)
+#define QSPORT_CHARRAY  QSCONST(33)
+#define QSPORT_BYTEVEC  QSCONST(34)
+#define QSPORT_CHARP    QSCONST(36)
 
 /*  Numeric tower types, for type coercion. */
 #define QSNUM_INT       QSCONST(1000)   /* word, int30 */

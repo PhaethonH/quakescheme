@@ -199,7 +199,7 @@ int qsmachine_step (qsmachine_t * mach)
 	  qsptr_t exp = CAR(CDR(CAR(bindings)));
 	  qsptr_t E = mach->E;
 	  qsptr_t K = mach->K;
-	  qsptr_t letk = qskont_make(mach, variable, body, E, K);
+	  qsptr_t letk = qskont_make(mach, QSKONT_LETK, variable, body, E, K);
 	  mach->C = exp;
 	  /* preserve/maintain E */
 	  mach->K = letk;

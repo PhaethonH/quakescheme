@@ -767,7 +767,7 @@ START_TEST(test_konts)
 
   /* (make-continuation () x () ()) */
   qsptr_t y_x = qssymbol_intern_c(machine, "x", 0);
-  qsptr_t k = qskont_make(machine, QSNIL, y_x, QSNIL, QSNIL);
+  qsptr_t k = qskont_make(machine, QSKONT_LETK, QSNIL, y_x, QSNIL, QSNIL);
 
   p = qskont_ref_v(machine, k);
   ck_assert_int_eq(p, QSNIL);

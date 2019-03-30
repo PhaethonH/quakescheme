@@ -2259,7 +2259,7 @@ const qspvec_t * qskont_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qspvec_const(mach, p);
   if (!pvec) return NULL;
-  if (pvec->length != QSKONT) return NULL;
+  if (pvec->length != QSKONT_LETK) return NULL;
   return pvec;
 }
 
@@ -2273,13 +2273,13 @@ qspvec_t * qskont (qsmachine_t * mach, qsptr_t p)
 }
 
 /* arbitrary continuation */
-qsptr_t qskont_make (qsmachine_t * mach, qsptr_t variant, qsptr_t c, qsptr_t e, qsptr_t k)
+qsptr_t qskont_make (qsmachine_t * mach, qsptr_t variant, qsptr_t v, qsptr_t c, qsptr_t e, qsptr_t k)
 {
   qsptr_t p = qspvec_make(mach, 4, QSNIL);
   qspvec_t * pvec = qspvec(mach, p);
   if (! pvec) return QSERR_NOMEM;
-  pvec->length = QSKONT;
-  pvec->elt[0] = variant;
+  pvec->length = variant;
+  pvec->elt[0] = v;
   pvec->elt[1] = c;
   pvec->elt[2] = e;
   pvec->elt[3] = k;
@@ -2289,7 +2289,7 @@ qsptr_t qskont_make (qsmachine_t * mach, qsptr_t variant, qsptr_t c, qsptr_t e, 
 /* current-continuation */
 qsptr_t qskont_make_current (qsmachine_t * mach)
 {
-  return qskont_make(mach, QSNIL, mach->C, mach->E, mach->K);
+  return qskont_make(mach, QSKONT_LETK, QSNIL, mach->C, mach->E, mach->K);
 }
 
 bool qskont_p (const qsmachine_t * mach, qsptr_t p)
@@ -2335,7 +2335,7 @@ int qskont_fetch (const qsmachine_t * mach, qsptr_t p, qsptr_t * out_v, qsptr_t 
   return n;
 }
 
-qsptr_t qskont_setq_v (qsmachine_t * mach, qsptr_t p, qsptr_t val)
+qsptr_t qskont_set_vq (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qspvec_t * kont = qskont(mach, p);
   if (!kont) return QSERR_FAULT;
@@ -2343,7 +2343,7 @@ qsptr_t qskont_setq_v (qsmachine_t * mach, qsptr_t p, qsptr_t val)
   return p;
 }
 
-qsptr_t qskont_setq_c (qsmachine_t * mach, qsptr_t p, qsptr_t val)
+qsptr_t qskont_set_cq (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qspvec_t * kont = qskont(mach, p);
   if (!kont) return QSERR_FAULT;
@@ -2351,7 +2351,7 @@ qsptr_t qskont_setq_c (qsmachine_t * mach, qsptr_t p, qsptr_t val)
   return p;
 }
 
-qsptr_t qskont_setq_e (qsmachine_t * mach, qsptr_t p, qsptr_t val)
+qsptr_t qskont_set_eq (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qspvec_t * kont = qskont(mach, p);
   if (!kont) return QSERR_FAULT;
@@ -2359,7 +2359,7 @@ qsptr_t qskont_setq_e (qsmachine_t * mach, qsptr_t p, qsptr_t val)
   return p;
 }
 
-qsptr_t qskont_setq_k (qsmachine_t * mach, qsptr_t p, qsptr_t val)
+qsptr_t qskont_set_kq (qsmachine_t * mach, qsptr_t p, qsptr_t val)
 {
   qspvec_t * kont = qskont(mach, p);
   if (!kont) return QSERR_FAULT;
