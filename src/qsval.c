@@ -2297,6 +2297,32 @@ bool qskont_p (const qsmachine_t * mach, qsptr_t p)
   return (qskont_const(mach, p) != NULL);
 }
 
+bool qskont_halt_p (const qsmachine_t * mach, qsptr_t p)
+{
+  return qsnil_p(mach, p);
+}
+
+bool qskont_letk_p (const qsmachine_t * mach, qsptr_t p)
+{
+  const qspvec_t * kont = qskont_const(mach, p);
+  if (!kont) return false;
+  return (kont->length == QSKONT_LETK);
+}
+
+bool qskont_applyk_p (const qsmachine_t * mach, qsptr_t p)
+{
+  const qspvec_t * kont = qskont_const(mach, p);
+  if (!kont) return false;
+  return (kont->length == QSKONT_APPLYK);
+}
+
+qsptr_t qskont_ref_variant (const qsmachine_t * mach, qsptr_t p)
+{
+  const qspvec_t * kont = qskont_const(mach, p);
+  if (!kont) return QSERR_FAULT;
+  return kont->length;
+}
+
 qsptr_t qskont_ref_v (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * kont = qskont_const(mach, p);
@@ -2325,9 +2351,10 @@ qsptr_t qskont_ref_k (const qsmachine_t * mach, qsptr_t p)
   return kont->elt[3];
 }
 
-int qskont_fetch (const qsmachine_t * mach, qsptr_t p, qsptr_t * out_v, qsptr_t * out_c, qsptr_t * out_e, qsptr_t * out_k)
+int qskont_fetch (const qsmachine_t * mach, qsptr_t p, qsptr_t * out_type, qsptr_t * out_v, qsptr_t * out_c, qsptr_t * out_e, qsptr_t * out_k)
 {
   int n = 0;
+  if (out_type) { *out_type = qskont_ref_variant(mach, p); n++; }
   if (out_v) { *out_v = qskont_ref_v(mach, p); n++; }
   if (out_c) { *out_c = qskont_ref_c(mach, p); n++; }
   if (out_e) { *out_e = qskont_ref_e(mach, p); n++; }

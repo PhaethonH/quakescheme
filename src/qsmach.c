@@ -97,17 +97,79 @@ int qsmachine_applyproc (qsmachine_t * mach, qsptr_t proc, qsptr_t values)
 
 int qsmachine_applykont (qsmachine_t * mach, qsptr_t k, qsptr_t value)
 {
-  if (qsnil_p(mach, k))
+  if (qskont_halt_p(mach, k))
     {
       /* halt */
       mach->A = value;
       mach->halt = true;
       return 0;
     }
-  else
+  else if (qskont_applyk_p(mach, k))
     {
-      qsptr_t k_v, k_c, k_e, k_k;
-      qskont_fetch(mach, k, &k_v, &k_c, &k_e, &k_k);
+      qsptr_t k_t, k_v, k_c, k_e, k_k;
+      qskont_fetch(mach, k, &k_t, &k_v, &k_c, &k_e, &k_k);
+      /* v = built, c = pending, e = env-to-eval-c, k = kont */
+      if (qsnil_p(mach, k_c))
+	{
+	  /* applykont([built], [], env, kont) -> (C=[built], E=env, K=kont) */
+	  /* no more pending, continue evaluating list form. */
+	  /* k_v needs to be reversed. */
+	  mach->C = k_v;
+	  mach->E = k_e;
+	  mach->K = k_k;
+	  qsptr_t head = CAR(k_v);
+	  qsptr_t args = CDR(k_v);
+	  if (qsprim_p(mach, head))
+	    {
+	      /* shift to C to evaluate next cycle as atomic expression. */
+	      mach->C = mach->A;
+	    }
+	  else if (qsclosure_p(mach, head))
+	    {
+	      /* evaluate closure, handled as atomic expression. */
+	      qsptr_t proc = CAR(mach->A);
+	      qsptr_t args = CDR(mach->A);
+	      qsmachine_applyproc(mach, proc, args);
+	    }
+	  else if (qskont_p(mach, head))
+	    {
+	      /* evaluate continuation. */
+	      qsptr_t cc = CAR(mach->A);
+	      qsptr_t a = CAR(CDR(mach->A));
+	      qsptr_t k = qskont_ref_k(mach, cc);
+	      qsmachine_applykont(mach, k, a);
+	    }
+	  else
+	    {
+	      /* error */
+	      mach->halt = true;
+	    }
+	}
+      else
+	{
+	  /* applykont([built], [p0 :: pending], env, kont) ->
+             (C=p0, E=env, K') : K'=applykont([a::build], [pending], env, kont)
+	     */
+	  /* chain into continuation. */
+	  mach->C = CAR(k_c);
+	  mach->E = k_e;
+	  if (1) /* allow mutation of existing continuation. */
+	    {
+	      qskont_set_vq(mach, k, qspair_make(mach, value, k_v));
+	    }
+	  else /* restrict to immutable. */
+	    {
+	      qsptr_t built2 = qspair_make(mach, value, k_v);
+	      qsptr_t pending2 = CDR(k_c);
+	      k = qskont_make(mach, QSKONT_APPLYK, built2, pending2, k_e, k_k);
+	    }
+	  mach->K = k;
+	}
+    }
+  else if (qskont_letk_p(mach, k))
+    {
+      qsptr_t k_t, k_v, k_c, k_e, k_k;
+      qskont_fetch(mach, k, &k_t, &k_v, &k_c, &k_e, &k_k);
       if (qssym_p(mach, k_v) || qsname_p(mach, k_v))
 	{
 	  /* assigned to variable in environment. */
@@ -116,6 +178,7 @@ int qsmachine_applykont (qsmachine_t * mach, qsptr_t k, qsptr_t value)
 	}
       else
 	{
+	  /* ignore assignment. */
 	  mach->E = k_e;
 	}
       mach->C = k_c;
@@ -238,6 +301,18 @@ int qsmachine_step (qsmachine_t * mach)
 	  qsptr_t cc = qskont_make_current(mach);
 	  qsptr_t args = qspair_make(mach, cc, QSNIL);
 	  qsmachine_applyproc(mach, proc, args);
+	}
+      else if (0)
+	{
+	  /* else maybe procedure call. */
+	  /* initiate applyk continuation. */
+	  qsptr_t k = QSNIL;
+	  qsptr_t exp1 = CAR(args);
+	  qsptr_t pending = CDR(args);
+	  qsptr_t variant = QSKONT_APPLYK;
+	  k = qskont_make(mach, variant, QSNIL, pending, mach->E, mach->K);
+	  mach->C = exp1;
+	  mach->K = k;
 	}
       else
 	{
