@@ -76,7 +76,7 @@ int qsmachine_applyproc (qsmachine_t * mach, qsptr_t proc, qsptr_t values)
 	{
 	  qsptr_t formal = qsiter_head(mach, paramiter);
 	  qsptr_t value = qsiter_head(mach, argiter);
-	  env = qsenv_insert(mach, env, formal, value);
+	  frame = qsenv_insert(mach, frame, formal, value);
 	  paramiter = qsiter_tail(mach, paramiter);
 	  argiter = qsiter_tail(mach, argiter);
 	}
@@ -85,7 +85,7 @@ int qsmachine_applyproc (qsmachine_t * mach, qsptr_t proc, qsptr_t values)
 	  /* TODO: parameter mismatch. */
 	}
       mach->C = body;
-      mach->E = env;
+      mach->E = frame;
       mach->K = mach->K;
     }
   else
