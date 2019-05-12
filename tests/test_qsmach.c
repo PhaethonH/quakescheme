@@ -310,7 +310,7 @@ START_TEST(test_prims1)
   /* Standalone primitives. */
   init();
 
-  qsptr_t prims1 = qsprimreg_presets_v1(machine);
+  qsptr_t prims1 = qsprimreg_presets_v0(machine);
   qsptr_t a = qsint_make(machine, 8);
   qsptr_t b = qsint_make(machine, 3);
   qsptr_t p = qspair_make(machine, a, qspair_make(machine, b, QSNIL));
@@ -327,7 +327,7 @@ START_TEST(test_prims1)
   qsptr_t y_add2 = qssymbol_intern_c(machine, "add2", 0);
   qsptr_t y_sub2 = qssymbol_intern_c(machine, "sub2", 0);
   qsptr_t y_mul2 = qssymbol_intern_c(machine, "mul2", 0);
-  prims1 = qsprimreg_presets_v1(machine);
+  prims1 = qsprimreg_presets_v0(machine);
   p = CONS(y_add2,
       CONS(QSINT(2),
       CONS(QSINT(3), QSNIL)));

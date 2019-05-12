@@ -34,6 +34,7 @@ extern qsmachine_t * qsmachine_destroy (qsmachine_t *);
 
 extern qsstore_t * qsmachine_get_store (qsmachine_t *);
 
+extern int qsmachine_display (qsmachine_t *, qsptr_t p);
 extern int qsmachine_step (qsmachine_t *);
 extern int qsmachine_load (qsmachine_t *, qsptr_t C, qsptr_t E, qsptr_t K);
 extern int qsmachine_applykont (qsmachine_t *, qsptr_t k, qsptr_t value);
@@ -45,6 +46,7 @@ extern int qsprimreg_register (qsmachine_t *, qsprim_f op);
 extern int qsprimreg_install (qsmachine_t *, int nth, qsprim_f op);
 extern qsprim_f qsprimreg_get (const qsmachine_t *, int nth);
 extern int qsprimreg_find (const qsmachine_t *, qsprim_f cfunc);
+extern qsptr_t qsprimreg_presets_v0 (qsmachine_t *);
 extern qsptr_t qsprimreg_presets_v1 (qsmachine_t *);
 
 /* Operations on (proper) Lists. */

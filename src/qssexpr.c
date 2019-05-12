@@ -336,3 +336,51 @@ qsptr_t qssexpr_parse_cstr (qsheap_t * mem, int version, const char * srcstr, co
 #endif //0
 
 
+#if 1
+/* Read one Scheme value from C string. */
+qsptr_t qssexpr_parse_cstr (qsmachine_t * mach, int version, const char * srcstr, const char ** endptr)
+{
+  qsptr_t retval = QSBLACKHOLE;
+  int ch = 0;
+  int scan = 0;
+  int halt = 0;
+  int srclen = 0;
+  struct qssxparse_s _parser = { 0, }, *parser = &_parser;
+#if 0
+  mbstate_t ps = { 0, };
+  wchar_t widechar;
+  int wideres = 0;
+#endif //0
+
+  qssxparse_init(parser, version, mach);
+  srclen = strlen(srcstr);
+
+  while (! halt)
+    {
+      if (srcstr[scan])
+	{
+#if 0
+	  wideres = mbrtowc(&widechar, srcstr + scan, srclen - scan + 1, &ps);
+	  /* TODO: error: invalid multibyte sequence. */
+	  if (wideres < 0) return QSERROR_INVALID;
+	  scan += wideres;
+	  ch = widechar;
+#else
+	  ch = srcstr[scan];
+	  scan++;
+#endif //0
+	}
+      else
+	{ /* end of stream, yield nul */
+	  ch = 0;
+	}
+
+      halt = qssxparse_feed(parser, ch, &retval);
+    }
+  if (endptr)
+    {
+      *endptr = srcstr + scan;
+    }
+  return retval;
+}
+#endif //0

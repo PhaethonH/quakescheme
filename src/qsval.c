@@ -446,25 +446,29 @@ int qserr_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
   qsword err_id = CERR20(p);
   const char * symbolic = "";
 
-  switch (err_id)
+  switch (p)
     {
     case QSERR_OK:
-      symbolic = " OK";
+      symbolic = "OK";
       break;
     case QSERR_NOMEM:
-      symbolic = " NOMEM";
+      symbolic = "NOMEM";
       break;
     case QSERR_UNBOUND:
-      symbolic = " UNBOUND";
+      symbolic = "UNBOUND";
       break;
     case QSERR_FAULT:
-      symbolic = " FAULT";
+      symbolic = "FAULT";
+      break;
+    case QSERR_NOIMPL:
+      symbolic = "NOIMPL";
       break;
     default:
+      symbolic = "?";
       break;
     }
 
-  n += qs_snprintf(buf+n, buflen-n, "#<err %d>", err_id);
+  n += qs_snprintf(buf+n, buflen-n, "#<err %d %s>", err_id, symbolic);
   return n;
 }
 

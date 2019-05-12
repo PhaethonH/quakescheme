@@ -20,7 +20,7 @@ extern int qssexpr_logv (const char * fmt, va_list vp);
 extern int qssexpr_log (const char * fmt, ...);
 
 /* Main entry point: read one S-expression term from string. */
-//qsptr_t qssexpr_parse_cstr (qsheap_t * mem, int version, const char * cstr, const char ** endptr);
+qsptr_t qssexpr_parse_cstr (qsmachine_t * mach, int version, const char * cstr, const char ** endptr);
 
 
 /* Parser state information and ruleset handle. */

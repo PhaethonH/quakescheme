@@ -2941,8 +2941,9 @@ struct prims_table_s table1_arithmetic[] = {
 
 
 
+/* for testing invocation of primitives. */
 static
-struct prims_table_s table1[] = {
+struct prims_table_s table0[] = {
       { "halt", qsprim_halt },
       { "+", qsprim_add2 },
       { NULL, NULL },
@@ -2950,6 +2951,66 @@ struct prims_table_s table1[] = {
 
 
 
+
+qsptr_t qsprimreg_presets_v0 (qsmachine_t * mach)
+{
+  qsptr_t primenv = qsenv_make(mach, QSNIL);
+  qsptr_t y = QSNIL;
+  int primid = 0;
+  qsptr_t prim = QSNIL;
+
+  struct prims_table_s * concat[] = {
+      table0,
+      table1_typepredicates,
+      table1_pairs,
+      table1_symbols,
+      table1_chars,
+      table1_strings,
+      table1_vectors,
+      table1_bytevectors,
+      table1_ports,
+      table1_ports_fd,
+      table1_ports_file,
+      table1_ports_mem,
+      table1_konts,
+      table1_numtypes,
+      table1_arithmetic,
+      NULL
+  };
+
+  struct prims_table_s ** concatiter = NULL;
+  for (concatiter = concat; *concatiter; ++concatiter)
+    {
+      struct prims_table_s * primiter = NULL;
+      for (primiter = *concatiter; primiter->name; ++primiter)
+	{
+	  const char * name = primiter->name;
+	  qsprim_f op = primiter->op;
+	  /* Avoid double-registering. */
+	  primid = qsprimreg_find(mach, op);
+	  if (primid < 0)
+	    {
+	      /* Not found in registray, add now. */
+	      primid = qsprimreg_register(mach, op);
+	    }
+	  y = qssymbol_intern_c(mach, name, 0);
+	  prim = qsprim_make(mach, primid);
+	  primenv = qsenv_insert(mach, primenv, y, prim);
+	}
+    }
+
+  qsptr_t y_stdin = qssymbol_intern_c(mach, "*current-input-port*", 0);
+  qsptr_t y_stdout = qssymbol_intern_c(mach, "*current-output-port*", 0);
+  qsptr_t y_stderr = qssymbol_intern_c(mach, "*current-error-port*", 0);
+  qsptr_t p_stdin = qsfd_make(mach, 0);
+  qsptr_t p_stdout = qsfd_make(mach, 1);
+  qsptr_t p_stderr = qsfd_make(mach, 0);
+  primenv = qsenv_insert(mach, primenv, y_stdin, p_stdin);
+  primenv = qsenv_insert(mach, primenv, y_stdout, p_stdout);
+  primenv = qsenv_insert(mach, primenv, y_stderr, p_stderr);
+
+  return primenv;
+}
 
 qsptr_t qsprimreg_presets_v1 (qsmachine_t * mach)
 {
@@ -2959,7 +3020,6 @@ qsptr_t qsprimreg_presets_v1 (qsmachine_t * mach)
   qsptr_t prim = QSNIL;
 
   struct prims_table_s * concat[] = {
-      table1,
       table1_typepredicates,
       table1_pairs,
       table1_symbols,

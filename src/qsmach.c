@@ -187,6 +187,9 @@ int qsmachine_applykont (qsmachine_t * mach, qsptr_t k, qsptr_t value)
   return 1;
 }
 
+/* Returns result of atomic evaluation.
+   Returns an error (QSERR_*) on error.
+*/
 qsptr_t qsmachine_eval_atomic (qsmachine_t * mach, qsptr_t arg)
 {
   qsptr_t retval = QSNIL;
@@ -362,6 +365,11 @@ int qsmachine_step (qsmachine_t * mach)
 		  qsptr_t k = qskont_ref_k(mach, cc);
 		  qsmachine_applykont(mach, k, a);
 		}
+              else
+                {
+		  /* return error. */
+		  qsmachine_applykont(mach, QSNIL, A);
+                }
 	    }
 	  else
 	    {
