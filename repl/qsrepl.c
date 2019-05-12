@@ -3,26 +3,39 @@
 #include "qsmach.h"
 #include "qssexpr.h"
 
+/* Read-Eval-Print-Loop */
 
 #define SPACELEN 20000
-uint8_t _heap1[sizeof(qsstore_t) + SPACELEN*sizeof(qsobj_t)];
-qsstore_t *heap1 = (qsstore_t*)&_heap1;
+qsword _heap0[SPACELEN * sizeof(qsword)] = { 0, };
+void * heap0 = &_heap0;
 
-qs_t _scheme1, *scheme1 = &_scheme1;
+qsmachine_t _machine, *machine = &_machine;
 
 char line[4096];
+int looping = 1;
+
+qsptr_t qsprim_quit (qsmachine_t * mach, qsptr_t args)
+{
+  looping = 0;
+  return QSTRUE;
+}
 
 int main ()
 {
-  qsstore_init(heap1, SPACELEN);
-  qs_init(scheme1, heap1);
-  int looping = 1;
+  qsmachine_init(machine);
 
-  qsptr_t env0 = qsenv_make(heap1, QSNIL);
-  scheme1->E = qsenv_make(heap1, QSNIL);
-  qsptr_t sym_toplevel_env = qs_get_symbol(scheme1, "*toplevel-environment*");
-  qsenv_setq(heap1, env0, sym_toplevel_env, env0);
+  qsptr_t env1 = qsprimreg_presets_v1(machine);
 
+  int o_quit = qsprimreg_register(machine, qsprim_quit);
+  qsptr_t y_quit = qssymbol_intern_c(machine, "quit", 0);
+  env1 = qsenv_insert(machine, env1, y_quit, QSPRIM(o_quit));
+
+  qsptr_t repl_env = qsenv_make(machine, env1);
+  machine->E = repl_env;
+  qsptr_t sym_toplevel_env = qssymbol_intern_c(machine, "*toplevel-environment*", 0);
+  qsenv_insert(machine, repl_env, sym_toplevel_env, env1);
+
+  looping = 1;
   while (looping)
     {
       printf("> ");
@@ -33,15 +46,14 @@ int main ()
       result = fgets(line, sizeof(line), stdin);
       if (result)
 	{
-	  qsptr_t xt = qssexpr_parse_cstr(heap1, 2, line, NULL);
-	  qs_inject_exp(scheme1, xt);
-	  scheme1->E = env0;
-	  while (!scheme1->halt)
+	  qsptr_t xt = qssexpr_parse_cstr(machine, 1, line, NULL);
+          qsmachine_load(machine, xt, repl_env, QSNIL);
+	  while (!machine->halt)
 	    {
-	      qs_step(scheme1);
+	      qsmachine_step(machine);
 	    }
 	  *line = 0;
-	  qsptr_crepr(heap1, scheme1->A, line, sizeof(line));
+	  qsptr_crepr(machine, machine->A, line, sizeof(line));
 	  printf("%s\n", line);
 	}
       else

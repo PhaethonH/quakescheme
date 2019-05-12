@@ -1,3 +1,2 @@
-#SUBDIRS = src repl tests
-SUBDIRS = src tests
+SUBDIRS = src tests repl
 ACLOCAL_AMFLAGS = -I m4
