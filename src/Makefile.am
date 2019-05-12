@@ -15,19 +15,6 @@ libquakescheme_a_SOURCES = \
   qssexpr_1.c \
   qsprims_1.c
 
-#  qsobj.h \
-#  qsobj.c \
-#  qsprimreg.h \
-#  qsprimreg.c \
-#  qsprimlib.h \
-#  qsprimlib.c \
-#  qssexpr.h \
-#  qssexpr.c \
-#  qssexpr_0.c \
-#  qssexpr_1.c \
-#  qssexpr_2.c \
-#
-
 #l_%.c: %.l
 ## Escape backslash, dquote, EOL.
 #	echo 'const char * qslib_$* = "\' > $@
