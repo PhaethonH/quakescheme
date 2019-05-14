@@ -36,6 +36,7 @@ union qsbits_u {
     char c;
     char s[4];
 };
+
 /*
 Word-Pointer expanding-tag encoding
 
@@ -110,6 +111,7 @@ Word-Pointer expanding-tag encoding
 /* Conversions from word-pointers. */
 #ifdef ALLOW_CAST_TO_UNION
 /*  Exploit cast-to-union; allows casting from float bits to pointer bits. */
+/*  GCC allows cast-to-union, but it is not allowed under ISO C99 */
 #define CFLOAT31(x)     ((union qsbits_u)(x)).f
 #define CINT30(x)       (((union qsbits_u)(x & ~(MASK_TAG30))).i / (1 << SHIFT_TAG30))
 #define CITER28(x)      (((union qsbits_u)(x)).w >> SHIFT_TAG28)
@@ -122,11 +124,13 @@ Word-Pointer expanding-tag encoding
 #define CFD20(x)        (((union qsbits_u)(x)).w >> SHIFT_TAG20)
 #else
 /*  Avoid cast-to-union. */
-__inline__ static float CFLOAT31 (qsword x) {
+__inline__ static float _CFLOAT31 (qsword x) {
   union qsbits_u u; u.w = x; return u.f; }
 /* Zero out tag bits (could affect rounding), then divide for sign extend. */
-__inline__ static int CINT30 (qsword x) {
-  union qsbits_u u; u.w = x & ~(MASK_TAG30); return u.i / (1 << SHIFT_TAG30); }
+__inline__ static int _CINT30 (qsword x) {
+  union qsbits_u u; u.w = x & ~MASK_TAG30; return u.i / (1 << SHIFT_TAG30); }
+#define CFLOAT31(x)     _CFLOAT31(x)
+#define CINT30(x)       _CINT30(x)
 #define CITER28(x)      (((qsword)(x)) >> SHIFT_TAG28)
 #define COBJ26(x)       (((qsword)(x)) >> SHIFT_TAG26)
 #define CSYM26(x)       (((qsword)(x)) >> SHIFT_TAG26)
@@ -148,11 +152,13 @@ __inline__ static int CINT30 (qsword x) {
 #else
 /*  Avoid cast-to-union. */
 /* Zero out LSb. */
-__inline__ static qsword QSFLOAT (float f) {
+__inline__ static qsword _QSFLOAT (float f) {
   union qsbits_u u; u.f = f; u.w &= ~MASK_TAG31; return u.w; }
 /* shift upwards, then attach tag bits. */
-__inline__ static qsword QSINT (int i) {
+__inline__ static qsword _QSINT (int i) {
   union qsbits_u u; u.i = i * (1 << SHIFT_TAG30); u.w |= TAG_INT30; return u.w; }
+#define QSFLOAT(f)	_QSFLOAT(f)
+#define QSINT(i)	_QSINT(i)
 #endif // ALLOW_CAST_TO_UNION
 #define QSITER(a)       ((a << SHIFT_TAG28) | TAG_ITER28)
 #define QSOBJ(a)        ((a << SHIFT_TAG26) | TAG_OBJ26)
@@ -190,16 +196,18 @@ __inline__ static qsword QSINT (int i) {
 #define QSNAN           QSCONST(12)
 #define QSNNAN          QSCONST(13)
 
+/* Kontinuation variants. */
 #define QSKONT_LETK     QSCONST(20)
 #define QSKONT_CALLK    QSCONST(21)
 #define ISKONT(x)       ((x)==QSKONT_LETK || (x)==QSKONT_CALLK)
 
-#define QSPORT_CLOSED   QSCONST(30)
-#define QSPORT_FD       QSCONST(31)
-#define QSPORT_CFILE    QSCONST(32)
-#define QSPORT_CHARRAY  QSCONST(33)
-#define QSPORT_BYTEVEC  QSCONST(34)
-#define QSPORT_CHARP    QSCONST(36)
+/* Port (File I/O) variants. */
+#define QSPORT_CLOSED   QSCONST(30)  /* Port no longer valid. */
+#define QSPORT_FD       QSCONST(31)  /* Unix FD or similar. */
+#define QSPORT_CFILE    QSCONST(32)  /* Standard C File. */
+#define QSPORT_CHARRAY  QSCONST(33)  /* to CharacterArray (Scheme space). */
+#define QSPORT_BYTEVEC  QSCONST(34)  /* to ByteVector (Scheme space). */
+#define QSPORT_CHARP    QSCONST(36)  /* read-only from C string. */
 
 /*  Numeric tower types, for type coercion. */
 #define QSNUM_INT       QSCONST(1000)   /* word, int30 */
