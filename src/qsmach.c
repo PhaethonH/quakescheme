@@ -127,6 +127,7 @@ int qsmachine_applykont (qsmachine_t * mach, qsptr_t k, qsptr_t value)
 	     */
 	  qsptr_t clist = qskont_callq_out(mach, k);  /* call list. */
 	  qsptr_t head = CAR(clist);
+	  mach->K = qskont_ref_k(mach, k);
 	  if (qsprim_p(mach, head))
 	    {
 	      /* shift to C to evaluate next cycle as atomic expression. */
@@ -151,8 +152,9 @@ int qsmachine_applykont (qsmachine_t * mach, qsptr_t k, qsptr_t value)
 	    {
 	      /* error */
 	      mach->halt = true;
+	      mach->A = QSERR_UNBOUND;
+	      mach->K = QSNIL;
 	    }
-	  mach->K = qskont_ref_k(mach, k);
 	}
       else
 	{
