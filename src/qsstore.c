@@ -238,7 +238,7 @@ int qssegment_sweep (qssegment_t * segment)
   gcvisitor visitor = _qssegment_visit_free;
   while ((curr != QSFREE_SENTINEL) && (curr < segment->cap))
     {
-      qsword skip, *refmgmt;
+      qsword *refmgmt;
       _qssegment_stat(segment, curr, &refmgmt, &skip);
       prev = visitor(segment, prev, curr);
       if (startfree && (prev != QSFREE_SENTINEL))
@@ -515,7 +515,6 @@ qserr_t qsstore_trace (qsstore_t * store, qsaddr_t root, int mark)
 		{
 		  /* trace triplet. */
 		  int reverse = MGMT_GET_REVERS(obj->mgmt);
-		  qsptr_t temp;
 		  qsptr_t parent = prev;
 #define LD(ptr)  ((COBJ26(ptr)) << 4)
 #define ST(addr) ((QSOBJ(addr >> 4)))

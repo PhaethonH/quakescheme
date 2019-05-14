@@ -586,7 +586,7 @@ static qsptr_t qsprim_vector_setq (qsmachine_t * mach, qsptr_t args)
   qsptr_t arg0 = CAR(args);
   qsptr_t arg1 = CAR(CDR(args));
   qsptr_t arg2 = CAR(CDR(CDR(args)));
-  qsword k = qsint_get(mach, arg0);
+  qsword k = qsint_get(mach, arg1);
   retval = qsvector_setq(mach, arg0, k, arg2);
   return retval; /* object itself, or error. */
 }
@@ -765,9 +765,9 @@ static qsptr_t qsprim_current_error_port (qsmachine_t * mach, qsptr_t args)
 static
 struct prims_table_s table1_ports[] = {
       { "eof-object", qsprim_eof_object },
-      { "port-read-u8", qsprim_bytevector_length },
-      { "port-write-u8", qsprim_bytevector_u8_ref },
-      { "port-close", qsprim_bytevector_u8_setq },
+      { "port-read-u8", qsprim_port_read_u8 },
+      { "port-write-u8", qsprim_port_write_u8 },
+      { "port-close", qsprim_port_close },
       { "current-input-port", qsprim_current_input_port },
       { "current-output-port", qsprim_current_output_port },
       { "current-error-port", qsprim_current_error_port },
@@ -902,7 +902,7 @@ static qsptr_t qsprim_port_mem_open (qsmachine_t * mach, qsptr_t args)
 static
 struct prims_table_s table1_ports_mem[] = {
       { "port-mem?", qsprim_port_mem_p },
-      { "port-mem-open", qsprim_port_file_open },
+      { "port-mem-open", qsprim_port_mem_open },
       { NULL, NULL },
 };
 
@@ -1016,6 +1016,7 @@ enum numtower_e _promote_numtype (const qsmachine_t * mach, qsptr_t x, qsptr_t y
   return xtype;
 }
 
+__attribute__((unused))
 static float _float_from (const qsmachine_t * mach, qsptr_t p)
 {
   if (qsint_p(mach, p)) return (float)(qsint_get(mach, p));
@@ -1025,6 +1026,7 @@ static float _float_from (const qsmachine_t * mach, qsptr_t p)
   return QSNAN;
 }
 
+__attribute__((unused))
 static long _long_from (const qsmachine_t * mach, qsptr_t p)
 {
   if (qsint_p(mach, p)) return (long)(qsint_get(mach, p));
@@ -1034,6 +1036,7 @@ static long _long_from (const qsmachine_t * mach, qsptr_t p)
   return QSNAN;
 }
 
+__attribute__((unused))
 static long _double_from (const qsmachine_t * mach, qsptr_t p)
 {
   if (qsint_p(mach, p)) return (double)(qsint_get(mach, p));
@@ -1144,19 +1147,25 @@ static int alu_load_reg (enum numtower_e * out_type, struct alureg_s * out_reg,
   return 0;
 }
 
+__attribute__((unused))
 static int alu_load_x (alu_t * a, qsmachine_t * mach, qsptr_t p)
 {
   alu_load_reg(&(a->xtype), &(a->x), mach, p);
+  return p;
 }
 
+__attribute__((unused))
 static int alu_load_y (alu_t * a, qsmachine_t * mach, qsptr_t p)
 {
   alu_load_reg(&(a->ytype), &(a->y), mach, p);
+  return p;
 }
 
+__attribute__((unused))
 static int alu_load_z (alu_t * a, qsmachine_t * mach, qsptr_t p)
 {
   alu_load_reg(&(a->ztype), &(a->z), mach, p);
+  return p;
 }
 
 static qsptr_t alu_store_reg (qsmachine_t * mach,
@@ -1199,16 +1208,19 @@ static qsptr_t alu_store_reg (qsmachine_t * mach,
   return retval;
 }
 
+__attribute__((unused))
 static qsptr_t alu_store_x (alu_t * a, qsmachine_t * mach)
 {
   return alu_store_reg(mach, a->xtype, &(a->x));
 }
 
+__attribute__((unused))
 static qsptr_t alu_store_y (alu_t * a, qsmachine_t * mach)
 {
   return alu_store_reg(mach, a->ytype, &(a->y));
 }
 
+__attribute__((unused))
 static qsptr_t alu_store_z (alu_t * a, qsmachine_t * mach)
 {
   return alu_store_reg(mach, a->ztype, &(a->z));
@@ -1417,19 +1429,25 @@ static int alu_cast_reg (enum numtower_e regtype, struct alureg_s * reg,
   return 0;
 }
 
+__attribute__((unused))
 static int alu_cast_x (alu_t * a, enum numtower_e casttype)
 {
   alu_cast_reg(a->xtype, &(a->x), casttype);
+  return 0;
 }
 
+__attribute__((unused))
 static int alu_cast_y (alu_t * a, enum numtower_e casttype)
 {
   alu_cast_reg(a->ytype, &(a->y), casttype);
+  return 0;
 }
 
+__attribute__((unused))
 static int alu_cast_z (alu_t * a, enum numtower_e casttype)
 {
   alu_cast_reg(a->ztype, &(a->z), casttype);
+  return 0;
 }
 
 
@@ -1537,25 +1555,34 @@ static qsptr_t qsprim_numbits_double_p (qsmachine_t * mach, qsptr_t args)
   return retval;
 }
 
+__attribute__((unused))
 static qsptr_t qsprim_numbits_ipair_p (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t arg0 = CAR(args);
   bool b = false;
+  /* TODO */
+  (void)arg0;
   qsptr_t retval = qsbool_make(mach, b);
   return retval;
 }
 
+__attribute__((unused))
 static qsptr_t qsprim_numbits_fpair_p (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t arg0 = CAR(args);
+  /* TODO */
+  (void)arg0;
   bool b = false;
   qsptr_t retval = qsbool_make(mach, b);
   return retval;
 }
 
+__attribute__((unused))
 static qsptr_t qsprim_numbits_quat_p (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t arg0 = CAR(args);
+  /* TODO */
+  (void)arg0;
   bool b = qsquat_p(mach, arg0);
   qsptr_t retval = qsbool_make(mach, b);
   return retval;
@@ -1674,6 +1701,7 @@ static qsptr_t qsprim_numbits_cast_double (qsmachine_t * mach, qsptr_t args)
   return retval;
 }
 
+__attribute__((unused))
 static qsptr_t qsprim_numbits_cast_ipair (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSNAN;
@@ -1702,6 +1730,7 @@ static qsptr_t qsprim_numbits_cast_ipair (qsmachine_t * mach, qsptr_t args)
   return retval;
 }
 
+__attribute__((unused))
 static qsptr_t qsprim_numbits_cast_fpair (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSNAN;
@@ -1730,6 +1759,7 @@ static qsptr_t qsprim_numbits_cast_fpair (qsmachine_t * mach, qsptr_t args)
   return retval;
 }
 
+__attribute__((unused))
 static qsptr_t qsprim_numbits_cast_quat (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = QSNAN;
@@ -1761,16 +1791,19 @@ static qsptr_t qsprim_numbits_cast_quat (qsmachine_t * mach, qsptr_t args)
 static qsptr_t qsprim_make_inf (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = qspinf_make(mach);
+  return retval;
 }
 
 static qsptr_t qsprim_make_ninf (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = qsninf_make(mach);
+  return retval;
 }
 
 static qsptr_t qsprim_make_nan (qsmachine_t * mach, qsptr_t args)
 {
   qsptr_t retval = qspnan_make(mach);
+  return retval;
 }
 
 /* Mathematics:complex? */
@@ -2442,12 +2475,12 @@ static qsptr_t qsprim_round (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_rationalize (qsmachine_t * mach, qsptr_t args)
 {
-  qsptr_t retval = qsint_make(mach, 0);
-  qsptr_t arg0 = CAR(args);
-
   /* TODO */
+  qsptr_t arg0 = CAR(args);
+  qsptr_t retval = arg0;
+  (void)arg0;
 
-  return arg0;
+  return retval;
 }
 
 
@@ -2934,6 +2967,8 @@ struct prims_table_s table1_arithmetic[] = {
       { "magnitude", qsprim_magnitude },
       { "inexact", qsprim_inexact },
       { "exact", qsprim_exact }, /* not to be confused with "exact?". */
+      { "imag-part", qsprim_imag_part },
+      { "real-part", qsprim_real_part },
 
       { NULL, NULL },
 };

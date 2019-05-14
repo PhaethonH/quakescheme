@@ -238,6 +238,7 @@ union qswidepayload_u * qswideword_at (qswideword_t * wideword)
 int qswideword_put_payload (qswideword_t * wideword, const union qswidepayload_u * buf)
 {
   wideword->payload = *buf;
+  return 1;
 }
 
 

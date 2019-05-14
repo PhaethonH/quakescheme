@@ -307,6 +307,8 @@ int sxparse_feed (qssxparse_t * parser, int ch, qsptr_t * out)
 	  parser->complete = 1;
 	  parser->prevch = ch;
 	  break;
+	default:
+	  break;
 	}
 
       parser->state = nextstate;

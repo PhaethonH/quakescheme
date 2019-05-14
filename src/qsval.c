@@ -1050,7 +1050,7 @@ qsword qscharvec_fetch (const qsmachine_t * mach, qsptr_t p, char * buf, int buf
   qsword m = qscharvec_length(mach, p);
   size_t res = 0;
   qsword i;
-  uint8_t dummy[MB_CUR_MAX];  /* dummy output buffer when buf==NULL. */
+  char dummy[MB_CUR_MAX];  /* dummy output buffer when buf==NULL. */
   for (i = 0; i < m; ++i)
     {
       wchar_t codepoint = qscharvec_ref(mach, p, i);
@@ -1123,6 +1123,7 @@ qsptr_t qscharvec_inject_charp (qsmachine_t * mach, const char * s, int slen)
   qsword m = res;
   retval = qscharvec_make(mach, m, QSNIL);
   qspvec_t * v = qspvec(mach, retval);
+  (void)v;
 
   qsword consumed = 0;
   qsword k = 0;
@@ -1496,7 +1497,7 @@ qsptr_t qsdouble_make (qsmachine_t * mach, double val)
 
 bool qsdouble_p (const qsmachine_t * mach, qsptr_t p)
 {
-  if (qsdouble_const(mach, p) != NULL);
+  return (qsdouble_const(mach, p) != NULL);
 }
 
 double qsdouble_get (const qsmachine_t * mach, qsptr_t p)
@@ -1549,7 +1550,7 @@ qsovec_t * qsquat (qsmachine_t * mach, qsptr_t p)
 qsptr_t qsquat_make (qsmachine_t * mach, float a, float b, float c, float d)
 {
   int nbytes = 4 * sizeof(float);   /* presumably 16 */
-  qsptr_t p = qsovec_make(mach, 4 * sizeof(float), 0);
+  qsptr_t p = qsovec_make(mach, nbytes, 0);
   qsovec_t * q = qsovec(mach, p);
   if (! q) return QSERR_NOMEM;
   q->length = QSNUM_QUAT;
@@ -1705,7 +1706,7 @@ qsptr_t qsname_inject (qsmachine_t * mach, const char * cstr, qsword slen)
   qsptr_t p = qsname_make(mach, slen);
   if (! ISOBJ26(p)) return QSERR_NOMEM;
   qsovec_t * y = qsname(mach, p);
-  strcpy(y->elt, cstr);
+  strcpy((char*)(y->elt), cstr);
   return p;
 }
 
@@ -1713,7 +1714,7 @@ const char * qsname_get (const qsmachine_t * mach, qsptr_t p)
 {
   const qsovec_t * y = qsname_const(mach, p);
   if (! y) return NULL;
-  return y->elt;
+  return (const char*)(y->elt);
 }
 
 bool qsname_p (const qsmachine_t * mach, qsptr_t p)
@@ -1757,7 +1758,7 @@ int qsname_strcmp (const qsmachine_t * mach, qsptr_t x, const char * s)
      If mostly match, but symbol is too long, strcmp() returns Greater Than.
      If mostly match, but symbol is too short, should return Less Than.
      */
-  int res = strncmp(y->elt, s, m);
+  int res = strncmp(qsname_get(mach, x), s, m);
   if (res != 0) return res;  /* unequal, shortcut return. */
   if (s[m] != 0) return -1;  /* matching prefix, but s is longer. */
   /* matching prefix but s is shorter covered in strncmp(). */
@@ -1772,7 +1773,7 @@ qscmp_t qsname_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
   if (!y1) return QSCMP_NE;
   if (y0->length != y1->length) return QSCMP_NE;
   qsword m = CCHAR24(y0->length);
-  if (0 != strncmp(y0->elt, y1->elt, m))
+  if (0 != strncmp(qsname_get(mach, x), qsname_get(mach, y), m))
     return QSCMP_NE;
   return QSCMP_EQ;
 }
@@ -1822,7 +1823,7 @@ qsptr_t qsutf8_inject_charp (qsmachine_t * mach, const char * cstr, size_t slen)
   if (ISOBJ26(retval))
     {
       qsovec_t * st = qsutf8(mach, retval);
-      strncpy(st->elt, cstr, slen);
+      strncpy((char*)(st->elt), cstr, slen);
     }
   return retval;
 }
@@ -1853,7 +1854,7 @@ qsptr_t qsutf8_inject_wcs (qsmachine_t * mach, const wchar_t * ws, size_t wlen)
       for (i = 0; i < wlen; ++i)
 	{
 	  codept = ws[i];
-	  res = wcrtomb(st->elt + filled, codept, ps);
+	  res = wcrtomb((char*)(st->elt) + filled, codept, ps);
 	  if (res < 0)
 	    {
 	      /* unable to convert. */
@@ -1906,7 +1907,7 @@ const char * qsutf8_get (const qsmachine_t * mach, qsptr_t p, qsword * len)
   const qsovec_t * s = qsutf8_const(mach, p);
   if (! s) return NULL;
   if (len) *len = qsutf8_length(mach, p);
-  return s->elt;
+  return (const char *)(s->elt);
 }
 
 int qsutf8_fetch (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
@@ -1963,9 +1964,13 @@ qscmp_t qsutf8_cmp (const qsmachine_t * mach, qsptr_t x, qsptr_t y)
   if (!by) return QSCMP_GT;
   if (!bx) return QSCMP_LT;
 
+  /*
   const qsovec_t * sx = qsutf8_const(mach, x);
   const qsovec_t * sy = qsutf8_const(mach, y);
-  int res = strcmp(sx->elt, sy->elt);
+  */
+  const char * sx = qsutf8_get(mach, x, NULL);
+  const char * sy = qsutf8_get(mach, y, NULL);
+  int res = strcmp(sx, sy);
   if (res < 0) return QSCMP_LT;
   if (res > 0) return QSCMP_GT;
   if (res == 0) return QSCMP_EQ;
@@ -2089,7 +2094,6 @@ qsptr_t qsenv_insert (qsmachine_t * mach, qsptr_t env, qsptr_t variable, qsptr_t
 qsptr_t qsenv_lookup (qsmachine_t * mach, qsptr_t env, qsptr_t variable)
 {
   qsptr_t frameiter;
-  qsptr_t binditer;
 
   frameiter = qsiter_begin(mach, env);
   while (ISITER28(frameiter))
@@ -2242,6 +2246,7 @@ qsptr_t qsclosure_setq_lam (qsmachine_t * mach, qsptr_t p, qsptr_t val)
   qstriplet_t * clo = qsclosure(mach, p);
   if (! clo) return QSERR_FAULT;
   clo->second = val;
+  return p;
 }
 
 qsptr_t qsclosure_setq_env (qsmachine_t * mach, qsptr_t p, qsptr_t val)
@@ -2249,6 +2254,7 @@ qsptr_t qsclosure_setq_env (qsmachine_t * mach, qsptr_t p, qsptr_t val)
   qstriplet_t * clo = qsclosure(mach, p);
   if (! clo) return QSERR_FAULT;
   clo->third = val;
+  return p;
 }
 
 int qsclosure_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
@@ -2407,6 +2413,7 @@ int qskont_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
 {
   int n = 0;
   const qspvec_t * kont = qskont_const(mach, p);
+  (void)kont;
   n += qs_snprintf(buf+n, buflen-n, "#<kont 0x%08x>", qsobj_id(mach, p));
   return n;
 }
@@ -2656,11 +2663,12 @@ bool qscharpport_p (qsmachine_t * mach, qsptr_t p)
 
 bool qscharpport_eof (qsmachine_t * mach, qsptr_t p)
 {
-  int retval = -1;
-  if (! qscharpport(mach, p)) return -1;
+  bool retval = true;
+  if (! qscharpport(mach, p)) return retval;
   int pos = qscport_get_pos(mach, p);
   int max = qscport_get_max(mach, p);
-  return (pos >= max);
+  retval = (pos >= max);
+  return retval;
 }
 
 int qscharpport_read_u8 (qsmachine_t * mach, qsptr_t p)
@@ -2756,11 +2764,12 @@ bool qsovport_p (qsmachine_t * mach, qsptr_t p)
 
 bool qsovport_eof (qsmachine_t * mach, qsptr_t p)
 {
-  int retval = -1;
-  if (! qsovport(mach, p)) return -1;
+  bool retval = true;
+  if (! qsovport(mach, p)) return retval;
   int pos = qscport_get_pos(mach, p);
   int max = qscport_get_max(mach, p);
-  return (pos >= max);
+  retval = (pos >= max);
+  return retval;
 }
 
 int qsovport_read_u8 (qsmachine_t * mach, qsptr_t p)
@@ -2867,7 +2876,6 @@ FILE * qsfport_get (qsmachine_t * mach, qsptr_t p)
 
 bool qsfport_eof (qsmachine_t * mach, qsptr_t p)
 {
-  int retval = -1;
   FILE * f = qsfport_get(mach, p);
   if (! f) return false;
   return feof(f);
@@ -2877,8 +2885,8 @@ int qsfport_read_u8 (qsmachine_t * mach, qsptr_t p)
 {
   int retval = -1;
   FILE * f = qsfport_get(mach, p);
-  if (! f) return -1;
-  if (feof(f)) return -1;
+  if (! f) return retval;
+  if (feof(f)) return retval;
   retval = fgetc(f);
   return retval;
 }
@@ -2913,7 +2921,7 @@ bool qsfport_close (qsmachine_t * mach, qsptr_t p)
   /* Finalizer */
     {
       qsptr_t fptr = qscport_get_resource(mach, p);
-      FILE * f = (FILE*)(qscptr_get(mach, p));
+      FILE * f = (FILE*)(qscptr_get(mach, fptr));
       if (f) fclose(f);
     }
 
@@ -2939,7 +2947,7 @@ qsptr_t qsport_make_c (qsmachine_t * mach, qsptr_t variant, const uint8_t * spec
 	      if (writeable) flags = O_RDWR | O_CREAT;
 	      if (appending) flags |= O_WRONLY;
 	      int mode = 0600;  /* Default permissions on create. */
-	      retval = qsfd_open_c(mach, spec, flags, 0600);
+	      retval = qsfd_open_c(mach, (const char*)spec, flags, mode);
 	      if (appending)
 		{
 		  int fd = qsfd_id(mach, retval);
@@ -2958,13 +2966,13 @@ qsptr_t qsport_make_c (qsmachine_t * mach, qsptr_t variant, const uint8_t * spec
 	  const char * cmode = "r";
 	  if (writeable) cmode = "w+";
 	  if (appending) cmode = "a";
-	  retval = qsfport_make(mach, spec, cmode);
+	  retval = qsfport_make(mach, (const char *)spec, cmode);
 	}
       break;
     case QSPORT_CHARP:
 	{
 	  if (speclen == 0)
-	    speclen = strlen(spec) + 1;
+	    speclen = strlen((const char *)spec) + 1;
 	  uint8_t * spec_rw = (uint8_t*)spec;
 	  retval = qscharpport_make(mach, spec_rw, speclen);
 	  if (writeable) qscport_set_writeable(mach, retval, true);
@@ -2985,11 +2993,9 @@ qsptr_t qsport_make (qsmachine_t * mach, qsptr_t variant, qsptr_t path, bool wri
 	{
 	  if (qsutf8_p(mach, path))
 	    {
-	      const char * s = NULL;
 	      const qsovec_t * st = qsutf8_const(mach, path);
 	      if (! st) return QSERR_FAULT;
-	      s = st->elt;
-	      retval = qsport_make_c(mach, variant, s, 0, writeable, appending);
+	      retval = qsport_make_c(mach, variant, st->elt, 0, writeable, appending);
 	    }
 	  else if (qsint_p(mach, path))
 	    {
@@ -3008,11 +3014,9 @@ qsptr_t qsport_make (qsmachine_t * mach, qsptr_t variant, qsptr_t path, bool wri
       break;
     case QSPORT_CFILE:
 	{
-	  const char * s = NULL;
 	  const qsovec_t * st = qsutf8_const(mach, path);
 	  if (! st) return QSERR_FAULT;
-	  s = st->elt;
-	  retval = qsport_make_c(mach, variant, s, 0, writeable, appending);
+	  retval = qsport_make_c(mach, variant, st->elt, 0, writeable, appending);
 	}
       break;
     default:
@@ -3207,7 +3211,7 @@ qsptr_t qsiter_tail (const qsmachine_t * mach, qsptr_t p)
 	      skip++;
 	    }
 	}
-      qsptr_t next = QSITER(CITER28(p) + skip);
+      qsptr_t next = QSITER((CITER28(p) + skip));
       /* peek for end of iteration. */
       qsptr_t peek = _qsiter_word(mach, next);
       if ((CITER28(next) & 0x3) == 0)
@@ -3320,7 +3324,7 @@ const char * qssymbol_get (const qsmachine_t * mach, qsptr_t p)
   if (! qsname_p(mach, x)) return NULL;
   const qsovec_t * st = qsname_const(mach, x);
   if (! st) return NULL;
-  return st->elt;
+  return (const char *)(st->elt);
 }
 
 int qssymbol_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
@@ -3408,6 +3412,7 @@ int qsstring_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
     {
       return qscharvec_crepr(mach, p, buf, buflen);
     }
+  return 0;
 }
 
 

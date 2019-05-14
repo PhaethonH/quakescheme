@@ -33,7 +33,7 @@ struct qssxparser_ops_s ** sxparsers[NUM_PARSER_VARIANTS] = {
 
 int qssexpr_logv (const char * fmt, va_list vp)
 {
-  int retval;
+  int retval = 0;
   if (0)
     {
      retval = vprintf(fmt, vp);
@@ -344,16 +344,15 @@ qsptr_t qssexpr_parse_cstr (qsmachine_t * mach, int version, const char * srcstr
   int ch = 0;
   int scan = 0;
   int halt = 0;
-  int srclen = 0;
   struct qssxparse_s _parser = { 0, }, *parser = &_parser;
 #if 0
   mbstate_t ps = { 0, };
   wchar_t widechar;
   int wideres = 0;
+  int srclen = strlen(srcstr);
 #endif //0
 
   qssxparse_init(parser, version, mach);
-  srclen = strlen(srcstr);
 
   while (! halt)
     {

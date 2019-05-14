@@ -43,6 +43,7 @@ int qsmachine_display (qsmachine_t * mach, qsptr_t p)
   char buf[1024];
   qsptr_crepr(mach, p, buf, sizeof(buf));
   puts(buf);
+  return 0;
 }
 
 int qsmachine_eval_lambda (qsmachine_t * mach)
