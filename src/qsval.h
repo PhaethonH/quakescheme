@@ -266,7 +266,7 @@ extern qsptr_t qskont_make_current (qsmachine_t *);
 extern bool qskont_p (const qsmachine_t *, qsptr_t p);
 extern bool qskont_halt_p (const qsmachine_t *, qsptr_t p);
 extern bool qskont_letk_p (const qsmachine_t *, qsptr_t p);
-extern bool qskont_applyk_p (const qsmachine_t *, qsptr_t p);
+extern bool qskont_callk_p (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qskont_ref_variant (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qskont_ref_v (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qskont_ref_c (const qsmachine_t *, qsptr_t p);
@@ -278,6 +278,11 @@ extern qsptr_t qskont_set_eq (qsmachine_t *, qsptr_t p, qsptr_t val);
 extern qsptr_t qskont_set_kq (qsmachine_t *, qsptr_t p, qsptr_t val);
 extern int qskont_fetch (const qsmachine_t *, qsptr_t p, qsptr_t * out_variant, qsptr_t * out_v, qsptr_t * out_c, qsptr_t * out_e, qsptr_t * out_k);
 extern int qskont_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
+
+extern qsptr_t qskont_callq_new (qsmachine_t * mach, qsptr_t pending, qsptr_t env, qsptr_t k);
+extern qsptr_t qskont_callq_queue (qsmachine_t * mach, qsptr_t p, qsptr_t a);
+extern qsptr_t qskont_callq_shift (qsmachine_t * mach, qsptr_t p);
+extern qsptr_t qskont_callq_out (qsmachine_t * mach, qsptr_t p);
 
 extern qsptr_t qslambda_make (qsmachine_t *, qsptr_t parameters, qsptr_t body);
 extern bool qslambda_p (const qsmachine_t *, qsptr_t p);

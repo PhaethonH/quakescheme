@@ -2263,7 +2263,10 @@ const qspvec_t * qskont_const (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * pvec = qspvec_const(mach, p);
   if (!pvec) return NULL;
+  /*
   if (pvec->length != QSKONT_LETK) return NULL;
+  */
+  if (! ISKONT(pvec->length)) return NULL;
   return pvec;
 }
 
@@ -2276,7 +2279,9 @@ qspvec_t * qskont (qsmachine_t * mach, qsptr_t p)
   return NULL;
 }
 
-/* arbitrary continuation */
+/* arbitrary continuation
+   [ mgmt | variant | gcback | gciter ]  [ v | C | E | K ]
+ */
 qsptr_t qskont_make (qsmachine_t * mach, qsptr_t variant, qsptr_t v, qsptr_t c, qsptr_t e, qsptr_t k)
 {
   qsptr_t p = qspvec_make(mach, 4, QSNIL);
@@ -2313,11 +2318,11 @@ bool qskont_letk_p (const qsmachine_t * mach, qsptr_t p)
   return (kont->length == QSKONT_LETK);
 }
 
-bool qskont_applyk_p (const qsmachine_t * mach, qsptr_t p)
+bool qskont_callk_p (const qsmachine_t * mach, qsptr_t p)
 {
   const qspvec_t * kont = qskont_const(mach, p);
   if (!kont) return false;
-  return (kont->length == QSKONT_APPLYK);
+  return (kont->length == QSKONT_CALLK);
 }
 
 qsptr_t qskont_ref_variant (const qsmachine_t * mach, qsptr_t p)
@@ -2405,6 +2410,81 @@ int qskont_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
   n += qs_snprintf(buf+n, buflen-n, "#<kont 0x%08x>", qsobj_id(mach, p));
   return n;
 }
+
+
+
+/* ApplyK continuation, mutations (modification in place).
+   [ mgmt | variant | gcback | gciter ]  [ a | p | E | K ]
+                                       answered
+                                            pending
+ */
+/* Instantiate new in-media-res continuation of ApplyK variant.
+   Returns continuation object.
+   */
+qsptr_t qskont_callq_new (qsmachine_t * mach, qsptr_t pending, qsptr_t env, qsptr_t k)
+{
+  qsptr_t alist = QSNIL;
+  qsptr_t plist = pending; /* TODO: ensure is iter */
+  /* TODO: OOM */
+  qsptr_t retval = qskont_make(mach, QSKONT_CALLK, alist, plist, env, k);
+  /* TODO: OOM */
+
+  return retval;
+}
+
+/* Queue up answered argument.  Returns kontinuation. */
+qsptr_t qskont_callq_queue (qsmachine_t * mach, qsptr_t p, qsptr_t a)
+{
+  qsptr_t alist = qskont_ref_v(mach, p); /* answered list. */
+  /* TODO: access fail */
+  qsptr_t answers = qspair_make(mach, a, alist);
+  /* TODO: check OOM */
+  qskont_set_vq(mach, p, answers);
+  return p;
+}
+
+/* Shift pending arguments.
+   Returns list where first element is next argument to evaluate (next Control).
+   Returns nil if no more pending.
+   */
+qsptr_t qskont_callq_shift (qsmachine_t * mach, qsptr_t p)
+{
+  qsptr_t plist = qskont_ref_c(mach, p); /* pending list. */
+  /* TODO: access fail (OOB?) */
+  if (! ISNIL(plist))
+    {
+      qsptr_t rem = qsiter_tail(mach, plist); /* remainder of pending. */
+      qskont_set_cq(mach, p, rem);
+      /* TODO: setq failed. */
+    }
+  return plist;
+}
+
+/* Returns the evaluated arguments as list in proper order. */
+qsptr_t qskont_callq_out (qsmachine_t * mach, qsptr_t p)
+{
+  qsptr_t prev, curr, next;
+  qsptr_t alist = qskont_ref_v(mach, p); /* answers list. */
+
+  /* Reverse alist in place. */
+  prev = QSNIL;
+  curr = alist;
+  next = qspair_ref_tail(mach, curr);
+  while (!ISNIL(curr))
+    {
+      qspair_setq_tail(mach, curr, prev);
+      prev = curr;
+      curr = next;
+      if (qspair_p(mach, next))
+	next = qspair_ref_tail(mach, next);
+      else
+	next = QSNIL;
+    }
+
+  alist = prev;
+  return alist;
+}
+
 
 
 

@@ -104,38 +104,46 @@ int qsmachine_applykont (qsmachine_t * mach, qsptr_t k, qsptr_t value)
       mach->halt = true;
       return 0;
     }
-  else if (qskont_applyk_p(mach, k))
+  else if (qskont_callk_p(mach, k))
     {
-      qsptr_t k_t, k_v, k_c, k_e, k_k;
-      qskont_fetch(mach, k, &k_t, &k_v, &k_c, &k_e, &k_k);
-      /* v = built, c = pending, e = env-to-eval-c, k = kont */
-      if (qsnil_p(mach, k_c))
+      /* Queue answer.
+	 callk([built_r], [...], env, kont)  ->
+	 callk([value :: built_r], [...], env, kont)
+       */
+      qskont_callq_queue(mach, k, value);
+
+      /* Shift to get next. */
+      /*
+	 callk([built_r], [p0 :: pending], env, kont)  ->
+	 callk([built_r], [pending], env, kont)
+	 (returns [p0 :: pending])
+       */
+      qsptr_t plist = qskont_callq_shift(mach, k);
+      if (qsnil_p(mach, plist))
 	{
-	  /* applykont([built], [], env, kont) -> (C=[built], E=env, K=kont) */
-	  /* no more pending, continue evaluating list form. */
-	  /* k_v needs to be reversed. */
-	  mach->C = k_v;
-	  mach->E = k_e;
-	  mach->K = k_k;
-	  qsptr_t head = CAR(k_v);
-	  qsptr_t args = CDR(k_v);
+	  /* No more pending. Start evaluating. */
+	  /* callk([built_r], [], env, kont)  ->
+	     (C=reverse(built_r), E=env, K=kont)
+	     */
+	  qsptr_t clist = qskont_callq_out(mach, k);  /* call list. */
+	  qsptr_t head = CAR(clist);
 	  if (qsprim_p(mach, head))
 	    {
 	      /* shift to C to evaluate next cycle as atomic expression. */
-	      mach->C = mach->A;
+	      mach->C = clist;
 	    }
 	  else if (qsclosure_p(mach, head))
 	    {
 	      /* evaluate closure, handled as atomic expression. */
-	      qsptr_t proc = CAR(mach->A);
-	      qsptr_t args = CDR(mach->A);
+	      qsptr_t proc = CAR(clist);
+	      qsptr_t args = CDR(clist);
 	      qsmachine_applyproc(mach, proc, args);
 	    }
 	  else if (qskont_p(mach, head))
 	    {
 	      /* evaluate continuation. */
-	      qsptr_t cc = CAR(mach->A);
-	      qsptr_t a = CAR(CDR(mach->A));
+	      qsptr_t cc = CAR(clist);
+	      qsptr_t a = CAR(CDR(clist));
 	      qsptr_t k = qskont_ref_k(mach, cc);
 	      qsmachine_applykont(mach, k, a);
 	    }
@@ -144,27 +152,16 @@ int qsmachine_applykont (qsmachine_t * mach, qsptr_t k, qsptr_t value)
 	      /* error */
 	      mach->halt = true;
 	    }
+	  mach->K = qskont_ref_k(mach, k);
 	}
       else
 	{
-	  /* applykont([built], [p0 :: pending], env, kont) ->
-             (C=p0, E=env, K') : K'=applykont([a::build], [pending], env, kont)
-	     */
-	  /* chain into continuation. */
-	  mach->C = CAR(k_c);
-	  mach->E = k_e;
-	  if (1) /* allow mutation of existing continuation. */
-	    {
-	      qskont_set_vq(mach, k, qspair_make(mach, value, k_v));
-	    }
-	  else /* restrict to immutable. */
-	    {
-	      qsptr_t built2 = qspair_make(mach, value, k_v);
-	      qsptr_t pending2 = CDR(k_c);
-	      k = qskont_make(mach, QSKONT_APPLYK, built2, pending2, k_e, k_k);
-	    }
+	  /* More pending, transfer to C for evaluation in next step. */
+	  /* -> (C=p0, E=env, K=kont) */
+	  mach->C = CAR(plist);
 	  mach->K = k;
 	}
+      mach->E = qskont_ref_e(mach, k);
     }
   else if (qskont_letk_p(mach, k))
     {
@@ -305,71 +302,24 @@ int qsmachine_step (qsmachine_t * mach)
 	  qsptr_t args = qspair_make(mach, cc, QSNIL);
 	  qsmachine_applyproc(mach, proc, args);
 	}
-      else if (0)
-	{
-	  /* else maybe procedure call. */
-	  /* initiate applyk continuation. */
-	  qsptr_t k = QSNIL;
-	  qsptr_t exp1 = CAR(args);
-	  qsptr_t pending = CDR(args);
-	  qsptr_t variant = QSKONT_APPLYK;
-	  k = qskont_make(mach, variant, QSNIL, pending, mach->E, mach->K);
-	  mach->C = exp1;
-	  mach->K = k;
-	}
       else
 	{
 	  /* else maybe procedure call. */
 	  qsptr_t A = qsmachine_eval_atomic(mach, C);
 	  if (qserr_p(mach, A))
-	    {
-	      /* evaluate individual list members. */
-	      qsptr_t head = QSBLACKHOLE;
-	      qsptr_t root = QSNIL, build = QSNIL;
-	      qsptr_t curr = qsiter_begin(mach, C);
-	      while (qsiter_p(mach, curr))
-		{
-		  qsptr_t aexp = qsiter_head(mach, curr);
-		  qsptr_t a = qsmachine_eval_atomic(mach, aexp);
-		  if (head == QSBLACKHOLE)
-		    head = a;
-		  if (qsnil_p(mach, root))
-		    build = root = qspair_make(mach, a, QSNIL);
-		  else
-		    {
-		      /* append */
-		      qsptr_t next = qspair_make(mach, a, QSNIL);
-		      qspair_setq_tail(mach, build, next);
-		      build = next;
-		    }
-		  curr = qsiter_tail(mach, curr);
-		}
-	      mach->A = root;
-	      if (qsprim_p(mach, head))
-		{
-		  /* shift to C to evaluate next cycle. */
-		  mach->C = mach->A;
-		}
-	      else if (qsclosure_p(mach, head))
-		{
-		  /* evaluate closure. */
-		  qsptr_t proc = CAR(mach->A);
-		  qsptr_t args = CDR(mach->A);
-		  qsmachine_applyproc(mach, proc, args);
-		}
-	      else if (qskont_p(mach, head))
-		{
-		  /* evaluate continuation. */
-		  qsptr_t cc = CAR(mach->A);
-		  qsptr_t a = CAR(CDR(mach->A));
-		  qsptr_t k = qskont_ref_k(mach, cc);
-		  qsmachine_applykont(mach, k, a);
-		}
-              else
-                {
-		  /* return error. */
-		  qsmachine_applykont(mach, QSNIL, A);
-                }
+	    { /* Could not evaluate in single atomic step.  Presume list. */
+	      /* construct callk continuation.
+		 Given (C=[head::tail], E=env, K=k0),
+		 C' = head
+		 K' = callk(alist=head, plist=[tail], env, k0)
+	       */
+	      qsptr_t curr = qsiter_begin(mach, mach->C);
+	      qsptr_t c = qsiter_head(mach, curr);
+	      qsptr_t plist = qsiter_tail(mach, curr);  // pending list.
+	      qsptr_t k = qskont_callq_new(mach, plist, mach->E, mach->K);
+	      mach->C = c;
+	      mach->K = k;
+	      mach->A = QSBLACKHOLE;
 	    }
 	  else
 	    {

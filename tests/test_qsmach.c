@@ -153,6 +153,10 @@ START_TEST(test_step2)
   qsptr_t y_z = qssymbol_intern_c(machine, "z", 0);
 
   /* Conditional. */
+/*
+  (if #t 1 2)
+ => 1
+*/
   exp = qspair_make(machine, y_if,
         qspair_make(machine, QSTRUE,
         qspair_make(machine, QSINT(1),
@@ -170,6 +174,10 @@ START_TEST(test_step2)
   ck_assert_int_eq(machine->A, QSINT(1));
   ck_assert(machine->halt);
 
+/*
+  (if #f 1 2)
+ => 2
+*/
   exp = qspair_make(machine, y_if,
         qspair_make(machine, QSFALSE,
         qspair_make(machine, QSINT(1),
@@ -184,6 +192,10 @@ START_TEST(test_step2)
   ck_assert(machine->halt);
 
   /* Let. */
+/*
+  (let ((x 23)) x)
+ => 23
+*/
   exp = qspair_make(machine, y_let,
 	qspair_make(machine,
 	  qspair_make(machine,
@@ -204,6 +216,11 @@ START_TEST(test_step2)
   ck_assert(machine->halt);
 
   /* Mutation. */
+/*
+  (set! y 38)
+  y
+ => 38
+*/
   exp = qspair_make(machine, y_setq,
 	qspair_make(machine, y_y,
 	qspair_make(machine, QSINT(38), QSNIL)));
@@ -219,6 +236,13 @@ START_TEST(test_step2)
   ck_assert_int_eq(p, QSINT(38));
 
   /* Recursive Let. */
+/*
+  (letrec ((x 121)
+           (y 122)
+           (z 123))
+   y)
+ => 122
+*/
   qsptr_t lis;
   lis = qsarray_inject(machine,
           y_letrec,
@@ -247,6 +271,11 @@ START_TEST(test_step2)
   qsptr_t param, body, lam, clo;
 
   /* First-class Continuation. */
+/*
+  (set! testcc (lambda (x) (x 5)))
+  (call/cc testcc)
+ => 5
+*/
   qsptr_t y_testcc = qssymbol_intern_c(machine, "testcc", 0);
   param = qspair_make(machine, y_x, QSNIL);
   body = qspair_make(machine, y_x,
@@ -263,12 +292,18 @@ START_TEST(test_step2)
   qsmachine_step(machine);  /* evaluate to C <- (x 5) */
   qsptr_crepr(machine, machine->C, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(x 5)");
-  qsmachine_step(machine);  /* evaluates (#<kont> 5) */
+  qsmachine_step(machine);  /* mid-evaluation of call list: eval "x" */
+  qsmachine_step(machine);  /* mid-evaluation of call list: eval "5" */
+  qsmachine_step(machine);  /* evaluated (x 5) */
   qsptr_crepr(machine, machine->A, buf, sizeof(buf));
   ck_assert_str_eq(buf, "5");
   ck_assert(machine->halt);
 
   /* Procedure call. */
+/*
+  (+1 2)
+ => 3
+*/
   int primid = qsprimreg_register(machine, op_plus_one);
   qsptr_t o_plusone = qsprim_make(machine, primid);
   qsptr_t y_plusone = qssymbol_intern_c(machine, "+1", 0);
@@ -279,6 +314,8 @@ START_TEST(test_step2)
   C = exp;
   K = QSNIL;
   qsmachine_load(machine, C, E, K);
+  qsmachine_step(machine);  /* start evaluating arguments. */
+  qsmachine_step(machine);  /* eval second element in call. */
   qsmachine_step(machine);  /* eval to list of atomics */
   qsptr_crepr(machine, machine->C, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(#<prim 0> 2)");
@@ -287,6 +324,10 @@ START_TEST(test_step2)
   ck_assert_str_eq(buf, "3");
   ck_assert_int_eq(machine->A, QSINT(3));
 
+/*
+  (set! z (lambda (x) x))
+  (z 32)
+*/
   param = qspair_make(machine, y_x, QSNIL);
   body = y_x;
   lam = qslambda_make(machine, param, body);
@@ -298,7 +339,8 @@ START_TEST(test_step2)
   C = exp;
   K = QSNIL;
   qsmachine_load(machine, C, E, K);
-  qsmachine_step(machine);  /* turn (z 32) into (#<closure> 32) */
+  qsmachine_step(machine);  /* middle of call list: eval "z") */
+  qsmachine_step(machine);  /* middle of call list: eval "32") */
   qsmachine_step(machine);  /* evaluate closure. */
   qsptr_crepr(machine, machine->A, buf, sizeof(buf));
   ck_assert_str_eq(buf, "32");
@@ -328,13 +370,20 @@ START_TEST(test_prims1)
   qsptr_t y_sub2 = qssymbol_intern_c(machine, "sub2", 0);
   qsptr_t y_mul2 = qssymbol_intern_c(machine, "mul2", 0);
   prims1 = qsprimreg_presets_v0(machine);
+/*
+  (add2 2 3)
+ => 5
+*/
   p = CONS(y_add2,
       CONS(QSINT(2),
       CONS(QSINT(3), QSNIL)));
   qsptr_crepr(machine, p, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(add2 2 3)");
   qsmachine_load(machine, p, prims1, QSNIL);
-  qsmachine_step(machine);  /* resolve "+" to operation. */
+  qsmachine_step(machine);  /* examine call (begin sub-continuations) */
+  qsmachine_step(machine);  /* resolve operation. */
+  qsmachine_step(machine);  /* resolve first argument. */
+  qsmachine_step(machine);  /* resolve second argument. */
   qsmachine_step(machine);  /* apply operation "add2". */
   qsptr_crepr(machine, machine->A, buf, sizeof(buf));
   ck_assert_str_eq(buf, "5");
@@ -343,17 +392,32 @@ START_TEST(test_prims1)
   /* test quats */
   a = qsquat_make(machine, 1, 0, 0, 0);
   b = qsquat_make(machine, 5, 0, 0, 0);
+/*
+  (set! a 1+0i+0j+0k)
+  (set! b 5+0i+0j+0k)
+  (add2 a b)
+ => 6+0i+0j+0k
+*/
   p = CONS(y_add2,
       CONS(a,
       CONS(b, QSNIL)));
   qsptr_crepr(machine, p, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(add2 1+0i+0j+0k 5+0i+0j+0k)");
   qsmachine_load(machine, p, prims1, QSNIL);
-  qsmachine_step(machine);  /* resolve "+" to operation. */
+  qsmachine_step(machine);  /* examine call (begin sub-continuations) */
+  qsmachine_step(machine);  /* resolve operation. */
+  qsmachine_step(machine);  /* resolve first argument */
+  qsmachine_step(machine);  /* resolve second argument */
   qsmachine_step(machine);  /* apply operation "add2". */
   qsptr_crepr(machine, machine->A, buf, sizeof(buf));
   ck_assert_str_eq(buf, "6+0i+0j+0k");
 
+/*
+  (set! a 1+2i+3j+5k)
+  (set! b 8+13i+21j+34k)
+  (add2 a b)
+ => 9+15i+24j+39k
+*/
   a = qsquat_make(machine, 1, 2, 3, 5);
   b = qsquat_make(machine, 8, 13, 21, 34);
   p = CONS(y_add2,
@@ -362,22 +426,95 @@ START_TEST(test_prims1)
   qsptr_crepr(machine, p, buf, sizeof(buf));
   ck_assert_str_eq(buf, "(add2 1+2i+3j+5k 8+13i+21j+34k)");
   qsmachine_load(machine, p, prims1, QSNIL);
-  qsmachine_step(machine);  /* resolve "+" to operation. */
+  qsmachine_step(machine);  /* examine call (begin sub-continuations) */
+  qsmachine_step(machine);  /* resolve operation. */
+  qsmachine_step(machine);  /* resolve first argument */
+  qsmachine_step(machine);  /* resolve second argument */
   qsmachine_step(machine);  /* apply operation "add2". */
   qsptr_crepr(machine, machine->A, buf, sizeof(buf));
   ck_assert_str_eq(buf, "9+15i+24j+39k");
 
   /* multiply quaternions as vec3: (negative) dot product and cross product */
+/*
+  (set! a 0+2i+3j+5k)
+  (set! b 0+13i+21j+34k)
+  (mul2 a b)
+ => -259-3i-3j+3k
+*/
   a = qsquat_make(machine, 0, 2, 3, 5);
   b = qsquat_make(machine, 0, 13, 21, 34);
   p = CONS(y_mul2,
       CONS(a,
       CONS(b, QSNIL)));
   qsmachine_load(machine, p, prims1, QSNIL);
-  qsmachine_step(machine);  /* resolve "*" to operation. */
+  qsmachine_step(machine);  /* examine call (begin sub-continuations) */
+  qsmachine_step(machine);  /* resolve operation. */
+  qsmachine_step(machine);  /* resolve first argument. */
+  qsmachine_step(machine);  /* resolve second argument. */
   qsmachine_step(machine);  /* apply operation "mul2". */
   qsptr_crepr(machine, machine->A, buf, sizeof(buf));
   ck_assert_str_eq(buf, "-259-3i-3j+3k");
+
+
+  /* Nested addition. */
+/*
+  (add2 (add2 1 1) 1)
+ => 3
+*/
+  qsptr_t exp;
+  exp = qspair_make(machine, y_add2,
+	qspair_make(machine,
+	  qspair_make(machine,y_add2,
+	    qspair_make(machine, QSINT(1),
+	    qspair_make(machine, QSINT(1), QSNIL))),
+	qspair_make(machine, QSINT(1), QSNIL)));
+  qsptr_crepr(machine, exp, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(add2 (add2 1 1) 1)");
+  qsptr_t C, E, K;
+  C = exp;
+  E = prims1;
+  K = QSNIL;
+  qsmachine_load(machine, C, E, K);
+  qsmachine_step(machine);  /* examine call (begin sub-continuations) */
+  qsmachine_step(machine);  /* evaluate top-level operation */
+  qsmachine_step(machine);  /*  evaluate first argument: examine sub-call */
+  qsmachine_step(machine);  /*  evaluate nested operation */
+  qsmachine_step(machine);  /*  evaluate nested first argument */
+  qsmachine_step(machine);  /*  evaluate nested second argument */
+  qsmachine_step(machine);  /*  evaluate nested call */
+  qsmachine_step(machine);  /* evaluate second argument */
+  qsmachine_step(machine);  /* evalute top-level call */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "3");
+
+/*
+  (add2 2 (add2 3 4))
+ => 3
+*/
+  exp = qspair_make(machine, y_add2,
+	qspair_make(machine, QSINT(2),
+        qspair_make(machine,
+	  qspair_make(machine,y_add2,
+	    qspair_make(machine, QSINT(3),
+	    qspair_make(machine, QSINT(4), QSNIL))),
+	QSNIL)));
+  qsptr_crepr(machine, exp, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "(add2 2 (add2 3 4))");
+  C = exp;
+  E = prims1;
+  K = QSNIL;
+  qsmachine_load(machine, C, E, K);
+  qsmachine_step(machine);  /* examine call (begin sub-continuations) */
+  qsmachine_step(machine);  /* evaluate top-level operation */
+  qsmachine_step(machine);  /* evaluate first argument */
+  qsmachine_step(machine);  /*  evaluate second argument: examine sub-call */
+  qsmachine_step(machine);  /*  evaluate nested operation */
+  qsmachine_step(machine);  /*  evaluate nested first argument */
+  qsmachine_step(machine);  /*  evaluate nested second argument */
+  qsmachine_step(machine);  /*  evaluate nested call */
+  qsmachine_step(machine);  /* evalute top-level call */
+  qsptr_crepr(machine, machine->A, buf, sizeof(buf));
+  ck_assert_str_eq(buf, "9");
 }
 END_TEST
 

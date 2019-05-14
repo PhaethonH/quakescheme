@@ -163,8 +163,6 @@ Word-Pointer expanding-tag encoding
 
 #define QSKONT_LETK     QSCONST(20)
 #define QSKONT_CALLK    QSCONST(21)
-#define QSKONT_ARGK     QSCONST(22)
-#define QSKONT_APPLYK   QSCONST(23)
 #define ISKONT(x)       ((x)==QSKONT_LETK || (x)==QSKONT_CALLK)
 
 #define QSPORT_CLOSED   QSCONST(30)
