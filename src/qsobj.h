@@ -1,5 +1,6 @@
 #ifndef QSOBJ_H_
 #define QSOBJ_H_
+/* Generic object structures in memory. */
 
 #include <stdbool.h>
 #include <stdio.h>

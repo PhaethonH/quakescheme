@@ -38,6 +38,8 @@ Primitives are grouped into modules that may be mixed and matched.
 The groupings can also be used to provide alternate implementations
 (e.g.  complex-aware mathematics functions), or to grant/restrict
 features (e.g. file functions).
+
+Most primitives tie into the Scheme value operations of qsval.h.
 */
 
 
@@ -2382,7 +2384,7 @@ static qsptr_t qsprim_rem2 (qsmachine_t * mach, qsptr_t args)
 
 /* Mathematics:abs */
 
-/* Mathematics: Arithmetic yielding to libm. */
+/* Mathematics: Arithmetic delegating to libm. */
 
 static qsptr_t qsprim_floor (qsmachine_t * mach, qsptr_t args)
 {

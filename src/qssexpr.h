@@ -48,10 +48,17 @@ typedef struct qssxparse_s qssxparse_t;
 extern qssxparse_t * qssxparse_init (qssxparse_t *, int variant, qsmachine_t * mach);
 extern qssxparse_t * qssxparse_destroy (qssxparse_t *);
 extern qssxparse_t * qssxparse_reset (qssxparse_t *);
+/* Externally drive the parser, one character at time.
+   While inefficient, this arrangement allows the parser to be agnostic about
+   the bytestream source: ROM string, string port, file port, etc.
+*/
 extern int qssxparse_feed (qssxparse_t *, int ch, qsptr_t * out);
 
 
-/* Parser operations table. */
+/* Parser operations table.
+   Helps support having multiple variants of parsers to accommodate varying
+   levels of features.
+ */
 extern struct qssxparser_ops_s {
 /*
     int (*logv)(const char * fmt, va_list vp);

@@ -51,6 +51,9 @@ int qssexpr_log (const char * fmt, ...)
 
 
 
+/* Character type predicates.
+   See also qssexpr_private.h.
+ */
 static
 bool one_of (int * accept, int ch)
 {
@@ -284,56 +287,6 @@ qsptr_t to_atom (qsmachine_t * mach, qsptr_t lexeme)
   return qssymbol_intern_c(mach, cstr, slen);
 }
 
-
-
-
-#if 0
-qsptr_t qssexpr_parse_cstr (qsheap_t * mem, int version, const char * srcstr, const char ** endptr)
-{
-  qsptr_t retval = QSBLACKHOLE;
-  int ch = 0;
-  int scan = 0;
-  int halt = 0;
-  int srclen = 0;
-  struct qssxparse_s _parser = { 0, }, *parser = &_parser;
-#if 1
-  mbstate_t ps = { 0, };
-  wchar_t widechar;
-  int wideres = 0;
-#endif //0
-
-  qssxparse_init(mem, parser, version);
-  srclen = strlen(srcstr);
-
-  while (! halt)
-    {
-      if (srcstr[scan])
-	{
-#if 1
-	  wideres = mbrtowc(&widechar, srcstr + scan, srclen - scan + 1, &ps);
-	  /* TODO: error: invalid multibyte sequence. */
-	  if (wideres < 0) return QSERROR_INVALID;
-	  scan += wideres;
-	  ch = widechar;
-#else
-	  ch = srcstr[scan];
-	  scan++;
-#endif //0
-	}
-      else
-	{ /* end of stream, yield nul */
-	  ch = 0;
-	}
-
-      halt = qssxparse_feed(mem, parser, ch, &retval);
-    }
-  if (endptr)
-    {
-      *endptr = srcstr + scan;
-    }
-  return retval;
-}
-#endif //0
 
 
 #if 1
