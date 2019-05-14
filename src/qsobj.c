@@ -293,15 +293,17 @@ qserr_t qsovec_setq (qsovec_t * ovec, qsword k, qsbyte val)
     }
 }
 
-/* TODO: implement. */
 qserr_t qsovec_incr_refcount (qsovec_t * ovec)
 {
+  /* TODO: implement. */
+  (void)ovec;
   return QSERR_OK;
 }
 
-/* TODO: implement. */
 qserr_t qsovec_decr_refcount (qsovec_t * ovec)
 {
+  /* TODO: implement. */
+  (void)ovec;
   return QSERR_OK;
 }
 

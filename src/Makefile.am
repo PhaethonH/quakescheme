@@ -1,5 +1,5 @@
 #AM_STRICTFLAGS=-std=c99 -Wall -Wextra  -Wstrict-aliasing -pedantic -Werror -Wunreachable-code -Wcast-align -Wcast-qual -Wdisabled-optimization -Wformat=2 -Wlogical-op -Wmissing-include-dirs -Wredundant-decls -Wshadow -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef -Wno-unused -Wno-variadic-macros -Wno-parentheses -fdiagnostics-show-option
-AM_STRICTFLAGS=-Wall -Werror
+AM_STRICTFLAGS=-Wall -Werror -Wextra
 
 
 lib_LIBRARIES = libquakescheme.a

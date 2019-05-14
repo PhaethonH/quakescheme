@@ -27,7 +27,7 @@ qssegment_t * qssegment_destroy (qssegment_t * segment)
 qssegment_t * qssegment_clear (qssegment_t * segment)
 {
   /* write zeroes in units of qsword. */
-  for (int i = 0; i < (segment->cap / sizeof(qsword)); i++)
+  for (qsword i = 0; i < (segment->cap / sizeof(qsword)); i++)
     {
       ((qsword*)(segment->space))[i] = 0;
     }
@@ -319,6 +319,10 @@ qsword qsstore_get_word (const qsstore_t * store, qsaddr_t addr)
 qsword qsstore_fetch_words (const qsstore_t * store, qsaddr_t addr, qsword * dest, qsword word_count)
 {
   /* TODO */
+  (void)store;
+  (void)addr;
+  (void)dest;
+  (void)word_count;
   return 0;
 }
 
@@ -337,12 +341,16 @@ const qsword * qsstore_word_at_const (const qsstore_t * store, qsaddr_t addr)
 qserr_t qsstore_attach_wmem (qsstore_t * store, qssegment_t * wmem, qsaddr_t baseaddr)
 {
   store->wmem = wmem;
+  /* TODO: base address mapping. */
+  (void)baseaddr;
   return QSERR_OK;
 }
 
 qserr_t qsstore_attach_rmem (qsstore_t * store, const qssegment_t * rmem, qsaddr_t baseaddr)
 {
   store->rmem = rmem;
+  /* TODO: base address mapping. */
+  (void)baseaddr;
   return QSERR_OK;
 }
 
@@ -373,6 +381,10 @@ qserr_t qsstore_set_word (qsstore_t * store, qsaddr_t addr, qsword val)
 qsword qsstore_put_words (qsstore_t * store, qsaddr_t addr, qsword * src, qsword count)
 {
   /* TODO */
+  (void)store;
+  (void)addr;
+  (void)src;
+  (void)count;
   return 0;
 }
 
@@ -574,7 +586,14 @@ qserr_t qsstore_trace (qsstore_t * store, qsaddr_t root, int mark)
 		      /* fallthrough. */
 		    case 3: /* done. */
 		      MGMT_SET_REVERS(obj->mgmt, 0);
-		      MGMT_SET_MARK(obj->mgmt);
+		      if (mark)
+			{
+			  MGMT_SET_MARK(obj->mgmt);
+			}
+		      else
+			{
+			  MGMT_CLR_MARK(obj->mgmt);
+			}
 		      prev = curr;		  /* true child. */
 		      curr = parent;		  /* true parent. */
 		      break;
@@ -587,7 +606,14 @@ qserr_t qsstore_trace (qsstore_t * store, qsaddr_t root, int mark)
 	      if (MGMT_IS_OCT(obj->mgmt))
 		{
 		  /* trace byte-vector. */
-		  MGMT_SET_MARK(obj->mgmt);
+		  if (mark)
+		    {
+		      MGMT_SET_MARK(obj->mgmt);
+		    }
+		  else
+		    {
+		      MGMT_CLR_MARK(obj->mgmt);
+		    }
 		}
 	      else
 		{
@@ -628,7 +654,14 @@ qserr_t qsstore_trace (qsstore_t * store, qsaddr_t root, int mark)
 		      /* Out of bounds.  Terminate.  Backtrack. */
 		      obj->fields[2] = QSNIL;
 		      obj->fields[3] = QSNIL;
-		      MGMT_SET_MARK(obj->mgmt);
+		      if (mark)
+			{
+			  MGMT_SET_MARK(obj->mgmt);
+			}
+		      else
+			{
+			  MGMT_CLR_MARK(obj->mgmt);
+			}
 		      curr = gcback;
 		    }
 		}

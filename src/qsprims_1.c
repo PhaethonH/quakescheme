@@ -44,6 +44,7 @@ features (e.g. file functions).
 static
 qsptr_t qsprim_halt (qsmachine_t * mach, qsptr_t args)
 {
+  (void)args;
   mach->halt = true;
   return QSERR_FAULT;
 }
@@ -689,6 +690,8 @@ struct prims_table_s table1_bytevectors[] = {
 
 static qsptr_t qsprim_eof_object (qsmachine_t * mach, qsptr_t args)
 {
+  (void)mach;
+  (void)args;
   return QSEOF;
 }
 
@@ -739,6 +742,7 @@ static qsptr_t qsprim_port_close (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_current_input_port (qsmachine_t * mach, qsptr_t args)
 {
+  (void)args;
   qsptr_t y_stdin = qssymbol_intern_c(mach, "*current-input-port*", 0);
   qsptr_t retval = qsenv_lookup(mach, mach->E, y_stdin);
   if (qsnil_p(mach, retval)) retval = qsfd_make(mach, 0);
@@ -747,6 +751,7 @@ static qsptr_t qsprim_current_input_port (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_current_output_port (qsmachine_t * mach, qsptr_t args)
 {
+  (void)args;
   qsptr_t y_stdout = qssymbol_intern_c(mach, "*current-output-port*", 0);
   qsptr_t retval = qsenv_lookup(mach, mach->E, y_stdout);
   if (qsnil_p(mach, retval)) retval = qsfd_make(mach, 1);
@@ -755,6 +760,7 @@ static qsptr_t qsprim_current_output_port (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_current_error_port (qsmachine_t * mach, qsptr_t args)
 {
+  (void)args;
   qsptr_t y_stderr = qssymbol_intern_c(mach, "*current-error-port*", 0);
   qsptr_t retval = qsenv_lookup(mach, mach->E, y_stderr);
   if (qsnil_p(mach, retval)) retval = qsfd_make(mach, 2);
@@ -1475,6 +1481,7 @@ static enum numtower_e _delegate_libm1 (alu_t * a,
       if (funcd)  a->z.d = funcd(a->x.d);
       break;
     default:
+      (void)funcc;
       a->ztype = NUMTYPE_NAN;
       break;
     }
@@ -1505,6 +1512,7 @@ static enum numtower_e _delegate_libm2 (alu_t * a,
       if (funcd)  a->z.d = funcd(a->x.d, a->y.d);
       break;
     default:
+      (void)funcc;
       a->ztype = NUMTYPE_NAN;
       break;
     }
@@ -1790,18 +1798,21 @@ static qsptr_t qsprim_numbits_cast_quat (qsmachine_t * mach, qsptr_t args)
 
 static qsptr_t qsprim_make_inf (qsmachine_t * mach, qsptr_t args)
 {
+  (void)args;
   qsptr_t retval = qspinf_make(mach);
   return retval;
 }
 
 static qsptr_t qsprim_make_ninf (qsmachine_t * mach, qsptr_t args)
 {
+  (void)args;
   qsptr_t retval = qsninf_make(mach);
   return retval;
 }
 
 static qsptr_t qsprim_make_nan (qsmachine_t * mach, qsptr_t args)
 {
+  (void)args;
   qsptr_t retval = qspnan_make(mach);
   return retval;
 }

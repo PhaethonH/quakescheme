@@ -69,7 +69,7 @@ bool is_op (int ch) { return (ch == '('); }
 bool is_cl (int ch) { return (ch == ')'); }
 bool is_string_delimit (int ch) { return (ch == '"'); }
 bool is_string_escape (int ch) { return (ch == '\\'); }
-bool is_any (int ch) { return 1; }
+bool is_any (int ch) { (void)ch; return 1; }
 
 bool is_decdigit (int ch) { return isdigit(ch); }
 bool is_hexdigit (int ch) { return isxdigit(ch); }
