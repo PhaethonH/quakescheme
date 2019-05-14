@@ -108,6 +108,8 @@ Word-Pointer expanding-tag encoding
 
 
 /* Conversions from word-pointers. */
+#ifdef ALLOW_CAST_TO_UNION
+/*  Exploit cast-to-union; allows casting from float bits to pointer bits. */
 #define CFLOAT31(x)     ((union qsbits_u)(x)).f
 #define CINT30(x)       (((union qsbits_u)(x & ~(MASK_TAG30))).i / (1 << SHIFT_TAG30))
 #define CITER28(x)      (((union qsbits_u)(x)).w >> SHIFT_TAG28)
@@ -118,13 +120,40 @@ Word-Pointer expanding-tag encoding
 #define CPRIM20(x)      (((union qsbits_u)(x)).w >> SHIFT_TAG20)
 #define CERR20(x)       (((union qsbits_u)(x)).w >> SHIFT_TAG20)
 #define CFD20(x)        (((union qsbits_u)(x)).w >> SHIFT_TAG20)
+#else
+/*  Avoid cast-to-union. */
+__inline__ static float CFLOAT31 (qsword x) {
+  union qsbits_u u; u.w = x; return u.f; }
+/* Zero out tag bits (could affect rounding), then divide for sign extend. */
+__inline__ static int CINT30 (qsword x) {
+  union qsbits_u u; u.w = x & ~(MASK_TAG30); return u.i / (1 << SHIFT_TAG30); }
+#define CITER28(x)      (((qsword)(x)) >> SHIFT_TAG28)
+#define COBJ26(x)       (((qsword)(x)) >> SHIFT_TAG26)
+#define CSYM26(x)       (((qsword)(x)) >> SHIFT_TAG26)
+#define CCHAR24(x)      (((qsword)(x)) >> SHIFT_TAG24)
+#define CCONST20(x)     (((qsword)(x)) >> SHIFT_TAG20)
+#define CPRIM20(x)      (((qsword)(x)) >> SHIFT_TAG20)
+#define CERR20(x)       (((qsword)(x)) >> SHIFT_TAG20)
+#define CFD20(x)        (((qsword)(x)) >> SHIFT_TAG20)
+#endif // ALLOW_CAST_TO_UNION
 
 #define CBOOL(x)        (!(x == QSFALSE))
 
 
 /* Conversions to word-pointers. */
+#ifdef ALLOW_CAST_TO_UNION
+/*  Exploit cast-to-union. */
 #define QSFLOAT(f)      (((union qsbits_u)((float)(f))).w & ~MASK_TAG31)
 #define QSINT(i)        (((union qsbits_u)((i) * (1 << SHIFT_TAG30))).w | TAG_INT30)
+#else
+/*  Avoid cast-to-union. */
+/* Zero out LSb. */
+__inline__ static qsword QSFLOAT (float f) {
+  union qsbits_u u; u.f = f; u.w &= ~MASK_TAG31; return u.w; }
+/* shift upwards, then attach tag bits. */
+__inline__ static qsword QSINT (int i) {
+  union qsbits_u u; u.i = i * (1 << SHIFT_TAG30); u.w |= TAG_INT30; return u.w; }
+#endif // ALLOW_CAST_TO_UNION
 #define QSITER(a)       ((a << SHIFT_TAG28) | TAG_ITER28)
 #define QSOBJ(a)        ((a << SHIFT_TAG26) | TAG_OBJ26)
 #define QSSYM(a)        ((a << SHIFT_TAG26) | TAG_SYM26)

@@ -146,8 +146,8 @@ int qsmachine_applykont (qsmachine_t * mach, qsptr_t k, qsptr_t value)
 	      /* evaluate continuation. */
 	      qsptr_t cc = CAR(clist);
 	      qsptr_t a = CAR(CDR(clist));
-	      qsptr_t k = qskont_ref_k(mach, cc);
-	      qsmachine_applykont(mach, k, a);
+	      qsptr_t k2 = qskont_ref_k(mach, cc);
+	      qsmachine_applykont(mach, k2, a);
 	    }
 	  else
 	    {
@@ -302,8 +302,8 @@ int qsmachine_step (qsmachine_t * mach)
 	  qsptr_t aexp = CAR(args);
 	  qsptr_t proc = qsmachine_eval_atomic(mach, aexp);
 	  qsptr_t cc = qskont_make_current(mach);
-	  qsptr_t args = qspair_make(mach, cc, QSNIL);
-	  qsmachine_applyproc(mach, proc, args);
+	  qsptr_t procargs = qspair_make(mach, cc, QSNIL);
+	  qsmachine_applyproc(mach, proc, procargs);
 	}
       else
 	{

@@ -585,6 +585,7 @@ qserr_t qsstore_trace (qsstore_t * store, qsaddr_t root, int mark)
 			}
 		      /* fallthrough. */
 		    case 3: /* done. */
+		    default:
 		      MGMT_SET_REVERS(obj->mgmt, 0);
 		      if (mark)
 			{

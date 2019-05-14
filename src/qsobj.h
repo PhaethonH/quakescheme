@@ -111,7 +111,7 @@ typedef struct qspvec_s {
     qsptr_t length;
     qsptr_t gcback;
     qsptr_t gciter;
-    qsptr_t elt[0]; /* variable length. */
+    qsptr_t elt[]; /* variable length. */
 } qspvec_t;
 
 extern qspvec_t * qspvec_init (qspvec_t * pvec, int allocscale, qsptr_t len);
@@ -156,7 +156,7 @@ typedef struct qsovec_s {
     qsptr_t length;
     qsword refcount;
     qsword reflock;
-    qsbyte elt[0];  /* variable length. */
+    qsbyte elt[];  /* variable length. */
 } qsovec_t;
 
 extern qsovec_t * qsovec_init (qsovec_t * ovec, int allocscale, qsptr_t len);

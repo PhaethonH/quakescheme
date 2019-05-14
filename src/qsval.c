@@ -3404,7 +3404,7 @@ qsptr_t qssymbol_intern_c (qsmachine_t * mach, const char * cstr, int slen)
 
 const char * qssymbol_get (const qsmachine_t * mach, qsptr_t p)
 {
-  qsptr_t x;
+  qsptr_t x = QSNIL;
   if (qssym_p(mach, p)) x = qssym_name(mach, p);
   if (! qsname_p(mach, x)) return NULL;
   const qsovec_t * st = qsname_const(mach, x);
