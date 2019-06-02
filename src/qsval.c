@@ -1459,7 +1459,7 @@ int qslong_crepr (const qsmachine_t * mach, qsptr_t p, char * buf, int buflen)
       n += qs_snprintf(buf+n, buflen-n, "%d", 0);
       return n;
     }
-  n += qs_snprintf(buf+n, buflen-n, "%ld", l->payload.l);
+  n += qs_snprintf(buf+n, buflen-n, "%lld", l->payload.l);
   return n;
 }
 

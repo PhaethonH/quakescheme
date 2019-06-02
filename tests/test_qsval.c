@@ -12,6 +12,10 @@
 
 /* Unit test: qsvalue, values manipulation */
 
+#ifndef TESTS_DIR
+#define TESTS_DIR "./"
+#endif
+
 qsmachine_t _machine, *machine=&_machine;
 
 unsigned char buf[4096];
@@ -263,7 +267,7 @@ START_TEST(test_widenums)
   /* longs */
   p = qslong_make(machine, 8111222333);
   ck_assert(qslong_p(machine, p));  /* test predicate */
-  long l = 0;
+  int64_t l = 0;
   l = qslong_get(machine, p); /* test get(). */
   ck_assert(l == 8111222333);
   l = 0;
@@ -830,9 +834,8 @@ START_TEST(test_ports)
   ck_assert_str_eq(buf, "Scheme");
 
   /* FILE port. */
-  port = qsfport_make(machine, "read1.txt", NULL);
-  if (! qscport_p(machine, port))
-    port = qsfport_make(machine, "tests/read1.txt", NULL);
+  const char * read1fn = TESTS_DIR "read1.txt";
+  port = qsfport_make(machine, read1fn, NULL);
   ck_assert(qscport_p(machine, port));
   ck_assert(qsfport_p(machine, port));
   b = qsfport_read_u8(machine, port);
@@ -847,9 +850,7 @@ START_TEST(test_ports)
   ck_assert_int_eq(b, 'o');
 
   /* FD port. */
-  port = qsfd_open_c(machine, "read1.txt", O_RDONLY, 0);
-  if (! qsfd_p(machine, port))
-    port = qsfd_open_c(machine, "tests/read1.txt", O_RDONLY, 0);
+  port = qsfd_open_c(machine, read1fn, O_RDONLY, 0);
   ck_assert(qsfd_p(machine, port));
   b = qsfd_read_u8(machine, port);
   ck_assert_int_eq(b, 'h');
@@ -919,9 +920,7 @@ START_TEST(test_ports)
 
 
   /* Port.cfile */
-  port = qsport_make_c(machine, QSPORT_CFILE, "read1.txt", 0, 0, 0);
-  if (! qsport_p(machine, port))
-    port = qsport_make_c(machine, QSPORT_CFILE, "tests/read1.txt", 0, 0, 0);
+  port = qsport_make_c(machine, QSPORT_CFILE, read1fn, 0, 0, 0);
   ck_assert(qsport_p(machine, port));
   b = qsport_read_u8(machine, port);
   ck_assert_int_eq(b, 'h');
@@ -943,9 +942,7 @@ START_TEST(test_ports)
 
 
   /* Port.fd */
-  port = qsport_make_c(machine, QSPORT_FD, "read1.txt", 0, 0, 0);
-  if (! qsfd_p(machine, port))
-    port = qsport_make_c(machine, QSPORT_FD, "tests/read1.txt", 0, 0, 0);
+  port = qsport_make_c(machine, QSPORT_FD, read1fn, 0, 0, 0);
   ck_assert(qsport_p(machine, port));
   b = qsport_read_u8(machine, port);
   ck_assert_int_eq(b, 'h');
@@ -956,11 +953,8 @@ START_TEST(test_ports)
   b = qsport_read_u8(machine, port);
   ck_assert_int_eq(b, 'l');
 
-  qsptr_t s1 = qsutf8_inject_charp(machine, "read1.txt", 0);
-  qsptr_t s2 = qsutf8_inject_charp(machine, "tests/read1.txt", 0);
+  qsptr_t s1 = qsutf8_inject_charp(machine, TESTS_DIR "read1.txt", 0);
   port = qsport_make(machine, QSPORT_FD, s1, 0, 0);
-  if (! qsfd_p(machine, port))
-    port = qsport_make(machine, QSPORT_FD, s2, 0, 0);
   ck_assert(qsport_p(machine, port));
   b = qsport_read_u8(machine, port);
   ck_assert_int_eq(b, 'h');
