@@ -1,5 +1,6 @@
 #ifndef QSOBJ_H_
 #define QSOBJ_H_
+/* Generic object structures in memory. */
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -16,13 +17,13 @@
 #define MGMT_SHIFT_SCORE      (16)
 #define MGMT_SHIFT_ALLOC      (3)
 
-#define MGMT_MASK_USED	      (1 << MGMT_SHIFT_USED)
-#define MGMT_MASK_MARK	      (1 << MGMT_SHIFT_MARK)
-#define MGMT_MASK_GREY	      (1 << MGMT_SHIFT_GREY)
-#define MGMT_MASK_OCT         (1 << MGMT_SHIFT_OCT)
-#define MGMT_MASK_REVERS      (3 << MGMT_SHIFT_REVERS)
-#define MGMT_MASK_SCORE       ( ((1<<8)-1) << MGMT_SHIFT_SCORE )
-#define MGMT_MASK_ALLOC       ( ((1<<5)-1) << MGMT_SHIFT_ALLOC )
+#define MGMT_MASK_USED	      (1U << MGMT_SHIFT_USED)
+#define MGMT_MASK_MARK	      (1U << MGMT_SHIFT_MARK)
+#define MGMT_MASK_GREY	      (1U << MGMT_SHIFT_GREY)
+#define MGMT_MASK_OCT         (1U << MGMT_SHIFT_OCT)
+#define MGMT_MASK_REVERS      (3U << MGMT_SHIFT_REVERS)
+#define MGMT_MASK_SCORE       ( ((1U<<8)-1) << MGMT_SHIFT_SCORE )
+#define MGMT_MASK_ALLOC       ( ((1U<<5)-1) << MGMT_SHIFT_ALLOC )
 
 #define MGMT_IS_USED(x)	      (((x) & MGMT_MASK_USED) == MGMT_MASK_USED)
 #define MGMT_IS_MARK(x)	      (((x) & MGMT_MASK_MARK) == MGMT_MASK_MARK)
@@ -111,7 +112,7 @@ typedef struct qspvec_s {
     qsptr_t length;
     qsptr_t gcback;
     qsptr_t gciter;
-    qsptr_t elt[0]; /* variable length. */
+    qsptr_t elt[]; /* variable length. */
 } qspvec_t;
 
 extern qspvec_t * qspvec_init (qspvec_t * pvec, int allocscale, qsptr_t len);
@@ -156,7 +157,7 @@ typedef struct qsovec_s {
     qsptr_t length;
     qsword refcount;
     qsword reflock;
-    qsbyte elt[0];  /* variable length. */
+    qsbyte elt[];  /* variable length. */
 } qsovec_t;
 
 extern qsovec_t * qsovec_init (qsovec_t * ovec, int allocscale, qsptr_t len);

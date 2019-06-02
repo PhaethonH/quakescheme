@@ -6,20 +6,22 @@
 
 #define SMEM_SIZE   (1 << 16)
 
-/* memory segment. */
+/* TODO: base address mapping should be invisible to the segment (i.e. move to composing object).  */
+
+/* memory segment.*/
 typedef struct qssegment_s {
     qsword baseaddr;   /* Base address for address mapping. */
     qsword cap;	  /* Total bytes available in space. */
     qsaddr_t freelist;   /* Start of freelist. */
     qsword reserved3;  /* reserved words to align 'space' on 128b boundary. */
     qsbyte space[SMEM_SIZE];  /* variable-length array. */
-} qssegment_t;
+} __attribute__((aligned(16))) qssegment_t;
 
 extern qssegment_t * qssegment_init (qssegment_t *, qsword baseaddr, qsword cap);
 extern qssegment_t * qssegment_destroy (qssegment_t *);
 extern qssegment_t * qssegment_clear (qssegment_t *);
 #ifdef DEBUG_QSSEGMENT
-/* only expose for debug and unit-testing. */
+/* expose for only debug and unit-testing. */
 extern int _qssegment_unfree (qssegment_t *, qsaddr_t local_addr);
 extern qsaddr_t _qssegment_split (qssegment_t *, qsaddr_t local_addr, qsword nth_boundary);
 extern qsaddr_t _qssegment_fit (qssegment_t *, qsword spanbounds);

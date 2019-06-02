@@ -141,7 +141,7 @@ qsptr_t sexpr_revlist_to_atom (qsmachine_t * mach, qsptr_t revlist)
   qsword lislen = qslist_length(mach, revlist);
   qsptr_t lexeme = qsutf8_make(mach, lislen, 0);
   qsutf8_hold(mach, lexeme); /* increment reference count. */
-  for (int i = 0; i < lislen; i++)
+  for (qsword i = 0; i < lislen; i++)
     {
       qsptr_t node = qslist_ref(mach, revlist, lislen-i-1);
       int ch = CCHAR24(node);
@@ -307,6 +307,8 @@ int sxparse_feed (qssxparse_t * parser, int ch, qsptr_t * out)
 	  parser->complete = 1;
 	  parser->prevch = ch;
 	  break;
+	default:
+	  break;
 	}
 
       parser->state = nextstate;
@@ -344,12 +346,15 @@ int sxparse_feed (qssxparse_t * parser, int ch, qsptr_t * out)
 static
 qssxparse_t * sxparse_init (qssxparse_t * parser, qsmachine_t * mach)
 {
+  /* TODO */
+  (void)mach;
   return parser;
 }
 
 static
 qssxparse_t * sxparse_destroy (qssxparse_t * parser)
 {
+  /* TODO */
   return parser;
 }
 

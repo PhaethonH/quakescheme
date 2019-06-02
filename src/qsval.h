@@ -14,24 +14,43 @@
 /* identify function, for use in table-of-functions. */
 extern qsptr_t qsptr_make (qsmachine_t *, qsptr_t);
 
+
+/* Common operations for objects.
+   _make(...) - create instance in Scheme memory.
+   _p(...) - predicate, is-a.
+   _get(...) - return C-friendly value.
+   _put(...,...) - mutate using a C-friendly value.
+   _fetch(...) - copy contents to C buffer.
+   _ref(...) - return Scheme-friendly value.
+   _set*q(...) - mutate using Scheme-friendly value.
+   _crepr(...) - write string representation into C buffer.
+*/
+
+
 /* Directly encoded values. */
 
+/* Nil - The empty list. */
 extern qsptr_t qsnil_make (qsmachine_t *);
 extern bool qsnil_p (const qsmachine_t *, qsptr_t p);
 
+/* EOF - the End-Of-File object. */
 extern qsptr_t qseof_make (const qsmachine_t *);
+extern bool qseof_p (const qsmachine_t *, qsptr_t p);
 
 
+/* Boolean. */
 extern qsptr_t qsbool_make (qsmachine_t *, int val);
 extern bool qsbool_p (const qsmachine_t *, qsptr_t p);
 extern bool qsbool_get (const qsmachine_t *, qsptr_t p);
 extern int qsbool_crepr (const qsmachine_t *, qsptr_t p, char *buf, int buflen);
 
+/* Float31 (31-bit floating-point). */
 extern qsptr_t qsfloat_make (qsmachine_t *, float val);
 extern bool qsfloat_p (const qsmachine_t *, qsptr_t p);
 extern float qsfloat_get (const qsmachine_t *, qsptr_t p);
 extern int qsfloat_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Int30 (30-bit signed integer). */
 extern qsptr_t qsint_make (qsmachine_t *, int32_t val);
 extern bool qsint_p (const qsmachine_t *, qsptr_t p);
 extern int32_t qsint_get (const qsmachine_t *, qsptr_t p);
@@ -41,16 +60,19 @@ extern int qsint_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 #define MAX_INT30 ((int)(~((qsword)0) >> (SHIFT_TAG30 + 1)))
 #define MIN_INT30 ((int)(-MAX_INT30 - 1))
 
+/* Character (24-bit codepoint). */
 extern qsptr_t qschar_make (qsmachine_t *, int val);
 extern bool qschar_p (const qsmachine_t *, qsptr_t p);
 extern int qschar_get (const qsmachine_t *, qsptr_t p);
 extern int qschar_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Const (20-bit system-level symbols). */
 extern qsptr_t qsconst_make (qsmachine_t *, int const_id);
 extern bool qsconst_p (const qsmachine_t *, qsptr_t p);
 extern int qsconst_get (const qsmachine_t *, qsptr_t p);
 extern int qsconst_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Infinities and Not-A-Number. */
 extern bool qspinf_p (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qspinf_make (qsmachine_t *);
 extern bool qsninf_p (const qsmachine_t *, qsptr_t p);
@@ -80,6 +102,7 @@ extern bool qsfd_write_u8 (const qsmachine_t *, qsptr_t p, int byte);
 extern bool qsfd_close (const qsmachine_t *, qsptr_t p);
 extern int qsfd_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Primitive-Operations handles. */
 extern qsptr_t qsprim_make (qsmachine_t *, qsword primid);
 extern bool qsprim_p (const qsmachine_t *, qsptr_t p);
 extern int qsprim_id (const qsmachine_t *, qsptr_t p);
@@ -100,6 +123,9 @@ extern qsptr_t qsobj_make (qsmachine_t *, qsword obj_id);
 extern qsword qsobj_id (const qsmachine_t *, qsptr_t p);
 extern qsaddr_t qsobj_address (const qsmachine_t *, qsptr_t p);
 
+/* The Sym handle, to simply direct comparison of symbols.
+   See Name for holding the symbol names.
+*/
 extern qsptr_t qssym_make (qsmachine_t *, qsword sym_id);
 extern qsword qssym_id (const qsmachine_t *, qsptr_t p);
 extern bool qssym_p (const qsmachine_t *, qsptr_t p);
@@ -107,6 +133,7 @@ extern qsptr_t qssym_symbol (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qssym_name (const qsmachine_t *, qsptr_t p);
 extern int qssym_crepr (qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Pair. */
 extern qsptr_t qspair_make (qsmachine_t *, qsptr_t a, qsptr_t d);
 extern bool qspair_p (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qspair_ref_head (const qsmachine_t *, qsptr_t p);
@@ -120,6 +147,7 @@ extern qsptr_t qspair_setq_tail (qsmachine_t *, qsptr_t p, qsptr_t d);
 extern qsptr_t qspair_iter (const qsmachine_t *, qsptr_t p);
 extern int qspair_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Vector. */
 extern qsptr_t qsvector_make (qsmachine_t *, qsword len, qsptr_t fill);
 extern bool qsvector_p (const qsmachine_t *, qsptr_t p);
 extern qsword qsvector_length (const qsmachine_t *, qsptr_t p);
@@ -127,6 +155,12 @@ extern qsptr_t qsvector_ref (const qsmachine_t *, qsptr_t p, qsword k);
 extern qsptr_t qsvector_setq (qsmachine_t *, qsptr_t p, qsword k, qsptr_t val);
 extern int qsvector_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Character Vector.
+   Each element is a Character (24b) type.
+   This string representation allows mutation of individual character positions.
+
+   Utf8 uses multi-byte encoding; its mutation is disallowed for simplification.
+*/
 extern qsptr_t qscharvec_make (qsmachine_t *, qsword len, wchar_t fillch);
 extern bool qscharvec_p (const qsmachine_t *, qsptr_t p);
 extern qsword qscharvec_length (const qsmachine_t *, qsptr_t p);
@@ -163,19 +197,21 @@ extern void * qscptr_get (const qsmachine_t *, qsptr_t p);
 extern int qscptr_fetch (const qsmachine_t *, qsptr_t p, void ** out);
 extern int qscptr_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Widenum, Long (64b signed integer). */
 extern qsptr_t qslong_make (qsmachine_t *, int64_t val);
 extern bool qslong_p (const qsmachine_t *, qsptr_t p);
 extern int64_t qslong_get (const qsmachine_t *, qsptr_t p);
 extern int qslong_fetch (const qsmachine_t *, qsptr_t p, int64_t * out);
 extern int qslong_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Widenum, Double (64b floating point). */
 extern qsptr_t qsdouble_make (qsmachine_t *, double val);
 extern bool qsdouble_p (const qsmachine_t *, qsptr_t p);
 extern double qsdouble_get (const qsmachine_t *, qsptr_t p);
 extern int qsdouble_fetch (const qsmachine_t *, qsptr_t p, double * out);
 extern int qsdouble_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
-/* Quaternions, vec4_t */
+/* Quaternions, vec4_t (quadruplet of float32). */
 /* Multiplying quaternions yields negative dot product as real and cross product as imaginary. */
 extern qsptr_t qsquat_make (qsmachine_t *, float a, float b, float c, float d);
 extern qsptr_t qsquat_make_f4 (qsmachine_t *, const float q[4]);
@@ -202,13 +238,19 @@ extern qsptr_t qsmat4_set_cq (const qsmachine_t *, qsptr_t p, qsword row, float 
 extern qsptr_t qsmat4_set_crq (const qsmachine_t *, qsptr_t p, qsword row, qsword col, float val);
 #endif //0
 
-/* symbol object links symbol id (qsint) to symbol name (qsstring) */
+/* Name.  Holds names of symbols and other identifier-like strings.
+   The Sym object holds an address to a Name instance.
+   Support for Keyword expected to use this object.
+*/
 extern qsptr_t qsname_make (qsmachine_t *, qsword namelen);
+/* Returns Sym object. */
 extern qsptr_t qsname_bless (qsmachine_t *, qsptr_t s);
+/* Create a Name instance from a C String. */
 extern qsptr_t qsname_inject (qsmachine_t *, const char * cstr, qsword slen);
+/* Get pointer to the C String portion of the Name. */
 extern const char * qsname_get (const qsmachine_t *, qsptr_t p);
 extern bool qsname_p (const qsmachine_t *, qsptr_t p);
-/* get Qssym pointer from Qssymbol object. */
+/* get QsSym pointer from QsName object. */
 extern qsptr_t qsname_sym (const qsmachine_t *, qsptr_t p);
 extern qsword qsname_length (const qsmachine_t *, qsptr_t p);
 extern int qsname_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
@@ -240,6 +282,7 @@ extern qserr_t qsutf8_hold (qsmachine_t *, qsptr_t p);
 extern qserr_t qsutf8_release (qsmachine_t *, qsptr_t p);
 extern int qsutf8_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Bytevector. */
 extern qsptr_t qsbytevec_make (qsmachine_t *, qsword len, qsbyte fill);
 extern bool qsbytevec_p (const qsmachine_t *, qsptr_t p);
 extern qsword qsbytevec_length (const qsmachine_t *, qsptr_t p);
@@ -248,11 +291,18 @@ extern qsbyte qsbytevec_ref (const qsmachine_t *, qsptr_t p, qsword k);
 extern qsptr_t qsbytevec_setq (qsmachine_t *, qsptr_t p, qsword k, qsbyte val);
 extern int qsbytevec_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Environment object.
+   The first implementation is just an alist (association list).
+   The interface allows for creating a more comprehensive Environment object later.
+*/
 extern qsptr_t qsenv_make (qsmachine_t *, qsptr_t next_env);
+/* Establish a binding in the environment. */
 extern qsptr_t qsenv_insert (qsmachine_t *, qsptr_t env, qsptr_t variable, qsptr_t binding);
+/* Resolve binding from environment (in sense of lambda's free variables). */
 extern qsptr_t qsenv_lookup (qsmachine_t *, qsptr_t env, qsptr_t variable);
 extern int qsenv_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Kontinuation (First-Class Continuations). */
 /*
 QsKont:
 0 [ mgmt(ptr,1)   | variant       | gcback        | gciter        ]
@@ -279,17 +329,20 @@ extern qsptr_t qskont_set_kq (qsmachine_t *, qsptr_t p, qsptr_t val);
 extern int qskont_fetch (const qsmachine_t *, qsptr_t p, qsptr_t * out_variant, qsptr_t * out_v, qsptr_t * out_c, qsptr_t * out_e, qsptr_t * out_k);
 extern int qskont_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Helper functions for manipulating QsKont.callk */
 extern qsptr_t qskont_callq_new (qsmachine_t * mach, qsptr_t pending, qsptr_t env, qsptr_t k);
 extern qsptr_t qskont_callq_queue (qsmachine_t * mach, qsptr_t p, qsptr_t a);
 extern qsptr_t qskont_callq_shift (qsmachine_t * mach, qsptr_t p);
 extern qsptr_t qskont_callq_out (qsmachine_t * mach, qsptr_t p);
 
+/* Lambda - binds formal parameter and body. */
 extern qsptr_t qslambda_make (qsmachine_t *, qsptr_t parameters, qsptr_t body);
 extern bool qslambda_p (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qslambda_ref_param (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qslambda_ref_body (const qsmachine_t *, qsptr_t p);
 extern int qslambda_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
+/* Closure - binds lambda and environment. */
 extern qsptr_t qsclosure_make (qsmachine_t *, qsptr_t lambda, qsptr_t env);
 extern bool qsclosure_p (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qsclosure_ref_lam (const qsmachine_t *, qsptr_t p);
@@ -361,7 +414,7 @@ extern qsptr_t qsiter_head (const qsmachine_t *, qsptr_t p);
 extern qsptr_t qsiter_tail (const qsmachine_t *, qsptr_t p);
 extern int qsiter_crepr (const qsmachine_t *, qsptr_t p, char * buf, int buflen);
 
-/* Abstraction of QsSym and QsName */
+/* Symbol - abstraction of QsSym and QsName */
 extern bool qssymbol_p (const qsmachine_t *, qsptr_t p);
 /* convert string object to interned symbol; returns QsSym pointer. */
 extern qsptr_t qssymbol_bless (qsmachine_t *, qsptr_t s);

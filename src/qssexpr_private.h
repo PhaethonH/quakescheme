@@ -102,7 +102,36 @@ extern bool is_extend_symbol (int ch);
 /** "#;" - block comment, until ";#" */
 extern bool is_extend_comment (int ch);
 
+
+/* Character types specific to the drop-down console. */
+
+/* leading character indicating first symbol should be evaluated as an
+   and the remaining space-separated symbols interpreted as semi-quoted tokens
+   (terminated by end-of-line).
+   Intended to allow slash-commands:
+]/say name
+global chat: name
+]/say ,name
+global chat: Unnamed Player
+]/say "Hello,   world"
+global chat: Hello,   world
+]/say Hello,   world
+global chat: Hello, world
+]/set! name "New Name"
+New Name
+]/say ,name
+global chat: New Name
+*/
 extern bool is_console_xlist (int ch);
+/* leading character indicating rest of line as S-Expression.
+   Intended for printing variable bindings:
+]!name
+Unnamed Player
+]!(display name)
+Unnamed Player
+]name
+global chat: name
+*/
 extern bool is_console_sxp (int ch);
 
 
